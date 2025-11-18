@@ -1,0 +1,1757 @@
+{
+  "week": 13,
+  "games": [
+    {
+      "id": "401762862",
+      "name": "Akron Zips at Bowling Green Falcons",
+      "shortName": "AKR @ BGSU",
+      "date": "2025-11-19T00:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "BGSU -2.5",
+      "home": {
+        "id": "189",
+        "name": "Bowling Green Falcons",
+        "abbreviation": "BGSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/189.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2006",
+        "name": "Akron Zips",
+        "abbreviation": "AKR",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2006.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762863",
+      "name": "Massachusetts Minutemen at Ohio Bobcats",
+      "shortName": "MASS @ OHIO",
+      "date": "2025-11-19T00:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "OHIO -34.5",
+      "home": {
+        "id": "195",
+        "name": "Ohio Bobcats",
+        "abbreviation": "OHIO",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/195.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "113",
+        "name": "Massachusetts Minutemen",
+        "abbreviation": "MASS",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/113.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762864",
+      "name": "Western Michigan Broncos at Northern Illinois Huskies",
+      "shortName": "WMU @ NIU",
+      "date": "2025-11-19T00:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "WMU -6.5",
+      "home": {
+        "id": "2459",
+        "name": "Northern Illinois Huskies",
+        "abbreviation": "NIU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2459.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2711",
+        "name": "Western Michigan Broncos",
+        "abbreviation": "WMU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2711.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762865",
+      "name": "Miami (OH) RedHawks at Buffalo Bulls",
+      "shortName": "M-OH @ BUFF",
+      "date": "2025-11-20T00:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "M-OH -1.5",
+      "home": {
+        "id": "2084",
+        "name": "Buffalo Bulls",
+        "abbreviation": "BUFF",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2084.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "193",
+        "name": "Miami (OH) RedHawks",
+        "abbreviation": "M-OH",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/193.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762866",
+      "name": "Central Michigan Chippewas at Kent State Golden Flashes",
+      "shortName": "CMU @ KENT",
+      "date": "2025-11-20T00:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "CMU -8.5",
+      "home": {
+        "id": "2309",
+        "name": "Kent State Golden Flashes",
+        "abbreviation": "KENT",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2309.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2117",
+        "name": "Central Michigan Chippewas",
+        "abbreviation": "CMU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2117.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401761655",
+      "name": "Louisiana Ragin' Cajuns at Arkansas State Red Wolves",
+      "shortName": "UL @ ARST",
+      "date": "2025-11-21T00:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ARST -2.5",
+      "home": {
+        "id": "2032",
+        "name": "Arkansas State Red Wolves",
+        "abbreviation": "ARST",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2032.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "309",
+        "name": "Louisiana Ragin' Cajuns",
+        "abbreviation": "UL",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/309.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401754598",
+      "name": "Florida State Seminoles at NC State Wolfpack",
+      "shortName": "FSU @ NCSU",
+      "date": "2025-11-22T01:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "FSU -4.5",
+      "home": {
+        "id": "152",
+        "name": "NC State Wolfpack",
+        "abbreviation": "NCSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/152.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "52",
+        "name": "Florida State Seminoles",
+        "abbreviation": "FSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/52.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401760418",
+      "name": "Hawai'i Rainbow Warriors at UNLV Rebels",
+      "shortName": "HAW @ UNLV",
+      "date": "2025-11-22T03:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "UNLV -2.5",
+      "home": {
+        "id": "2439",
+        "name": "UNLV Rebels",
+        "abbreviation": "UNLV",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2439.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "62",
+        "name": "Hawai'i Rainbow Warriors",
+        "abbreviation": "HAW",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/62.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752912",
+      "name": "Rutgers Scarlet Knights at Ohio State Buckeyes",
+      "shortName": "RUTG @ OSU",
+      "date": "2025-11-22T17:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "OSU -31.5",
+      "home": {
+        "id": "194",
+        "name": "Ohio State Buckeyes",
+        "abbreviation": "OSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/194.png",
+        "rank": 1
+      },
+      "away": {
+        "id": "164",
+        "name": "Rutgers Scarlet Knights",
+        "abbreviation": "RUTG",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/164.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752781",
+      "name": "Samford Bulldogs at Texas A&M Aggies",
+      "shortName": "SAM @ TA&M",
+      "date": "2025-11-22T17:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "N/A",
+      "home": {
+        "id": "245",
+        "name": "Texas A&M Aggies",
+        "abbreviation": "TA&M",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/245.png",
+        "rank": 3
+      },
+      "away": {
+        "id": "2535",
+        "name": "Samford Bulldogs",
+        "abbreviation": "SAM",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2535.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752778",
+      "name": "Missouri Tigers at Oklahoma Sooners",
+      "shortName": "MIZ @ OU",
+      "date": "2025-11-22T17:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "OU -7.5",
+      "home": {
+        "id": "201",
+        "name": "Oklahoma Sooners",
+        "abbreviation": "OU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/201.png",
+        "rank": 11
+      },
+      "away": {
+        "id": "142",
+        "name": "Missouri Tigers",
+        "abbreviation": "MIZ",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/142.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401754603",
+      "name": "Miami Hurricanes at Virginia Tech Hokies",
+      "shortName": "MIA @ VT",
+      "date": "2025-11-22T17:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "MIA -17.5",
+      "home": {
+        "id": "259",
+        "name": "Virginia Tech Hokies",
+        "abbreviation": "VT",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/259.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2390",
+        "name": "Miami Hurricanes",
+        "abbreviation": "MIA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2390.png",
+        "rank": 15
+      }
+    },
+    {
+      "id": "401754602",
+      "name": "Louisville Cardinals at SMU Mustangs",
+      "shortName": "LOU @ SMU",
+      "date": "2025-11-22T17:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "SMU -2.5",
+      "home": {
+        "id": "2567",
+        "name": "SMU Mustangs",
+        "abbreviation": "SMU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2567.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "97",
+        "name": "Louisville Cardinals",
+        "abbreviation": "LOU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/97.png",
+        "rank": 20
+      }
+    },
+    {
+      "id": "401752909",
+      "name": "Minnesota Golden Gophers at Northwestern Wildcats",
+      "shortName": "MINN @ NU",
+      "date": "2025-11-22T17:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "NU -3.5",
+      "home": {
+        "id": "77",
+        "name": "Northwestern Wildcats",
+        "abbreviation": "NU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/77.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "135",
+        "name": "Minnesota Golden Gophers",
+        "abbreviation": "MINN",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/135.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401754606",
+      "name": "Delaware Blue Hens at Wake Forest Demon Deacons",
+      "shortName": "DEL @ WAKE",
+      "date": "2025-11-22T17:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "WAKE -17.5",
+      "home": {
+        "id": "154",
+        "name": "Wake Forest Demon Deacons",
+        "abbreviation": "WAKE",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/154.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "48",
+        "name": "Delaware Blue Hens",
+        "abbreviation": "DEL",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/48.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401756958",
+      "name": "Kansas Jayhawks at Iowa State Cyclones",
+      "shortName": "KU @ ISU",
+      "date": "2025-11-22T17:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ISU -4.5",
+      "home": {
+        "id": "66",
+        "name": "Iowa State Cyclones",
+        "abbreviation": "ISU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/66.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2305",
+        "name": "Kansas Jayhawks",
+        "abbreviation": "KU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2305.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762512",
+      "name": "Tulsa Golden Hurricane at Army Black Knights",
+      "shortName": "TLSA @ ARMY",
+      "date": "2025-11-22T17:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ARMY -10.5",
+      "home": {
+        "id": "349",
+        "name": "Army Black Knights",
+        "abbreviation": "ARMY",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/349.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "202",
+        "name": "Tulsa Golden Hurricane",
+        "abbreviation": "TLSA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/202.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752776",
+      "name": "Charlotte 49ers at Georgia Bulldogs",
+      "shortName": "CLT @ UGA",
+      "date": "2025-11-22T17:45Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "UGA -44.5",
+      "home": {
+        "id": "61",
+        "name": "Georgia Bulldogs",
+        "abbreviation": "UGA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/61.png",
+        "rank": 5
+      },
+      "away": {
+        "id": "2429",
+        "name": "Charlotte 49ers",
+        "abbreviation": "CLT",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2429.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752954",
+      "name": "Washington State Cougars at James Madison Dukes",
+      "shortName": "WSU @ JMU",
+      "date": "2025-11-22T18:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "JMU -13.5",
+      "home": {
+        "id": "256",
+        "name": "James Madison Dukes",
+        "abbreviation": "JMU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/256.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "265",
+        "name": "Washington State Cougars",
+        "abbreviation": "WSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/265.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401756954",
+      "name": "Baylor Bears at Arizona Wildcats",
+      "shortName": "BAY @ ARIZ",
+      "date": "2025-11-22T18:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ARIZ -6.5",
+      "home": {
+        "id": "12",
+        "name": "Arizona Wildcats",
+        "abbreviation": "ARIZ",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/12.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "239",
+        "name": "Baylor Bears",
+        "abbreviation": "BAY",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/239.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401761657",
+      "name": "Old Dominion Monarchs at Georgia Southern Eagles",
+      "shortName": "ODU @ GASO",
+      "date": "2025-11-22T18:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ODU -11.5",
+      "home": {
+        "id": "290",
+        "name": "Georgia Southern Eagles",
+        "abbreviation": "GASO",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/290.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "295",
+        "name": "Old Dominion Monarchs",
+        "abbreviation": "ODU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/295.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752773",
+      "name": "Eastern Illinois Panthers at Alabama Crimson Tide",
+      "shortName": "EIU @ ALA",
+      "date": "2025-11-22T19:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "N/A",
+      "home": {
+        "id": "333",
+        "name": "Alabama Crimson Tide",
+        "abbreviation": "ALA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/333.png",
+        "rank": 4
+      },
+      "away": {
+        "id": "2197",
+        "name": "Eastern Illinois Panthers",
+        "abbreviation": "EIU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2197.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752774",
+      "name": "Mercer Bears at Auburn Tigers",
+      "shortName": "MER @ AUB",
+      "date": "2025-11-22T19:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "N/A",
+      "home": {
+        "id": "2",
+        "name": "Auburn Tigers",
+        "abbreviation": "AUB",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2382",
+        "name": "Mercer Bears",
+        "abbreviation": "MER",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2382.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401757306",
+      "name": "Missouri State Bears at Kennesaw State Owls",
+      "shortName": "MOST @ KENN",
+      "date": "2025-11-22T19:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "KENN -6.5",
+      "home": {
+        "id": "338",
+        "name": "Kennesaw State Owls",
+        "abbreviation": "KENN",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/338.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2623",
+        "name": "Missouri State Bears",
+        "abbreviation": "MOST",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2623.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401760419",
+      "name": "Nevada Wolf Pack at Wyoming Cowboys",
+      "shortName": "NEV @ WYO",
+      "date": "2025-11-22T19:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "WYO -6.5",
+      "home": {
+        "id": "2751",
+        "name": "Wyoming Cowboys",
+        "abbreviation": "WYO",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2751.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2440",
+        "name": "Nevada Wolf Pack",
+        "abbreviation": "NEV",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2440.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762867",
+      "name": "Ball State Cardinals at Toledo Rockets",
+      "shortName": "BALL @ TOL",
+      "date": "2025-11-22T19:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "TOL -27.5",
+      "home": {
+        "id": "2649",
+        "name": "Toledo Rockets",
+        "abbreviation": "TOL",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2649.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2050",
+        "name": "Ball State Cardinals",
+        "abbreviation": "BALL",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2050.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401761656",
+      "name": "Marshall Thundering Herd at App State Mountaineers",
+      "shortName": "MRSH @ APP",
+      "date": "2025-11-22T19:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "MRSH -4.5",
+      "home": {
+        "id": "2026",
+        "name": "App State Mountaineers",
+        "abbreviation": "APP",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2026.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "276",
+        "name": "Marshall Thundering Herd",
+        "abbreviation": "MRSH",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/276.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762511",
+      "name": "South Florida Bulls at UAB Blazers",
+      "shortName": "USF @ UAB",
+      "date": "2025-11-22T20:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "USF -21.5",
+      "home": {
+        "id": "5",
+        "name": "UAB Blazers",
+        "abbreviation": "UAB",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/5.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "58",
+        "name": "South Florida Bulls",
+        "abbreviation": "USF",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/58.png",
+        "rank": 24
+      }
+    },
+    {
+      "id": "401757175",
+      "name": "UConn Huskies at Florida Atlantic Owls",
+      "shortName": "CONN @ FAU",
+      "date": "2025-11-22T20:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "CONN -7.5",
+      "home": {
+        "id": "2226",
+        "name": "Florida Atlantic Owls",
+        "abbreviation": "FAU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2226.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "41",
+        "name": "UConn Huskies",
+        "abbreviation": "CONN",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/41.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401757307",
+      "name": "Liberty Flames at Louisiana Tech Bulldogs",
+      "shortName": "LIB @ LT",
+      "date": "2025-11-22T20:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "LT -1.5",
+      "home": {
+        "id": "2348",
+        "name": "Louisiana Tech Bulldogs",
+        "abbreviation": "LT",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2348.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2335",
+        "name": "Liberty Flames",
+        "abbreviation": "LIB",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2335.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401757308",
+      "name": "Sam Houston Bearkats at Middle Tennessee Blue Raiders",
+      "shortName": "SHSU @ MTSU",
+      "date": "2025-11-22T20:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "MTSU -6.5",
+      "home": {
+        "id": "2393",
+        "name": "Middle Tennessee Blue Raiders",
+        "abbreviation": "MTSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2393.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2534",
+        "name": "Sam Houston Bearkats",
+        "abbreviation": "SHSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2534.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401757309",
+      "name": "New Mexico State Aggies at UTEP Miners",
+      "shortName": "NMSU @ UTEP",
+      "date": "2025-11-22T20:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "UTEP -3.5",
+      "home": {
+        "id": "2638",
+        "name": "UTEP Miners",
+        "abbreviation": "UTEP",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2638.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "166",
+        "name": "New Mexico State Aggies",
+        "abbreviation": "NMSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/166.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752911",
+      "name": "USC Trojans at Oregon Ducks",
+      "shortName": "USC @ ORE",
+      "date": "2025-11-22T20:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ORE -10.5",
+      "home": {
+        "id": "2483",
+        "name": "Oregon Ducks",
+        "abbreviation": "ORE",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2483.png",
+        "rank": 8
+      },
+      "away": {
+        "id": "30",
+        "name": "USC Trojans",
+        "abbreviation": "USC",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/30.png",
+        "rank": 17
+      }
+    },
+    {
+      "id": "401754604",
+      "name": "Syracuse Orange at Notre Dame Fighting Irish",
+      "shortName": "SYR @ ND",
+      "date": "2025-11-22T20:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ND -35.5",
+      "home": {
+        "id": "87",
+        "name": "Notre Dame Fighting Irish",
+        "abbreviation": "ND",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/87.png",
+        "rank": 9
+      },
+      "away": {
+        "id": "183",
+        "name": "Syracuse Orange",
+        "abbreviation": "SYR",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/183.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752780",
+      "name": "Arkansas Razorbacks at Texas Longhorns",
+      "shortName": "ARK @ TEX",
+      "date": "2025-11-22T20:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "TEX -8.5",
+      "home": {
+        "id": "251",
+        "name": "Texas Longhorns",
+        "abbreviation": "TEX",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/251.png",
+        "rank": 10
+      },
+      "away": {
+        "id": "8",
+        "name": "Arkansas Razorbacks",
+        "abbreviation": "ARK",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/8.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752782",
+      "name": "Kentucky Wildcats at Vanderbilt Commodores",
+      "shortName": "UK @ VAN",
+      "date": "2025-11-22T20:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "VAN -9.5",
+      "home": {
+        "id": "238",
+        "name": "Vanderbilt Commodores",
+        "abbreviation": "VAN",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/238.png",
+        "rank": 14
+      },
+      "away": {
+        "id": "96",
+        "name": "Kentucky Wildcats",
+        "abbreviation": "UK",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/96.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752913",
+      "name": "Michigan State Spartans at Iowa Hawkeyes",
+      "shortName": "MSU @ IOWA",
+      "date": "2025-11-22T20:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "IOWA -16.5",
+      "home": {
+        "id": "2294",
+        "name": "Iowa Hawkeyes",
+        "abbreviation": "IOWA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2294.png",
+        "rank": 21
+      },
+      "away": {
+        "id": "127",
+        "name": "Michigan State Spartans",
+        "abbreviation": "MSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/127.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401754600",
+      "name": "Duke Blue Devils at North Carolina Tar Heels",
+      "shortName": "DUKE @ UNC",
+      "date": "2025-11-22T20:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "DUKE -6.5",
+      "home": {
+        "id": "153",
+        "name": "North Carolina Tar Heels",
+        "abbreviation": "UNC",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/153.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "150",
+        "name": "Duke Blue Devils",
+        "abbreviation": "DUKE",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/150.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401757305",
+      "name": "Jacksonville State Gamecocks at Florida International Panthers",
+      "shortName": "JVST @ FIU",
+      "date": "2025-11-22T20:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "JXST -1.5",
+      "home": {
+        "id": "2229",
+        "name": "Florida International Panthers",
+        "abbreviation": "FIU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2229.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "55",
+        "name": "Jacksonville State Gamecocks",
+        "abbreviation": "JVST",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/55.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401761658",
+      "name": "Southern Miss Golden Eagles at South Alabama Jaguars",
+      "shortName": "USM @ USA",
+      "date": "2025-11-22T20:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "USM -1.5",
+      "home": {
+        "id": "6",
+        "name": "South Alabama Jaguars",
+        "abbreviation": "USA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/6.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2572",
+        "name": "Southern Miss Golden Eagles",
+        "abbreviation": "USM",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2572.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762513",
+      "name": "East Carolina Pirates at UTSA Roadrunners",
+      "shortName": "ECU @ UTSA",
+      "date": "2025-11-22T20:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ECU -2.5",
+      "home": {
+        "id": "2636",
+        "name": "UTSA Roadrunners",
+        "abbreviation": "UTSA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2636.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "151",
+        "name": "East Carolina Pirates",
+        "abbreviation": "ECU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/151.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762515",
+      "name": "Tulane Green Wave at Temple Owls",
+      "shortName": "TULN @ TEM",
+      "date": "2025-11-22T20:45Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "TULN -7.5",
+      "home": {
+        "id": "218",
+        "name": "Temple Owls",
+        "abbreviation": "TEM",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/218.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2655",
+        "name": "Tulane Green Wave",
+        "abbreviation": "TULN",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2655.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401756960",
+      "name": "Kansas State Wildcats at Utah Utes",
+      "shortName": "KSU @ UTAH",
+      "date": "2025-11-22T21:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "UTAH -17.5",
+      "home": {
+        "id": "254",
+        "name": "Utah Utes",
+        "abbreviation": "UTAH",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/254.png",
+        "rank": 13
+      },
+      "away": {
+        "id": "2306",
+        "name": "Kansas State Wildcats",
+        "abbreviation": "KSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2306.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752914",
+      "name": "Michigan Wolverines at Maryland Terrapins",
+      "shortName": "MICH @ MD",
+      "date": "2025-11-22T21:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "MICH -13.5",
+      "home": {
+        "id": "120",
+        "name": "Maryland Terrapins",
+        "abbreviation": "MD",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/120.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "130",
+        "name": "Michigan Wolverines",
+        "abbreviation": "MICH",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/130.png",
+        "rank": 18
+      }
+    },
+    {
+      "id": "401756957",
+      "name": "TCU Horned Frogs at Houston Cougars",
+      "shortName": "TCU @ HOU",
+      "date": "2025-11-22T21:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "HOU -1.5",
+      "home": {
+        "id": "248",
+        "name": "Houston Cougars",
+        "abbreviation": "HOU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/248.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2628",
+        "name": "TCU Horned Frogs",
+        "abbreviation": "TCU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2628.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401756959",
+      "name": "Oklahoma State Cowboys at UCF Knights",
+      "shortName": "OKST @ UCF",
+      "date": "2025-11-22T21:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "UCF -14.5",
+      "home": {
+        "id": "2116",
+        "name": "UCF Knights",
+        "abbreviation": "UCF",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2116.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "197",
+        "name": "Oklahoma State Cowboys",
+        "abbreviation": "OKST",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/197.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401761660",
+      "name": "Georgia State Panthers at Troy Trojans",
+      "shortName": "GAST @ TROY",
+      "date": "2025-11-22T21:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "TROY -11.5",
+      "home": {
+        "id": "2653",
+        "name": "Troy Trojans",
+        "abbreviation": "TROY",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2653.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2247",
+        "name": "Georgia State Panthers",
+        "abbreviation": "GAST",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2247.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752779",
+      "name": "Coastal Carolina Chanticleers at South Carolina Gamecocks",
+      "shortName": "CCU @ SC",
+      "date": "2025-11-22T21:15Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "SC -23.5",
+      "home": {
+        "id": "2579",
+        "name": "South Carolina Gamecocks",
+        "abbreviation": "SC",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2579.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "324",
+        "name": "Coastal Carolina Chanticleers",
+        "abbreviation": "CCU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/324.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401754605",
+      "name": "Furman Paladins at Clemson Tigers",
+      "shortName": "FUR @ CLEM",
+      "date": "2025-11-22T21:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "N/A",
+      "home": {
+        "id": "228",
+        "name": "Clemson Tigers",
+        "abbreviation": "CLEM",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/228.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "231",
+        "name": "Furman Paladins",
+        "abbreviation": "FUR",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/231.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401761659",
+      "name": "UL Monroe Warhawks at Texas State Bobcats",
+      "shortName": "ULM @ TXST",
+      "date": "2025-11-22T22:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "TXST -18.5",
+      "home": {
+        "id": "326",
+        "name": "Texas State Bobcats",
+        "abbreviation": "TXST",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/326.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2433",
+        "name": "UL Monroe Warhawks",
+        "abbreviation": "ULM",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2433.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401754601",
+      "name": "Pittsburgh Panthers at Georgia Tech Yellow Jackets",
+      "shortName": "PITT @ GT",
+      "date": "2025-11-23T00:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "GT -2.5",
+      "home": {
+        "id": "59",
+        "name": "Georgia Tech Yellow Jackets",
+        "abbreviation": "GT",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/59.png",
+        "rank": 16
+      },
+      "away": {
+        "id": "221",
+        "name": "Pittsburgh Panthers",
+        "abbreviation": "PITT",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/221.png",
+        "rank": 22
+      }
+    },
+    {
+      "id": "401752908",
+      "name": "Nebraska Cornhuskers at Penn State Nittany Lions",
+      "shortName": "NEB @ PSU",
+      "date": "2025-11-23T00:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "PSU -9.5",
+      "home": {
+        "id": "213",
+        "name": "Penn State Nittany Lions",
+        "abbreviation": "PSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/213.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "158",
+        "name": "Nebraska Cornhuskers",
+        "abbreviation": "NEB",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/158.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401760415",
+      "name": "New Mexico Lobos at Air Force Falcons",
+      "shortName": "UNM @ AFA",
+      "date": "2025-11-23T00:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "UNM -3.5",
+      "home": {
+        "id": "2005",
+        "name": "Air Force Falcons",
+        "abbreviation": "AFA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2005.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "167",
+        "name": "New Mexico Lobos",
+        "abbreviation": "UNM",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/167.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401760416",
+      "name": "Colorado State Rams at Boise State Broncos",
+      "shortName": "CSU @ BOIS",
+      "date": "2025-11-23T00:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "BOIS -16.5",
+      "home": {
+        "id": "68",
+        "name": "Boise State Broncos",
+        "abbreviation": "BOIS",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/68.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "36",
+        "name": "Colorado State Rams",
+        "abbreviation": "CSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/36.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752775",
+      "name": "Tennessee Volunteers at Florida Gators",
+      "shortName": "TENN @ FLA",
+      "date": "2025-11-23T00:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "TENN -4.5",
+      "home": {
+        "id": "57",
+        "name": "Florida Gators",
+        "abbreviation": "FLA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/57.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "2633",
+        "name": "Tennessee Volunteers",
+        "abbreviation": "TENN",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2633.png",
+        "rank": 23
+      }
+    },
+    {
+      "id": "401752915",
+      "name": "Illinois Fighting Illini at Wisconsin Badgers",
+      "shortName": "ILL @ WIS",
+      "date": "2025-11-23T00:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ILL -7.5",
+      "home": {
+        "id": "275",
+        "name": "Wisconsin Badgers",
+        "abbreviation": "WIS",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/275.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "356",
+        "name": "Illinois Fighting Illini",
+        "abbreviation": "ILL",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/356.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401754599",
+      "name": "California Golden Bears at Stanford Cardinal",
+      "shortName": "CAL @ STAN",
+      "date": "2025-11-23T00:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "CAL -3.5",
+      "home": {
+        "id": "24",
+        "name": "Stanford Cardinal",
+        "abbreviation": "STAN",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/24.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "25",
+        "name": "California Golden Bears",
+        "abbreviation": "CAL",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/25.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401762514",
+      "name": "North Texas Mean Green at Rice Owls",
+      "shortName": "UNT @ RICE",
+      "date": "2025-11-23T00:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "UNT -18.5",
+      "home": {
+        "id": "242",
+        "name": "Rice Owls",
+        "abbreviation": "RICE",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/242.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "249",
+        "name": "North Texas Mean Green",
+        "abbreviation": "UNT",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/249.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752777",
+      "name": "Western Kentucky Hilltoppers at LSU Tigers",
+      "shortName": "WKU @ LSU",
+      "date": "2025-11-23T00:45Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "LSU -23.5",
+      "home": {
+        "id": "99",
+        "name": "LSU Tigers",
+        "abbreviation": "LSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/99.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "98",
+        "name": "Western Kentucky Hilltoppers",
+        "abbreviation": "WKU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/98.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401756955",
+      "name": "BYU Cougars at Cincinnati Bearcats",
+      "shortName": "BYU @ CIN",
+      "date": "2025-11-23T01:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "BYU -2.5",
+      "home": {
+        "id": "2132",
+        "name": "Cincinnati Bearcats",
+        "abbreviation": "CIN",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2132.png",
+        "rank": 25
+      },
+      "away": {
+        "id": "252",
+        "name": "BYU Cougars",
+        "abbreviation": "BYU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/252.png",
+        "rank": 12
+      }
+    },
+    {
+      "id": "401756956",
+      "name": "Arizona State Sun Devils at Colorado Buffaloes",
+      "shortName": "ASU @ COLO",
+      "date": "2025-11-23T01:00Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "ASU -7.5",
+      "home": {
+        "id": "38",
+        "name": "Colorado Buffaloes",
+        "abbreviation": "COLO",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/38.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "9",
+        "name": "Arizona State Sun Devils",
+        "abbreviation": "ASU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/9.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401752910",
+      "name": "Washington Huskies at UCLA Bruins",
+      "shortName": "WASH @ UCLA",
+      "date": "2025-11-23T03:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "WASH -10.5",
+      "home": {
+        "id": "26",
+        "name": "UCLA Bruins",
+        "abbreviation": "UCLA",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/26.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "264",
+        "name": "Washington Huskies",
+        "abbreviation": "WASH",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/264.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401760417",
+      "name": "Utah State Aggies at Fresno State Bulldogs",
+      "shortName": "USU @ FRES",
+      "date": "2025-11-23T03:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "FRES -2.5",
+      "home": {
+        "id": "278",
+        "name": "Fresno State Bulldogs",
+        "abbreviation": "FRES",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/278.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "328",
+        "name": "Utah State Aggies",
+        "abbreviation": "USU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/328.png",
+        "rank": 99
+      }
+    },
+    {
+      "id": "401760420",
+      "name": "San José State Spartans at San Diego State Aztecs",
+      "shortName": "SJSU @ SDSU",
+      "date": "2025-11-23T03:30Z",
+      "status": "pre",
+      "period": 0,
+      "clock": "0:00",
+      "spread": "SDSU -11.5",
+      "home": {
+        "id": "21",
+        "name": "San Diego State Aztecs",
+        "abbreviation": "SDSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/21.png",
+        "rank": 99
+      },
+      "away": {
+        "id": "23",
+        "name": "San José State Spartans",
+        "abbreviation": "SJSU",
+        "score": "0",
+        "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png",
+        "rank": 99
+      }
+    }
+  ],
+  "featuredGameIds": [
+    "401752913",
+    "401752914",
+    "401752908",
+    "401760416",
+    "401756956",
+    "401752912",
+    "401752911",
+    "401752778"
+  ],
+  "picks": [
+    {
+      "user": "Chad",
+      "gameId": "401762864",
+      "teamId": "2711",
+      "week": 13
+    },
+    {
+      "user": "Bob",
+      "gameId": "401762869",
+      "teamId": "2711",
+      "week": 14
+    },
+    {
+      "user": "Bob",
+      "gameId": "401762869",
+      "teamId": "2711",
+      "week": 14
+    },
+    {
+      "user": "Chad",
+      "gameId": "401752778",
+      "teamId": "142",
+      "week": 13
+    },
+    {
+      "user": "Chad",
+      "gameId": "401752908",
+      "teamId": "158",
+      "week": 13
+    },
+    {
+      "user": "Chad",
+      "gameId": "401752911",
+      "teamId": "30",
+      "week": 13
+    },
+    {
+      "user": "Chad",
+      "gameId": "401752912",
+      "teamId": "164",
+      "week": 13
+    },
+    {
+      "user": "Chad",
+      "gameId": "401752913",
+      "teamId": "127",
+      "week": 13
+    },
+    {
+      "user": "Chad",
+      "gameId": "401752914",
+      "teamId": "130",
+      "week": 13
+    },
+    {
+      "user": "Chad",
+      "gameId": "401756956",
+      "teamId": "9",
+      "week": 13
+    },
+    {
+      "user": "Chad",
+      "gameId": "401760416",
+      "teamId": "36",
+      "week": 13
+    }
+  ],
+  "users": [
+    {
+      "name": "Chad",
+      "wins": 0
+    },
+    {
+      "name": "Bob",
+      "wins": 0
+    }
+  ]
+}
