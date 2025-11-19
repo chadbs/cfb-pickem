@@ -53,6 +53,10 @@ const fetchEspnData = async (week) => {
                 spread = competition.odds[0].details; // e.g., "MICH -7.5"
             }
 
+            // Extract records
+            const homeRecord = home.records?.find(r => r.type === 'total')?.summary || home.records?.[0]?.summary || '0-0';
+            const awayRecord = away.records?.find(r => r.type === 'total')?.summary || away.records?.[0]?.summary || '0-0';
+
             return {
                 id: event.id,
                 name: event.name,
@@ -72,7 +76,8 @@ const fetchEspnData = async (week) => {
                     alternateColor: home.team.alternateColor,
                     rank: home.curatedRank?.current || 99,
                     winner: home.winner,
-                    conferenceId: home.team.conferenceId // Capture conference ID
+                    conferenceId: home.team.conferenceId,
+                    record: homeRecord
                 },
                 away: {
                     id: away.id,
@@ -84,7 +89,8 @@ const fetchEspnData = async (week) => {
                     alternateColor: away.team.alternateColor,
                     rank: away.curatedRank?.current || 99,
                     winner: away.winner,
-                    conferenceId: away.team.conferenceId // Capture conference ID
+                    conferenceId: away.team.conferenceId,
+                    record: awayRecord
                 }
             };
         });
