@@ -11,11 +11,9 @@ import { getState, submitPicks } from './api';
 import { Settings, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import UserSelector from './components/UserSelector';
-
-function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, handleSubmit, submitSuccess, fetchData }) {
+function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, handleSubmit, submitSuccess, fetchData, isSubmitting }) {
     const [showGameSelector, setShowGameSelector] = useState(false);
-    const isAdmin = currentUser.toLowerCase() === 'chad';
+    const isAdmin = currentUser && currentUser.toLowerCase() === 'chad';
 
     const featuredGames = state.games.filter(g => state.featuredGameIds.includes(g.id));
     const displayGames = featuredGames.length > 0 ? featuredGames : state.games.slice(0, 8);
@@ -78,9 +76,10 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleSubmit}
-                                className="bg-field hover:bg-field-dark text-white font-bold py-4 px-10 rounded-full shadow-xl transform transition-all hover:shadow-2xl ring-4 ring-white"
+                                disabled={isSubmitting}
+                                className="bg-field hover:bg-field-dark text-white font-bold py-4 px-10 rounded-full shadow-xl transform transition-all hover:shadow-2xl ring-4 ring-white disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Submit Picks
+                                {isSubmitting ? 'Submitting...' : 'Submit Picks'}
                             </motion.button>
                         )}
                     </AnimatePresence>
@@ -97,6 +96,8 @@ function App() {
     const [loading, setLoading] = useState(true);
     const [viewingUser, setViewingUser] = useState(null);
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showToast, setShowToast] = useState(false);
 
     const fetchData = async () => {
         try {
@@ -111,6 +112,14 @@ function App() {
 
     useEffect(() => {
         fetchData();
+    }, []);
+
+    // Persist user in localStorage
+    useEffect(() => {
+        const savedUser = localStorage.getItem('cfb_pickem_user');
+        if (savedUser) {
+            setCurrentUser(savedUser);
+        }
     }, []);
 
     useEffect(() => {
@@ -142,27 +151,30 @@ function App() {
         }));
     };
 
-    const handleSubmit = async () => {
-        if (!currentUser) return alert("Please enter your name!");
+    const handleSubmitPicks = async () => {
+        if (!currentUser) return alert("Please select a user first!");
+        setIsSubmitting(true);
+
+        // Simulate network delay for animation
+        await new Promise(resolve => setTimeout(resolve, 800));
+
         try {
             await submitPicks(currentUser, currentPicks);
+            // Refresh data to ensure everything is in sync
+            await fetchData();
             setSubmitSuccess(true);
+            setShowToast(true);
             setTimeout(() => {
                 setSubmitSuccess(false);
-                fetchData();
-            }, 2000);
+                setShowToast(false);
+            }, 3000);
         } catch (error) {
+            console.error("Error submitting picks:", error);
             alert("Failed to submit picks");
+        } finally {
+            setIsSubmitting(false);
         }
     };
-
-    // Persist user in localStorage
-    useEffect(() => {
-        const savedUser = localStorage.getItem('cfb_pickem_user');
-        if (savedUser) {
-            setCurrentUser(savedUser);
-        }
-    }, []);
 
     const handleUserSwitch = (user) => {
         setCurrentUser(user);
@@ -185,28 +197,47 @@ function App() {
                     />
                 )}
 
-                <Routes>
-                    <Route path="/" element={
-                        <Home
-                            state={state}
-                            currentUser={currentUser}
-                            setCurrentUser={handleUserSwitch}
-                            currentPicks={currentPicks}
-                            handlePick={handlePick}
-                            handleSubmit={handleSubmit}
-                            submitSuccess={submitSuccess}
-                            fetchData={fetchData}
-                        />
-                    } />
-                    <Route path="/leaderboard" element={
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <Leaderboard users={state.users} onUserClick={setViewingUser} />
-                        </div>
-                    } />
-                    <Route path="/insights" element={
-                        <Insights games={state.games} picks={state.picks} users={state.users} />
-                    } />
-                </Routes>
+                <div className="container mx-auto px-4 py-8 pb-24">
+                    <Routes>
+                        <Route path="/" element={
+                            <Home
+                                state={state}
+                                currentUser={currentUser}
+                                setCurrentUser={handleUserSwitch}
+                                currentPicks={currentPicks}
+                                handlePick={handlePick}
+                                handleSubmit={handleSubmitPicks}
+                                submitSuccess={submitSuccess}
+                                fetchData={fetchData}
+                                isSubmitting={isSubmitting}
+                            />
+                        } />
+                        <Route path="/leaderboard" element={
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <Leaderboard users={state.users} onUserClick={setViewingUser} />
+                            </div>
+                        } />
+                        <Route path="/insights" element={
+                            <Insights games={state.games} picks={state.picks} users={state.users} />
+                        } />
+                        <Route path="/admin" element={<AdminControls currentWeek={state.week} onSync={fetchData} />} />
+                    </Routes>
+                </div>
+
+                {/* Toast Notification */}
+                <AnimatePresence>
+                    {showToast && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 50, x: "-50%" }}
+                            animate={{ opacity: 1, y: 0, x: "-50%" }}
+                            exit={{ opacity: 0, y: 50, x: "-50%" }}
+                            className="fixed bottom-8 left-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl flex items-center space-x-2 z-50"
+                        >
+                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                            <span className="font-medium">Picks Submitted Successfully!</span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </Layout>
         </Router>
     );

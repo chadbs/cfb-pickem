@@ -3,18 +3,15 @@ import { BarChart2, Users, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Insights({ games = [], picks = [], users = [] }) {
-    if (!games.length || !picks.length) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] text-gray-500">
-                <BarChart2 size={48} className="mb-4 text-gray-300" />
-                <p className="text-lg font-medium">Not enough data for insights yet.</p>
-                <p className="text-sm">Check back after more picks are made!</p>
-            </div>
-        );
-    }
-    // 1. Calculate Crowd Favorites
-    const pickCounts = {}; // { gameId: { teamId: count } }
+    console.log("Insights rendering with:", { games: games.length, picks: picks.length, users: users.length });
 
+    // Safety check
+    if (!games || !picks) {
+        return <div className="p-8 text-center">Loading data...</div>;
+    }
+
+    // 1. Calculate Crowd Favorites
+    const pickCounts = {};
     picks.forEach(pick => {
         if (!pickCounts[pick.gameId]) pickCounts[pick.gameId] = {};
         if (!pickCounts[pick.gameId][pick.teamId]) pickCounts[pick.gameId][pick.teamId] = 0;
@@ -39,7 +36,7 @@ export default function Insights({ games = [], picks = [], users = [] }) {
         }
     });
 
-    // 2. Calculate "The Homer" (Most picks for favorite teams)
+    // 2. Calculate "The Homer"
     const favoriteTeams = ['Colorado', 'Colorado State', 'Nebraska', 'Michigan'];
     const homerStats = {};
 
@@ -72,12 +69,7 @@ export default function Insights({ games = [], picks = [], users = [] }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Crowd Favorites Card */}
-                <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-                >
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex items-center space-x-3 mb-6">
                         <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
                             <Users size={24} />
@@ -108,15 +100,10 @@ export default function Insights({ games = [], picks = [], users = [] }) {
                             No clear crowd favorites yet this week.
                         </div>
                     )}
-                </motion.div>
+                </div>
 
                 {/* The Homer Card */}
-                <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-                >
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex items-center space-x-3 mb-6">
                         <div className="p-2 bg-green-100 text-green-600 rounded-lg">
                             <Home size={24} />
@@ -149,7 +136,7 @@ export default function Insights({ games = [], picks = [], users = [] }) {
                     <p className="mt-4 text-xs text-gray-400 text-center">
                         *Picking Colorado, CSU, Nebraska, or Michigan
                     </p>
-                </motion.div>
+                </div>
             </div>
         </div>
     );
