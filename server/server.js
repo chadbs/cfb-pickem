@@ -71,7 +71,8 @@ const fetchEspnData = async (week) => {
                     color: home.team.color,
                     alternateColor: home.team.alternateColor,
                     rank: home.curatedRank?.current || 99,
-                    winner: home.winner
+                    winner: home.winner,
+                    conferenceId: home.team.conferenceId // Capture conference ID
                 },
                 away: {
                     id: away.id,
@@ -82,7 +83,8 @@ const fetchEspnData = async (week) => {
                     color: away.team.color,
                     alternateColor: away.team.alternateColor,
                     rank: away.curatedRank?.current || 99,
-                    winner: away.winner
+                    winner: away.winner,
+                    conferenceId: away.team.conferenceId // Capture conference ID
                 }
             };
         });
@@ -211,6 +213,19 @@ app.post('/api/picks', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Failed to submit picks" });
+    }
+});
+
+// Delete user
+app.delete('/api/users/:name', async (req, res) => {
+    const { name } = req.params;
+    try {
+        await User.deleteOne({ name });
+        await Pick.deleteMany({ user: name }); // Optional: delete their picks too
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting user:", error);
+        res.status(500).json({ error: "Failed to delete user" });
     }
 });
 
