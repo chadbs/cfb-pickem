@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
+import { Clock, TrendingUp } from 'lucide-react';
 
-const TeamButton = ({ team, isSelected, onClick, picks = [] }) => {
+const TeamButton = ({ team, isSelected, onClick, picks = [], spread }) => {
     return (
         <motion.button
             whileHover={{ scale: 1.02 }}
@@ -20,21 +21,38 @@ const TeamButton = ({ team, isSelected, onClick, picks = [] }) => {
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
             )}
 
-            <div className="relative z-10 flex flex-col items-center flex-grow justify-center">
-                <img
-                    src={team.logo}
-                    alt={team.name}
-                    className={clsx(
-                        "w-12 h-12 object-contain transition-transform duration-300 mb-2",
-                        isSelected ? "scale-110 drop-shadow-lg" : "grayscale-[0.3] group-hover:grayscale-0"
+            <div className="relative z-10 flex flex-col items-center flex-grow justify-center w-full">
+                <div className="relative mb-3">
+                    <img
+                        src={team.logo}
+                        alt={team.name}
+                        className={clsx(
+                            "w-16 h-16 object-contain transition-transform duration-300",
+                            isSelected ? "scale-110 drop-shadow-lg" : "grayscale-[0.3] group-hover:grayscale-0"
+                        )}
+                    />
+                    {team.rank < 99 && (
+                        <span className={clsx(
+                            "absolute -top-2 -right-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full border",
+                            isSelected ? "bg-white text-field border-white" : "bg-gray-100 text-gray-600 border-gray-200"
+                        )}>
+                            #{team.rank}
+                        </span>
                     )}
-                />
-                <div className="text-center">
-                    <span className={clsx("block font-bold text-sm leading-tight", isSelected ? "text-white" : "text-gray-800")}>
+                </div>
+
+                <div className="text-center w-full">
+                    <span className={clsx(
+                        "block font-bold text-sm leading-tight mb-1 line-clamp-2",
+                        isSelected ? "text-white" : "text-gray-900"
+                    )}>
                         {team.name}
                     </span>
-                    <span className={clsx("text-xs font-mono mt-1 block", isSelected ? "text-white/80" : "text-gray-400")}>
-                        {team.rank < 99 ? `#${team.rank}` : ''}
+                    <span className={clsx(
+                        "text-xs font-mono font-medium px-2 py-0.5 rounded-full inline-block",
+                        isSelected ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
+                    )}>
+                        {team.record || '0-0'}
                     </span>
                 </div>
             </div>
@@ -46,8 +64,8 @@ const TeamButton = ({ team, isSelected, onClick, picks = [] }) => {
                         <div
                             key={idx}
                             className={clsx(
-                                "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2",
-                                isSelected ? "bg-white text-field border-field" : "bg-gray-200 text-gray-600 border-white"
+                                "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 shadow-sm",
+                                isSelected ? "bg-white text-field border-field" : "bg-gray-100 text-gray-600 border-white"
                             )}
                             title={pick.user}
                         >
@@ -56,8 +74,8 @@ const TeamButton = ({ team, isSelected, onClick, picks = [] }) => {
                     ))}
                     {picks.length > 5 && (
                         <div className={clsx(
-                            "w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold border-2",
-                            isSelected ? "bg-white text-field border-field" : "bg-gray-200 text-gray-600 border-white"
+                            "w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold border-2 shadow-sm",
+                            isSelected ? "bg-white text-field border-field" : "bg-gray-100 text-gray-600 border-white"
                         )}>
                             +{picks.length - 5}
                         </div>
@@ -69,7 +87,7 @@ const TeamButton = ({ team, isSelected, onClick, picks = [] }) => {
             {isSelected && (
                 <motion.div
                     layoutId="check"
-                    className="absolute top-2 right-2 bg-white text-field rounded-full p-0.5"
+                    className="absolute top-3 right-3 bg-white text-field rounded-full p-1 shadow-sm"
                 >
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
@@ -84,42 +102,62 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
     const homePicks = picks.filter(p => p.teamId === game.home.id);
     const awayPicks = picks.filter(p => p.teamId === game.away.id);
 
+    const gameDate = new Date(game.date);
+    const isLive = game.status === 'in';
+    const isFinal = game.status === 'post';
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow duration-300"
+            className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group"
         >
-            <div className="flex justify-between items-center mb-4 px-2">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    {game.status === 'pre' ? new Date(game.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : game.status}
-                </span>
-                <span className="text-xs font-mono font-bold text-field bg-field/10 px-2 py-1 rounded">
-                    {game.spread}
-                </span>
+            {/* Header */}
+            <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex justify-between items-center">
+                <div className="flex items-center space-x-2 text-gray-500">
+                    <Clock size={14} />
+                    <span className="text-xs font-bold uppercase tracking-wide">
+                        {isLive ? <span className="text-red-500 animate-pulse">LIVE</span> :
+                            isFinal ? "FINAL" :
+                                gameDate.toLocaleTimeString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                </div>
+                <div className="flex items-center space-x-2 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">
+                    <TrendingUp size={14} className="text-field" />
+                    <span className="text-xs font-mono font-bold text-gray-700">
+                        {game.spread}
+                    </span>
+                </div>
             </div>
 
-            <div className="flex space-x-3">
-                <TeamButton
-                    team={game.home}
-                    isSelected={selectedTeamId === game.home.id}
-                    onClick={() => onPick(game.home.id)}
-                    picks={homePicks}
-                />
+            {/* Matchup Area */}
+            <div className="p-4 relative">
+                <div className="flex space-x-4">
+                    <TeamButton
+                        team={game.home}
+                        isSelected={selectedTeamId === game.home.id}
+                        onClick={() => onPick(game.home.id)}
+                        picks={homePicks}
+                    />
 
-                <div className="flex flex-col justify-center items-center text-gray-300 font-bold text-xs">
-                    <span>VS</span>
+                    {/* VS Badge */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+                        <div className="bg-white border-2 border-gray-100 text-gray-300 font-black text-[10px] w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
+                            VS
+                        </div>
+                    </div>
+
+                    <TeamButton
+                        team={game.away}
+                        isSelected={selectedTeamId === game.away.id}
+                        onClick={() => onPick(game.away.id)}
+                        picks={awayPicks}
+                    />
                 </div>
-
-                <TeamButton
-                    team={game.away}
-                    isSelected={selectedTeamId === game.away.id}
-                    onClick={() => onPick(game.away.id)}
-                    picks={awayPicks}
-                />
             </div>
         </motion.div>
     );
 };
 
 export default GameCard;
+
