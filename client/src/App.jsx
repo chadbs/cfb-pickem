@@ -43,7 +43,12 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
                     games={state.games}
                     featuredGameIds={state.featuredGameIds}
                     onClose={() => setShowGameSelector(false)}
-                    onSave={fetchData}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
+                    {displayGames.map(game => (
+                        <GameCard
+                            key={game.id}
+                            game={game}
+                            selectedTeamId={currentPicks[game.id]}
                             onPick={(teamId) => handlePick(game.id, teamId)}
                         />
                     ))}
