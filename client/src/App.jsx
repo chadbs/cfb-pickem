@@ -11,6 +11,8 @@ import { getState, submitPicks } from './api';
 import { Settings, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import UserSelector from './components/UserSelector';
+
 function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, handleSubmit, submitSuccess, fetchData }) {
     const [showGameSelector, setShowGameSelector] = useState(false);
     const isAdmin = currentUser.toLowerCase() === 'chad';
@@ -42,29 +44,6 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
                     featuredGameIds={state.featuredGameIds}
                     onClose={() => setShowGameSelector(false)}
                     onSave={fetchData}
-                />
-            )}
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h2 className="text-2xl font-display font-bold mb-4 text-gray-800">Weekly Picks</h2>
-
-                <div className="mb-8">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Player Name</label>
-                    <input
-                        type="text"
-                        value={currentUser}
-                        onChange={(e) => setCurrentUser(e.target.value)}
-                        placeholder="Enter your name..."
-                        className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-field focus:border-field outline-none transition-all font-bold text-lg text-gray-800 placeholder:font-normal"
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
-                    {displayGames.map(game => (
-                        <GameCard
-                            key={game.id}
-                            game={game}
-                            selectedTeamId={currentPicks[game.id]}
                             onPick={(teamId) => handlePick(game.id, teamId)}
                         />
                     ))}
@@ -94,8 +73,8 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
                         )}
                     </AnimatePresence>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 
@@ -122,6 +101,28 @@ function App() {
         fetchData();
     }, []);
 
+    useEffect(() => {
+        if (currentUser) {
+            // Check if this user has any saved picks for the current week
+            const userHasPicks = state.picks.some(p => p.user === currentUser && p.week === state.week);
+
+            if (userHasPicks) {
+                const userPicks = {};
+                state.picks.forEach(pick => {
+                    if (pick.user === currentUser && pick.week === state.week) {
+                        userPicks[pick.gameId] = pick.teamId;
+                    }
+                });
+                setCurrentPicks(userPicks);
+            } else {
+                // If new user (or no picks yet), CLEAR the current picks
+                setCurrentPicks({});
+            }
+        } else {
+            setCurrentPicks({});
+        }
+    }, [currentUser, state.picks, state.week]);
+
     const handlePick = (gameId, teamId) => {
         setCurrentPicks(prev => ({
             ...prev,
@@ -143,9 +144,26 @@ function App() {
         }
     };
 
+    // Persist user in localStorage
+    useEffect(() => {
+        const savedUser = localStorage.getItem('cfb_pickem_user');
+        if (savedUser) {
+            setCurrentUser(savedUser);
+        }
+    }, []);
+
+    const handleUserSwitch = (user) => {
+        setCurrentUser(user);
+        localStorage.setItem('cfb_pickem_user', user);
+    };
+
     return (
         <Router>
-            <Layout>
+            <Layout
+                currentUser={currentUser}
+                users={state.users}
+                onUserSwitch={handleUserSwitch}
+            >
                 {viewingUser && (
                     <UserPicksModal
                         user={viewingUser}
@@ -160,7 +178,7 @@ function App() {
                         <Home
                             state={state}
                             currentUser={currentUser}
-                            setCurrentUser={setCurrentUser}
+                            setCurrentUser={handleUserSwitch}
                             currentPicks={currentPicks}
                             handlePick={handlePick}
                             handleSubmit={handleSubmit}

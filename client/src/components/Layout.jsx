@@ -3,7 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { Trophy, BarChart2, Grid, Shield } from 'lucide-react';
 import clsx from 'clsx';
 
-export default function Layout({ children }) {
+import HeaderUserMenu from './HeaderUserMenu';
+
+export default function Layout({ children, currentUser, users, onUserSwitch }) {
     const location = useLocation();
 
     const navItems = [
@@ -48,6 +50,13 @@ export default function Layout({ children }) {
                                 );
                             })}
                         </div>
+
+                        {/* User Menu (Top Right) */}
+                        <HeaderUserMenu
+                            currentUser={currentUser}
+                            users={users || []}
+                            onUserSwitch={onUserSwitch}
+                        />
                     </div>
                 </div>
             </nav>
