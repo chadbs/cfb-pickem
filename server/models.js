@@ -28,7 +28,8 @@ const pickSchema = new mongoose.Schema({
     user: { type: String, required: true },
     gameId: { type: String, required: true },
     teamId: { type: String, required: true },
-    week: Number
+    week: Number,
+    result: { type: String, enum: ['win', 'loss', 'push', 'pending'], default: 'pending' }
 });
 
 // Compound index to ensure one pick per user per game

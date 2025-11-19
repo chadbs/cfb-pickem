@@ -123,8 +123,8 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
                     </span>
                 </div>
                 <div className="flex items-center space-x-2 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">
-                    <TrendingUp size={14} className="text-field" />
-                    <span className="text-xs font-mono font-bold text-gray-700">
+                    <TrendingUp size={16} className="text-field" />
+                    <span className="text-sm font-mono font-bold text-gray-800">
                         {game.spread}
                     </span>
                 </div>

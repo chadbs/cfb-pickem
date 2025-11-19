@@ -7,19 +7,38 @@ import AdminControls from './components/AdminControls';
 import GameSelector from './components/GameSelector';
 import UserPicksModal from './components/UserPicksModal';
 import Insights from './pages/Insights';
-import { getState, submitPicks, deleteUser } from './api';
-import { Settings, CheckCircle } from 'lucide-react';
+import { getState, submitPicks, deleteUser, syncData } from './api';
+import { Settings, CheckCircle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, handleSubmit, submitSuccess, fetchData, isSubmitting }) {
+function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, handleSubmit, submitSuccess, fetchData, isSubmitting, onSync }) {
     const [showGameSelector, setShowGameSelector] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
     const isAdmin = currentUser && currentUser.toLowerCase() === 'chad';
+
+    const handleSyncClick = async () => {
+        setIsSyncing(true);
+        await onSync();
+        setIsSyncing(false);
+    };
 
     const featuredGames = state.games.filter(g => state.featuredGameIds.includes(g.id));
     const displayGames = featuredGames.length > 0 ? featuredGames : state.games.slice(0, 8);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-display font-bold text-gray-800">Weekly Picks</h2>
+                <button
+                    onClick={handleSyncClick}
+                    disabled={isSyncing}
+                    className="flex items-center space-x-2 bg-white text-gray-600 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm font-bold"
+                >
+                    <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+                    <span>{isSyncing ? 'Updating...' : 'Update Scores'}</span>
+                </button>
+            </div>
+
             {isAdmin && (
                 <div className="mb-6 flex items-center justify-between bg-gray-800 p-4 rounded-lg text-white shadow-lg">
                     <div className="flex items-center space-x-4">
@@ -46,8 +65,6 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
             )}
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h2 className="text-2xl font-display font-bold mb-4 text-gray-800">Weekly Picks</h2>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
                     {displayGames.map(game => (
                         <GameCard
@@ -108,6 +125,16 @@ function App() {
             console.error("Failed to fetch state", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSync = async (week) => {
+        try {
+            await syncData(week);
+            await fetchData();
+        } catch (error) {
+            console.error("Failed to sync data", error);
+            alert("Failed to update scores.");
         }
     };
 
@@ -226,6 +253,7 @@ function App() {
                                 submitSuccess={submitSuccess}
                                 fetchData={fetchData}
                                 isSubmitting={isSubmitting}
+                                onSync={() => handleSync(state.week)}
                             />
                         } />
                         <Route path="/leaderboard" element={

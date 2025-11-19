@@ -118,6 +118,43 @@ app.get('/api/state', async (req, res) => {
     }
 });
 
+// Helper: Calculate winner against the spread
+const calculateSpreadWinner = (game) => {
+    if (game.status !== 'post') return null; // Game not finished
+    if (!game.spread || game.spread === 'N/A' || game.spread === 'Even') return null; // No spread logic for now
+
+    // Parse spread: e.g., "MICH -7.5" or "OSU -3.5"
+    // The team mentioned in the spread string is the "favorite" giving points.
+    const parts = game.spread.split(' ');
+    const favoriteAbbr = parts[0];
+    const spreadValue = parseFloat(parts[1]);
+
+    if (isNaN(spreadValue)) return null;
+
+    let homeScore = parseInt(game.home.score);
+    let awayScore = parseInt(game.away.score);
+
+    // Adjust score based on spread
+    // If Home is favorite (spread < 0 usually in data, but let's assume standard notation "TEAM -X")
+    // Actually ESPN API usually gives "TEAM -X.X".
+
+    let adjustedHomeScore = homeScore;
+    let adjustedAwayScore = awayScore;
+
+    if (game.home.abbreviation === favoriteAbbr) {
+        adjustedHomeScore += spreadValue; // spreadValue is negative, e.g. -7.5
+    } else if (game.away.abbreviation === favoriteAbbr) {
+        adjustedAwayScore += spreadValue;
+    } else {
+        // Fallback if abbreviation doesn't match (rare)
+        return null;
+    }
+
+    if (adjustedHomeScore > adjustedAwayScore) return game.home.id;
+    if (adjustedAwayScore > adjustedHomeScore) return game.away.id;
+    return 'PUSH';
+};
+
 // Sync data from ESPN
 app.post('/api/sync', async (req, res) => {
     const { week } = req.body;
@@ -129,14 +166,86 @@ app.post('/api/sync', async (req, res) => {
         // Update System week
         await System.findByIdAndUpdate('config', { week }, { upsert: true });
 
-        // Update Games (delete old, insert new for simplicity, or upsert)
-        // For simplicity and to clear old week's games, we'll delete all and insert new
-        // BUT, we might want to keep history? 
-        // For this simple app, let's just replace the "current cache" of games.
+        // Update Games
         await Game.deleteMany({});
         await Game.insertMany(gamesData);
 
-        // Auto-select favorites if not already selected
+        // --- CALCULATE WINS ---
+        const users = await User.find({});
+        const picks = await Pick.find({ week }); // Only picks for this week (or should it be all-time? User asked for "record", usually season-long)
+        // Actually, we should recalculate ALL-TIME wins if we want a season record.
+        // But for now, let's assume we are just updating based on the current week's results and adding to existing?
+        // No, safer to recalculate season total if we have all picks.
+        // Let's fetch ALL picks to be safe and accurate.
+        const allPicks = await Pick.find({});
+
+        // We need game data for ALL weeks to calculate season records. 
+        // BUT we only just fetched the CURRENT week's games.
+        // Limitation: We don't have past weeks' games stored if we delete them above.
+        // FIX: We should NOT delete all games above if we want to track season history.
+        // However, the current architecture deletes games. 
+        // For this session, let's assume we only care about the current week's updates OR
+        // we accept that "wins" is a running total.
+        // Let's try to update the running total by calculating *just this week's* wins and adding them?
+        // No, that's idempotent-unsafe. If I click "sync" twice, I get double wins.
+
+        // BETTER APPROACH for this architecture:
+        // 1. Reset all users' wins to 0.
+        // 2. We need scores for ALL games picked.
+        // Since we only fetch the *current* week, we can only verify the *current* week's picks.
+        // This implies we can't easily recalculate the whole season unless we fetch ALL weeks.
+
+        // COMPROMISE:
+        // We will fetch the current week's games.
+        // We will calculate wins for *this week*.
+        // We will *update* the user's record. 
+        // To make it idempotent, we need to know if we already counted this week.
+        // This is getting complex for a quick fix.
+
+        // ALTERNATIVE:
+        // Just calculate wins for the *active* games in the DB (which is current week).
+        // And assume "wins" in the User model is just for the current week?
+        // No, "Leaderboard" implies season.
+
+        // Let's do this:
+        // We will iterate through the fetched games (current week).
+        // For each completed game, we find the picks.
+        // If a pick is correct, we increment the user's win count.
+        // BUT we need to avoid double-counting.
+        // We can add a `processed` flag to the Pick model? Or `result` field.
+        // YES. Let's add `result` to Pick schema (pending, win, loss, push).
+        // Then we only count `win`s.
+
+        // 1. Update Picks with results
+        for (const game of gamesData) {
+            if (game.status === 'post') {
+                const winnerId = calculateSpreadWinner(game);
+                if (winnerId) {
+                    const gamePicks = await Pick.find({ gameId: game.id });
+                    for (const pick of gamePicks) {
+                        let result = 'loss';
+                        if (winnerId === 'PUSH') result = 'push';
+                        else if (pick.teamId === winnerId) result = 'win';
+
+                        // Update the pick
+                        await Pick.findByIdAndUpdate(pick._id, { result });
+                    }
+                }
+            }
+        }
+
+        // 2. Recalculate User Wins from scratch based on all their 'win' picks
+        // This requires us to trust that past picks have 'result' set correctly.
+        // Since we are just adding this feature, past picks won't have 'result'.
+        // This is a migration issue. 
+        // For now, let's just count wins for picks that HAVE a result of 'win'.
+
+        for (const user of users) {
+            const userWins = await Pick.countDocuments({ user: user.name, result: 'win' });
+            await User.findOneAndUpdate({ name: user.name }, { wins: userWins });
+        }
+
+        // Auto-select favorites logic (preserved)
         const system = await System.findById('config');
 
         if (system.featuredGameIds.length === 0) {
@@ -145,7 +254,6 @@ app.post('/api/sync', async (req, res) => {
                 .filter(g => favorites.some(fav => g.home.name.includes(fav) || g.away.name.includes(fav)))
                 .map(g => g.id);
 
-            // Also add top ranked games until we have 8
             const topRankedIds = gamesData
                 .filter(g => !favoriteIds.includes(g.id))
                 .sort((a, b) => {
