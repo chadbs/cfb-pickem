@@ -55,6 +55,7 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
                             game={game}
                             selectedTeamId={currentPicks[game.id]}
                             onPick={(teamId) => handlePick(game.id, teamId)}
+                            picks={state.picks.filter(p => p.gameId === game.id && p.week === state.week)}
                         />
                     ))}
                 </div>

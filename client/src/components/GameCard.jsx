@@ -2,14 +2,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
-const TeamButton = ({ team, isSelected, onClick, spread }) => {
+const TeamButton = ({ team, isSelected, onClick, picks = [] }) => {
     return (
         <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={onClick}
             className={clsx(
-                "relative flex-1 p-4 rounded-xl border-2 transition-all duration-300 flex flex-col items-center justify-center space-y-2 overflow-hidden group",
+                "relative flex-1 p-4 rounded-xl border-2 transition-all duration-300 flex flex-col items-center justify-between space-y-3 overflow-hidden group min-h-[160px]",
                 isSelected
                     ? "bg-field text-white border-field shadow-md ring-2 ring-offset-2 ring-field"
                     : "bg-white text-gray-700 border-gray-100 hover:border-gray-300 hover:bg-gray-50"
@@ -20,12 +20,12 @@ const TeamButton = ({ team, isSelected, onClick, spread }) => {
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
             )}
 
-            <div className="relative z-10 flex flex-col items-center">
+            <div className="relative z-10 flex flex-col items-center flex-grow justify-center">
                 <img
                     src={team.logo}
                     alt={team.name}
                     className={clsx(
-                        "w-12 h-12 object-contain transition-transform duration-300",
+                        "w-12 h-12 object-contain transition-transform duration-300 mb-2",
                         isSelected ? "scale-110 drop-shadow-lg" : "grayscale-[0.3] group-hover:grayscale-0"
                     )}
                 />
@@ -38,6 +38,32 @@ const TeamButton = ({ team, isSelected, onClick, spread }) => {
                     </span>
                 </div>
             </div>
+
+            {/* User Avatars */}
+            {picks.length > 0 && (
+                <div className="relative z-10 flex -space-x-2 pt-2">
+                    {picks.slice(0, 5).map((pick, idx) => (
+                        <div
+                            key={idx}
+                            className={clsx(
+                                "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2",
+                                isSelected ? "bg-white text-field border-field" : "bg-gray-200 text-gray-600 border-white"
+                            )}
+                            title={pick.user}
+                        >
+                            {pick.user.charAt(0).toUpperCase()}
+                        </div>
+                    ))}
+                    {picks.length > 5 && (
+                        <div className={clsx(
+                            "w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold border-2",
+                            isSelected ? "bg-white text-field border-field" : "bg-gray-200 text-gray-600 border-white"
+                        )}>
+                            +{picks.length - 5}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Selection Indicator */}
             {isSelected && (
@@ -54,7 +80,10 @@ const TeamButton = ({ team, isSelected, onClick, spread }) => {
     );
 };
 
-const GameCard = ({ game, selectedTeamId, onPick }) => {
+const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
+    const homePicks = picks.filter(p => p.teamId === game.home.id);
+    const awayPicks = picks.filter(p => p.teamId === game.away.id);
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -75,6 +104,7 @@ const GameCard = ({ game, selectedTeamId, onPick }) => {
                     team={game.home}
                     isSelected={selectedTeamId === game.home.id}
                     onClick={() => onPick(game.home.id)}
+                    picks={homePicks}
                 />
 
                 <div className="flex flex-col justify-center items-center text-gray-300 font-bold text-xs">
@@ -85,6 +115,7 @@ const GameCard = ({ game, selectedTeamId, onPick }) => {
                     team={game.away}
                     isSelected={selectedTeamId === game.away.id}
                     onClick={() => onPick(game.away.id)}
+                    picks={awayPicks}
                 />
             </div>
         </motion.div>
