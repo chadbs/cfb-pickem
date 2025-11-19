@@ -54,6 +54,7 @@ const fetchEspnData = async (week) => {
             }
 
             // Extract records
+            // console.log(`Home Team: ${home.team.displayName}, Records:`, JSON.stringify(home.records));
             const homeRecord = home.records?.find(r => r.type === 'total')?.summary || home.records?.[0]?.summary || '0-0';
             const awayRecord = away.records?.find(r => r.type === 'total')?.summary || away.records?.[0]?.summary || '0-0';
 
@@ -162,6 +163,7 @@ const calculateSpreadWinner = (game) => {
 };
 
 // Sync data from ESPN
+// Sync data from ESPN
 app.post('/api/sync', async (req, res) => {
     const { week } = req.body;
     if (!week) return res.status(400).json({ error: "Week is required" });
@@ -178,49 +180,6 @@ app.post('/api/sync', async (req, res) => {
 
         // --- CALCULATE WINS ---
         const users = await User.find({});
-        const picks = await Pick.find({ week }); // Only picks for this week (or should it be all-time? User asked for "record", usually season-long)
-        // Actually, we should recalculate ALL-TIME wins if we want a season record.
-        // But for now, let's assume we are just updating based on the current week's results and adding to existing?
-        // No, safer to recalculate season total if we have all picks.
-        // Let's fetch ALL picks to be safe and accurate.
-        const allPicks = await Pick.find({});
-
-        // We need game data for ALL weeks to calculate season records. 
-        // BUT we only just fetched the CURRENT week's games.
-        // Limitation: We don't have past weeks' games stored if we delete them above.
-        // FIX: We should NOT delete all games above if we want to track season history.
-        // However, the current architecture deletes games. 
-        // For this session, let's assume we only care about the current week's updates OR
-        // we accept that "wins" is a running total.
-        // Let's try to update the running total by calculating *just this week's* wins and adding them?
-        // No, that's idempotent-unsafe. If I click "sync" twice, I get double wins.
-
-        // BETTER APPROACH for this architecture:
-        // 1. Reset all users' wins to 0.
-        // 2. We need scores for ALL games picked.
-        // Since we only fetch the *current* week, we can only verify the *current* week's picks.
-        // This implies we can't easily recalculate the whole season unless we fetch ALL weeks.
-
-        // COMPROMISE:
-        // We will fetch the current week's games.
-        // We will calculate wins for *this week*.
-        // We will *update* the user's record. 
-        // To make it idempotent, we need to know if we already counted this week.
-        // This is getting complex for a quick fix.
-
-        // ALTERNATIVE:
-        // Just calculate wins for the *active* games in the DB (which is current week).
-        // And assume "wins" in the User model is just for the current week?
-        // No, "Leaderboard" implies season.
-
-        // Let's do this:
-        // We will iterate through the fetched games (current week).
-        // For each completed game, we find the picks.
-        // If a pick is correct, we increment the user's win count.
-        // BUT we need to avoid double-counting.
-        // We can add a `processed` flag to the Pick model? Or `result` field.
-        // YES. Let's add `result` to Pick schema (pending, win, loss, push).
-        // Then we only count `win`s.
 
         // 1. Update Picks with results
         for (const game of gamesData) {
@@ -240,72 +199,104 @@ app.post('/api/sync', async (req, res) => {
             }
         }
 
-        // 2. Recalculate User Wins from scratch based on all their 'win' picks
-        // This requires us to trust that past picks have 'result' set correctly.
-        // Since we are just adding this feature, past picks won't have 'result'.
-        // This is a migration issue. 
-        // For now, let's just count wins for picks that HAVE a result of 'win'.
+        // 2. Recalculate User Wins
+        for (const user of users) {
+            const userWins = await Pick.countDocuments({ user: user.name, result: 'win' });
+            await User.findOneAndUpdate({ name: user.name }, { wins: userWins });
+        }
 
+        // Auto-select favorites logic
+        const system = await System.findById('config');
 
-        // Update settings (featured games)
-        app.post('/api/settings', async (req, res) => {
-            const { featuredGameIds, week } = req.body;
-            try {
-                const update = {};
-                if (featuredGameIds) update.featuredGameIds = featuredGameIds;
-                if (week) update.week = week;
+        if (system.featuredGameIds.length === 0) {
+            const favorites = ['Colorado', 'Colorado State', 'Nebraska', 'Michigan'];
+            const favoriteIds = gamesData
+                .filter(g => favorites.some(fav => g.home.name.includes(fav) || g.away.name.includes(fav)))
+                .map(g => g.id);
 
-                await System.findByIdAndUpdate('config', update);
-                res.json({ success: true });
-            } catch (error) {
-                res.status(500).json({ error: "Settings update failed" });
-            }
+            const topRankedIds = gamesData
+                .filter(g => !favoriteIds.includes(g.id))
+                .sort((a, b) => {
+                    const rankA = Math.min(a.home.rank, a.away.rank);
+                    const rankB = Math.min(b.home.rank, b.away.rank);
+                    return rankA - rankB;
+                })
+                .slice(0, 8 - favoriteIds.length)
+                .map(g => g.id);
+
+            const suggestedFeatured = [...favoriteIds, ...topRankedIds];
+
+            await System.findByIdAndUpdate('config', { featuredGameIds: suggestedFeatured });
+            res.json({ success: true, count: gamesData.length, featured: suggestedFeatured });
+        } else {
+            res.json({ success: true, count: gamesData.length, featured: system.featuredGameIds });
+        }
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Sync failed" });
+    }
+});
+
+// Update settings (featured games)
+app.post('/api/settings', async (req, res) => {
+    const { featuredGameIds, week } = req.body;
+    try {
+        const update = {};
+        if (featuredGameIds) update.featuredGameIds = featuredGameIds;
+        if (week) update.week = week;
+
+        await System.findByIdAndUpdate('config', update);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: "Settings update failed" });
+    }
+});
+
+// Submit picks
+app.post('/api/picks', async (req, res) => {
+    const { user, picks } = req.body; // picks: { gameId: "teamId" }
+
+    if (!user || !picks) return res.status(400).json({ error: "User and picks required" });
+
+    try {
+        // Ensure user exists
+        await User.findOneAndUpdate({ name: user }, {}, { upsert: true });
+
+        const system = await System.findById('config');
+        const currentWeek = system.week;
+
+        // Process picks
+        const pickPromises = Object.entries(picks).map(([gameId, teamId]) => {
+            return Pick.findOneAndUpdate(
+                { user, gameId },
+                { teamId, week: currentWeek },
+                { upsert: true }
+            );
         });
 
-        // Submit picks
-        app.post('/api/picks', async (req, res) => {
-            const { user, picks } = req.body; // picks: { gameId: "teamId" }
+        await Promise.all(pickPromises);
 
-            if (!user || !picks) return res.status(400).json({ error: "User and picks required" });
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to submit picks" });
+    }
+});
 
-            try {
-                // Ensure user exists
-                await User.findOneAndUpdate({ name: user }, {}, { upsert: true });
+// Delete user
+app.delete('/api/users/:name', async (req, res) => {
+    const { name } = req.params;
+    try {
+        await User.deleteOne({ name });
+        await Pick.deleteMany({ user: name }); // Optional: delete their picks too
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting user:", error);
+        res.status(500).json({ error: "Failed to delete user" });
+    }
+});
 
-                const system = await System.findById('config');
-                const currentWeek = system.week;
-
-                // Process picks
-                const pickPromises = Object.entries(picks).map(([gameId, teamId]) => {
-                    return Pick.findOneAndUpdate(
-                        { user, gameId },
-                        { teamId, week: currentWeek },
-                        { upsert: true }
-                    );
-                });
-
-                await Promise.all(pickPromises);
-
-                res.json({ success: true });
-            } catch (error) {
-                console.error(error);
-                res.status(500).json({ error: "Failed to submit picks" });
-            }
-        });
-
-        // Delete user
-        app.delete('/api/users/:name', async (req, res) => {
-            const { name } = req.params;
-            try {
-                await User.deleteOne({ name });
-                await Pick.deleteMany({ user: name }); // Optional: delete their picks too
-                res.json({ success: true });
-            } catch (error) {
-                console.error("Error deleting user:", error);
-                res.status(500).json({ error: "Failed to delete user" });
-            }
-        });
-
-        app.listen(PORT, () => {
-            console.log(`Server running on http://localhost:${PORT}`);
-        });
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
