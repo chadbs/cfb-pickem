@@ -99,7 +99,7 @@ export default function HeaderUserMenu({ currentUser, users, onUserSwitch }) {
                                         onChange={(e) => setNewUserName(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                                         placeholder="Name..."
-                                        className="flex-1 p-2 text-sm border border-gray-300 rounded-md focus:border-field focus:ring-1 focus:ring-field outline-none"
+                                        className="flex-1 p-2 text-sm text-gray-900 border border-gray-300 rounded-md focus:border-field focus:ring-1 focus:ring-field outline-none"
                                     />
                                     <button
                                         onClick={handleCreate}
