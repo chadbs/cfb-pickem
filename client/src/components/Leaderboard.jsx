@@ -1,39 +1,71 @@
 import React from 'react';
+import { Trophy, Medal } from 'lucide-react';
+import { motion } from 'framer-motion';
+import clsx from 'clsx';
 
 export default function Leaderboard({ users, onUserClick }) {
     const sortedUsers = [...users].sort((a, b) => b.wins - a.wins);
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-display font-bold mb-4 text-field-dark border-b-2 border-endzone inline-block">Standings</h2>
-            <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                    <thead>
-                        <tr className="text-gray-500 text-sm uppercase tracking-wider border-b border-gray-200">
-                            <th className="pb-2">Rank</th>
-                            <th className="pb-2">Player</th>
-                            <th className="pb-2 text-right">Wins</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {sortedUsers.map((user, index) => (
-                            <tr
+        <div className="space-y-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 className="text-2xl font-display font-bold mb-6 text-gray-800 flex items-center">
+                    <Trophy className="mr-3 text-yellow-500" />
+                    Season Standings
+                </h2>
+                <div className="space-y-3">
+                    {sortedUsers.map((user, index) => {
+                        let rankStyle = "bg-gray-100 text-gray-500";
+                        let icon = null;
+
+                        if (index === 0) {
+                            rankStyle = "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-400";
+                            icon = <Trophy size={16} className="text-yellow-600" />;
+                        } else if (index === 1) {
+                            rankStyle = "bg-gray-200 text-gray-700 ring-1 ring-gray-400";
+                            icon = <Medal size={16} className="text-gray-500" />;
+                        } else if (index === 2) {
+                            rankStyle = "bg-orange-100 text-orange-800 ring-1 ring-orange-300";
+                            icon = <Medal size={16} className="text-orange-600" />;
+                        }
+
+                        return (
+                            <motion.div
                                 key={user.name}
-                                onClick={() => onUserClick && onUserClick(user)}
-                                className="hover:bg-gray-50 cursor-pointer transition-colors group"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                onClick={() => onUserClick && onUserClick(user.name)}
+                                className={clsx(
+                                    "flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group border border-transparent hover:border-gray-200",
+                                    index < 3 ? "bg-white shadow-sm" : "bg-gray-50/50"
+                                )}
                             >
-                                <td className="py-3 font-mono text-gray-400 group-hover:text-field">#{index + 1}</td>
-                                <td className="py-3 font-bold text-gray-800 group-hover:text-field">{user.name}</td>
-                                <td className="py-3 text-right font-display text-xl text-field">{user.wins}</td>
-                            </tr>
-                        ))}
-                        {sortedUsers.length === 0 && (
-                            <tr>
-                                <td colSpan="3" className="py-4 text-center text-gray-400 italic">No picks yet. Be the first!</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                <div className="flex items-center space-x-4">
+                                    <div className={clsx(
+                                        "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
+                                        rankStyle
+                                    )}>
+                                        {index + 1}
+                                    </div>
+                                    <div>
+                                        <span className="font-bold text-gray-900 text-lg group-hover:text-field transition-colors">
+                                            {user.name}
+                                        </span>
+                                        {index === 0 && <span className="ml-2 text-xs font-bold text-yellow-600 uppercase tracking-wide">Leader</span>}
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-6">
+                                    <div className="text-right">
+                                        <div className="text-2xl font-bold text-gray-900">{user.wins || 0}</div>
+                                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Wins</div>
+                                    </div>
+                                    {icon && <div className="hidden sm:block">{icon}</div>}
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

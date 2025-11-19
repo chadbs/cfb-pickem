@@ -21,12 +21,12 @@ export default function Layout({ children, currentUser, users, onUserSwitch }) {
                 <div className="container mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         {/* Logo / Title */}
-                        <div className="flex items-center space-x-2">
+                        <Link to="/" className="flex items-center space-x-2 hover:opacity-90 transition-opacity">
                             <Shield className="text-endzone" size={28} />
                             <span className="text-xl font-display font-bold tracking-wider">
                                 CFB <span className="text-endzone">PICK'EM</span>
                             </span>
-                        </div>
+                        </Link>
 
                         {/* Desktop Nav */}
                         <div className="hidden md:flex space-x-8">
