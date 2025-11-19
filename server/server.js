@@ -240,103 +240,66 @@ app.post('/api/sync', async (req, res) => {
         // This is a migration issue. 
         // For now, let's just count wins for picks that HAVE a result of 'win'.
 
-        for (const user of users) {
-            const userWins = await Pick.countDocuments({ user: user.name, result: 'win' });
-            await User.findOneAndUpdate({ name: user.name }, { wins: userWins });
-        }
 
-        // Auto-select favorites logic (preserved)
-        const system = await System.findById('config');
+        // Update settings (featured games)
+        app.post('/api/settings', async (req, res) => {
+            const { featuredGameIds, week } = req.body;
+            try {
+                const update = {};
+                if (featuredGameIds) update.featuredGameIds = featuredGameIds;
+                if (week) update.week = week;
 
-        if (system.featuredGameIds.length === 0) {
-            const favorites = ['Colorado', 'Colorado State', 'Nebraska', 'Michigan'];
-            const favoriteIds = gamesData
-                .filter(g => favorites.some(fav => g.home.name.includes(fav) || g.away.name.includes(fav)))
-                .map(g => g.id);
-
-            const topRankedIds = gamesData
-                .filter(g => !favoriteIds.includes(g.id))
-                .sort((a, b) => {
-                    const rankA = Math.min(a.home.rank, a.away.rank);
-                    const rankB = Math.min(b.home.rank, b.away.rank);
-                    return rankA - rankB;
-                })
-                .slice(0, 8 - favoriteIds.length)
-                .map(g => g.id);
-
-            const suggestedFeatured = [...favoriteIds, ...topRankedIds];
-
-            await System.findByIdAndUpdate('config', { featuredGameIds: suggestedFeatured });
-            res.json({ success: true, count: gamesData.length, featured: suggestedFeatured });
-        } else {
-            res.json({ success: true, count: gamesData.length, featured: system.featuredGameIds });
-        }
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Sync failed" });
-    }
-});
-
-// Update settings (featured games)
-app.post('/api/settings', async (req, res) => {
-    const { featuredGameIds, week } = req.body;
-    try {
-        const update = {};
-        if (featuredGameIds) update.featuredGameIds = featuredGameIds;
-        if (week) update.week = week;
-
-        await System.findByIdAndUpdate('config', update);
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: "Settings update failed" });
-    }
-});
-
-// Submit picks
-app.post('/api/picks', async (req, res) => {
-    const { user, picks } = req.body; // picks: { gameId: "teamId" }
-
-    if (!user || !picks) return res.status(400).json({ error: "User and picks required" });
-
-    try {
-        // Ensure user exists
-        await User.findOneAndUpdate({ name: user }, {}, { upsert: true });
-
-        const system = await System.findById('config');
-        const currentWeek = system.week;
-
-        // Process picks
-        const pickPromises = Object.entries(picks).map(([gameId, teamId]) => {
-            return Pick.findOneAndUpdate(
-                { user, gameId },
-                { teamId, week: currentWeek },
-                { upsert: true }
-            );
+                await System.findByIdAndUpdate('config', update);
+                res.json({ success: true });
+            } catch (error) {
+                res.status(500).json({ error: "Settings update failed" });
+            }
         });
 
-        await Promise.all(pickPromises);
+        // Submit picks
+        app.post('/api/picks', async (req, res) => {
+            const { user, picks } = req.body; // picks: { gameId: "teamId" }
 
-        res.json({ success: true });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Failed to submit picks" });
-    }
-});
+            if (!user || !picks) return res.status(400).json({ error: "User and picks required" });
 
-// Delete user
-app.delete('/api/users/:name', async (req, res) => {
-    const { name } = req.params;
-    try {
-        await User.deleteOne({ name });
-        await Pick.deleteMany({ user: name }); // Optional: delete their picks too
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Error deleting user:", error);
-        res.status(500).json({ error: "Failed to delete user" });
-    }
-});
+            try {
+                // Ensure user exists
+                await User.findOneAndUpdate({ name: user }, {}, { upsert: true });
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+                const system = await System.findById('config');
+                const currentWeek = system.week;
+
+                // Process picks
+                const pickPromises = Object.entries(picks).map(([gameId, teamId]) => {
+                    return Pick.findOneAndUpdate(
+                        { user, gameId },
+                        { teamId, week: currentWeek },
+                        { upsert: true }
+                    );
+                });
+
+                await Promise.all(pickPromises);
+
+                res.json({ success: true });
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ error: "Failed to submit picks" });
+            }
+        });
+
+        // Delete user
+        app.delete('/api/users/:name', async (req, res) => {
+            const { name } = req.params;
+            try {
+                await User.deleteOne({ name });
+                await Pick.deleteMany({ user: name }); // Optional: delete their picks too
+                res.json({ success: true });
+            } catch (error) {
+                console.error("Error deleting user:", error);
+                res.status(500).json({ error: "Failed to delete user" });
+            }
+        });
+
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
