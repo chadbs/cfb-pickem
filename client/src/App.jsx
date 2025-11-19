@@ -43,6 +43,13 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
                     games={state.games}
                     featuredGameIds={state.featuredGameIds}
                     onClose={() => setShowGameSelector(false)}
+                    onSave={fetchData}
+                />
+            )}
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 className="text-2xl font-display font-bold mb-4 text-gray-800">Weekly Picks</h2>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
                     {displayGames.map(game => (
                         <GameCard
