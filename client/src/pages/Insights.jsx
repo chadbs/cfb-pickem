@@ -2,7 +2,16 @@ import React from 'react';
 import { BarChart2, Users, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function Insights({ games, picks, users }) {
+export default function Insights({ games = [], picks = [], users = [] }) {
+    if (!games.length || !picks.length) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] text-gray-500">
+                <BarChart2 size={48} className="mb-4 text-gray-300" />
+                <p className="text-lg font-medium">Not enough data for insights yet.</p>
+                <p className="text-sm">Check back after more picks are made!</p>
+            </div>
+        );
+    }
     // 1. Calculate Crowd Favorites
     const pickCounts = {}; // { gameId: { teamId: count } }
 
