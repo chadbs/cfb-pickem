@@ -38,7 +38,6 @@ const fetchEspnData = async (week) => {
     try {
         // Fetch FBS (groups=80) games
         const url = `http://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?week=${week}&groups=80&limit=100`;
-        console.log(`Fetching data from: ${url}`);
         const response = await axios.get(url);
         const events = response.data.events;
 
@@ -109,6 +108,7 @@ const fetchEspnData = async (week) => {
 app.get('/api/state', async (req, res) => {
     try {
         const system = await System.findById('config');
+        const games = await Game.find({});
         const games = await Game.find({});
         const users = await User.find({});
         const picks = await Pick.find({});
