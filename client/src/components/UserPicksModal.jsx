@@ -38,6 +38,9 @@ export default function UserPicksModal({ user, picks, games, onClose }) {
                             // spread logic would require storing the spread at time of pick or calculating it
                             // For now, just show who they picked.
 
+                            const isHome = game.home.id === pick.teamId;
+                            const pickedTeamLabel = isHome ? "HOME" : "AWAY";
+
                             return (
                                 <div key={pick.gameId} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
                                     <div className="flex items-center space-x-3 flex-1">
@@ -45,7 +48,12 @@ export default function UserPicksModal({ user, picks, games, onClose }) {
                                             <img src={pickedTeam.logo} alt={pickedTeam.name} className="w-full h-full object-contain" />
                                         </div>
                                         <div>
-                                            <div className="font-bold text-gray-900 leading-tight">{pickedTeam.name}</div>
+                                            <div className="flex items-center space-x-2">
+                                                <span className="font-bold text-gray-900 leading-tight">{pickedTeam.name}</span>
+                                                <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                    {pickedTeamLabel}
+                                                </span>
+                                            </div>
                                             <div className="text-xs text-gray-500">picked over {opponent.name}</div>
                                         </div>
                                     </div>

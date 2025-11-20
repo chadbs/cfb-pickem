@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import clsx from 'clsx';
 import { Clock, TrendingUp } from 'lucide-react';
 
-const TeamButton = ({ team, isSelected, onClick, picks = [], spread, gameStatus }) => {
+const TeamButton = ({ team, isSelected, onClick, picks = [], spread, gameStatus, type }) => {
     const showScore = gameStatus === 'in' || gameStatus === 'post';
 
     return (
@@ -12,12 +12,20 @@ const TeamButton = ({ team, isSelected, onClick, picks = [], spread, gameStatus 
             whileTap={{ scale: 0.98 }}
             onClick={onClick}
             className={clsx(
-                "relative flex-1 p-4 rounded-xl border-2 transition-all duration-300 flex flex-col items-center justify-between space-y-3 overflow-hidden group min-h-[160px]",
+                "relative flex-1 p-4 pt-6 rounded-xl border-2 transition-all duration-300 flex flex-col items-center justify-between space-y-3 overflow-hidden group min-h-[160px]",
                 isSelected
                     ? "bg-field text-white border-field shadow-md ring-2 ring-offset-2 ring-field"
                     : "bg-white text-gray-700 border-gray-100 hover:border-gray-300 hover:bg-gray-50"
             )}
         >
+            {/* Home/Away Label */}
+            <span className={clsx(
+                "absolute top-2 left-1/2 transform -translate-x-1/2 text-[9px] font-black tracking-widest uppercase opacity-60",
+                isSelected ? "text-white" : "text-gray-400"
+            )}>
+                {type}
+            </span>
+
             {/* Background Pattern for Selected State */}
             {isSelected && (
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
@@ -151,6 +159,7 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
                         onClick={() => onPick(game.home.id)}
                         picks={homePicks}
                         gameStatus={game.status}
+                        type="HOME"
                     />
 
                     {/* VS Badge */}
@@ -166,6 +175,7 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
                         onClick={() => onPick(game.away.id)}
                         picks={awayPicks}
                         gameStatus={game.status}
+                        type="AWAY"
                     />
                 </div>
             </div>
