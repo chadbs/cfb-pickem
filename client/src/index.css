@@ -3,16 +3,46 @@
 @tailwind utilities;
 
 body {
-  background-color: #f0f2f5;
-  color: #1f2937;
+  background-color: #f8fafc;
+  color: #1e293b;
+  overflow-x: hidden;
 }
 
-.field-bg {
-  background-color: #1a472a;
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 19px,
-    rgba(255, 255, 255, 0.1) 20px
-  );
+/* Modern Fluid Background */
+.fluid-bg {
+  background: radial-gradient(at 0% 0%, hsla(153, 47%, 49%, 0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(45, 93%, 47%, 0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(153, 47%, 49%, 0.2) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(45, 93%, 47%, 0.2) 0px, transparent 50%);
+  background-attachment: fixed;
+  background-size: 100% 100%;
+  animation: pulse-bg 10s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-bg {
+  0% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+/* Glassmorphism Utility */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(26, 71, 42, 0.85);
+  /* Field color with opacity */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }

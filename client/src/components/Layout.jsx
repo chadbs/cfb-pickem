@@ -33,9 +33,9 @@ export default function Layout({ children, currentUser, users, onUserSwitch, onD
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col font-sans pb-20 md:pb-0">
+        <div className="min-h-screen fluid-bg flex flex-col font-sans pb-20 md:pb-0">
             {/* Top Navigation */}
-            <nav className="bg-field text-white shadow-lg sticky top-0 z-50">
+            <nav className="glass-dark text-white shadow-lg sticky top-0 z-50">
                 <div className="container mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         {/* Logo / Title */}
@@ -68,7 +68,7 @@ export default function Layout({ children, currentUser, users, onUserSwitch, onD
             </nav>
 
             {/* Mobile Bottom Nav */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe">
+            <div className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/20 z-50 pb-safe">
                 <div className="flex justify-around items-center h-16">
                     {navItems.map((item) => {
                         const Icon = item.icon;

@@ -173,7 +173,7 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group"
+            className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden hover:shadow-2xl transition-all duration-300 group"
         >
             {/* Header */}
             <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex justify-between items-center">
