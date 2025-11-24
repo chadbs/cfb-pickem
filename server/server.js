@@ -174,6 +174,19 @@ app.post('/api/sync', async (req, res) => {
         // Update System week
         await System.findByIdAndUpdate('config', { week }, { upsert: true });
 
+        // Preserve spreads from existing games if API returns N/A (game finished)
+        const existingGames = await Game.find({});
+        const spreadMap = new Map(existingGames.map(g => [g.id, g.spread]));
+
+        gamesData.forEach(game => {
+            if ((!game.spread || game.spread === 'N/A') && spreadMap.has(game.id)) {
+                const oldSpread = spreadMap.get(game.id);
+                if (oldSpread && oldSpread !== 'N/A') {
+                    game.spread = oldSpread;
+                }
+            }
+        });
+
         // Update Games
         await Game.deleteMany({});
         await Game.insertMany(gamesData);

@@ -3,7 +3,7 @@ import { Trophy, Medal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
-export default function Leaderboard({ users, onUserClick }) {
+export default function Leaderboard({ users, picks, games, currentWeek, onUserClick }) {
     const sortedUsers = [...users].sort((a, b) => b.wins - a.wins);
 
     return (
@@ -27,6 +27,18 @@ export default function Leaderboard({ users, onUserClick }) {
                         } else if (index === 2) {
                             rankStyle = "bg-orange-100 text-orange-800 ring-1 ring-orange-300";
                             icon = <Medal size={16} className="text-orange-600" />;
+                        }
+
+                        // Calculate Weekly Record
+                        let weeklyWins = 0;
+                        let weeklyLosses = 0;
+
+                        if (picks && games && currentWeek) {
+                            const userWeeklyPicks = picks.filter(p => p.user === user.name && p.week === currentWeek);
+                            userWeeklyPicks.forEach(pick => {
+                                if (pick.result === 'win') weeklyWins++;
+                                else if (pick.result === 'loss') weeklyLosses++;
+                            });
                         }
 
                         return (
@@ -55,7 +67,11 @@ export default function Leaderboard({ users, onUserClick }) {
                                         {index === 0 && <span className="ml-2 text-xs font-bold text-yellow-600 uppercase tracking-wide">Leader</span>}
                                     </div>
                                 </div>
-                                <div className="flex items-center space-x-6">
+                                <div className="flex items-center space-x-8">
+                                    <div className="text-right hidden sm:block">
+                                        <div className="text-lg font-bold text-gray-700">{weeklyWins}-{weeklyLosses}</div>
+                                        <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Week {currentWeek}</div>
+                                    </div>
                                     <div className="text-right">
                                         <div className="text-2xl font-bold text-gray-900">{user.wins || 0}</div>
                                         <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Wins</div>

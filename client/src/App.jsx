@@ -258,7 +258,13 @@ function App() {
                         } />
                         <Route path="/leaderboard" element={
                             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <Leaderboard users={state.users} onUserClick={setViewingUser} />
+                                <Leaderboard
+                                    users={state.users}
+                                    picks={state.picks}
+                                    games={state.games}
+                                    currentWeek={state.week}
+                                    onUserClick={setViewingUser}
+                                />
                             </div>
                         } />
                         <Route path="/insights" element={
