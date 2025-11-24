@@ -205,10 +205,22 @@ app.post('/api/sync', async (req, res) => {
 
             // 2. If still N/A, try manual fallback
             if (!game.spread || game.spread === 'N/A') {
-                if (manualSpreads[game.home.name]) {
-                    game.spread = `${game.home.abbreviation} ${manualSpreads[game.home.name]}`;
-                } else if (manualSpreads[game.away.name]) {
-                    game.spread = `${game.away.abbreviation} ${manualSpreads[game.away.name]}`;
+                // Helper to check if any key in manualSpreads is contained in the team name
+                const findSpread = (teamName) => {
+                    for (const [key, value] of Object.entries(manualSpreads)) {
+                        if (teamName.includes(key)) return value;
+                    }
+                    return null;
+                };
+
+                const homeSpread = findSpread(game.home.name);
+                if (homeSpread) {
+                    game.spread = `${game.home.abbreviation} ${homeSpread}`;
+                } else {
+                    const awaySpread = findSpread(game.away.name);
+                    if (awaySpread) {
+                        game.spread = `${game.away.abbreviation} ${awaySpread}`;
+                    }
                 }
             }
         });
