@@ -3,7 +3,40 @@ import { motion } from 'framer-motion';
 import clsx from 'clsx';
 import { Clock, TrendingUp } from 'lucide-react';
 
-const TeamButton = ({ team, isSelected, onClick, picks = [], spread, gameStatus, type }) => {
+const getSpreadWinner = (game) => {
+    if (game.status !== 'post') return null;
+    if (!game.spread || game.spread === 'N/A' || game.spread === 'Even') return null;
+
+    const parts = game.spread.split(' ');
+    // Handle cases where spread might be "Team -10" or just "-10" if data is weird, 
+    // but our server logic enforces "ABBR -X.X".
+    if (parts.length < 2) return null;
+
+    const favoriteAbbr = parts[0];
+    const spreadValue = parseFloat(parts[1]);
+
+    if (isNaN(spreadValue)) return null;
+
+    let homeScore = parseInt(game.home.score);
+    let awayScore = parseInt(game.away.score);
+
+    let adjustedHomeScore = homeScore;
+    let adjustedAwayScore = awayScore;
+
+    if (game.home.abbreviation === favoriteAbbr) {
+        adjustedHomeScore += spreadValue;
+    } else if (game.away.abbreviation === favoriteAbbr) {
+        adjustedAwayScore += spreadValue;
+    } else {
+        return null;
+    }
+
+    if (adjustedHomeScore > adjustedAwayScore) return game.home.id;
+    if (adjustedAwayScore > adjustedHomeScore) return game.away.id;
+    return 'PUSH';
+};
+
+const TeamButton = ({ team, isSelected, onClick, picks = [], spread, gameStatus, type, isSpreadWinner }) => {
     const showScore = gameStatus === 'in' || gameStatus === 'post';
 
     return (
@@ -15,7 +48,8 @@ const TeamButton = ({ team, isSelected, onClick, picks = [], spread, gameStatus,
                 "relative flex-1 p-4 pt-6 rounded-xl border-2 transition-all duration-300 flex flex-col items-center justify-between space-y-3 overflow-hidden group min-h-[160px]",
                 isSelected
                     ? "bg-field text-white border-field shadow-md ring-2 ring-offset-2 ring-field"
-                    : "bg-white text-gray-700 border-gray-100 hover:border-gray-300 hover:bg-gray-50"
+                    : "bg-white text-gray-700 border-gray-100 hover:border-gray-300 hover:bg-gray-50",
+                isSpreadWinner && !isSelected && "ring-2 ring-green-500 ring-offset-1 border-green-500 bg-green-50/30"
             )}
         >
             {/* Home/Away Label */}
@@ -25,6 +59,13 @@ const TeamButton = ({ team, isSelected, onClick, picks = [], spread, gameStatus,
             )}>
                 {type}
             </span>
+
+            {/* Winner Badge */}
+            {isSpreadWinner && (
+                <div className="absolute top-2 right-2 bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm z-20">
+                    COVER
+                </div>
+            )}
 
             {/* Background Pattern for Selected State */}
             {isSelected && (
@@ -126,6 +167,8 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
     const isLive = game.status === 'in';
     const isFinal = game.status === 'post';
 
+    const spreadWinnerId = getSpreadWinner(game);
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -160,6 +203,7 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
                         picks={homePicks}
                         gameStatus={game.status}
                         type="HOME"
+                        isSpreadWinner={spreadWinnerId === game.home.id}
                     />
 
                     {/* VS Badge */}
@@ -176,6 +220,7 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
                         picks={awayPicks}
                         gameStatus={game.status}
                         type="AWAY"
+                        isSpreadWinner={spreadWinnerId === game.away.id}
                     />
                 </div>
             </div>
