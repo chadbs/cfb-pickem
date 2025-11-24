@@ -179,22 +179,24 @@ app.post('/api/sync', async (req, res) => {
         const spreadMap = new Map(existingGames.map(g => [g.id, g.spread]));
 
         // Hardcoded spreads for Week 13 2025 (Fallback for missing API data)
+        // Using full names or unique substrings to avoid false positives (e.g. "Michigan" matching "Michigan State")
         const manualSpreads = {
             'Ohio State': -32.5,
             'Oregon': -10.5,
-            'Oklahoma': -6.5,
-            'Michigan': -13.5, // vs Maryland
+            'Oklahoma Sooners': -6.5, // Specific to avoid State
+            'Michigan Wolverines': -13.5, // Specific to avoid State
             'Iowa State': -4.0,
+            'Iowa Hawkeyes': -16.5, // Added Iowa spread
             'Notre Dame': -35.0,
             'Georgia': -45.0,
-            'Miami': -17.0,
-            'Texas': -10.5,
+            'Miami Hurricanes': -17.0, // Specific to avoid OH
+            'Texas Longhorns': -10.5, // Specific to avoid A&M
             'Vanderbilt': -10.0,
-            'Utah': -16.5,
+            'Utah Utes': -16.5, // Specific to avoid State
             'Tulane': -8.5,
-            'Arizona State': -7.5, // vs Colorado
-            'Penn State': -9.5, // vs Nebraska
-            'Boise State': -16.5 // vs Colorado State
+            'Arizona State': -7.5,
+            'Penn State': -9.5,
+            'Boise State': -16.5
         };
 
         gamesData.forEach(game => {
