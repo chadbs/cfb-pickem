@@ -191,7 +191,10 @@ app.post('/api/sync', async (req, res) => {
             'Texas': -10.5,
             'Vanderbilt': -10.0,
             'Utah': -16.5,
-            'Tulane': -8.5
+            'Tulane': -8.5,
+            'Arizona State': -7.5, // vs Colorado
+            'Penn State': -9.5, // vs Nebraska
+            'Boise State': -16.5 // vs Colorado State
         };
 
         gamesData.forEach(game => {
