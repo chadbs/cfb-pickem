@@ -178,11 +178,37 @@ app.post('/api/sync', async (req, res) => {
         const existingGames = await Game.find({});
         const spreadMap = new Map(existingGames.map(g => [g.id, g.spread]));
 
+        // Hardcoded spreads for Week 13 2025 (Fallback for missing API data)
+        const manualSpreads = {
+            'Ohio State': -32.5,
+            'Oregon': -10.5,
+            'Oklahoma': -6.5,
+            'Michigan': -13.5, // vs Maryland
+            'Iowa State': -4.0,
+            'Notre Dame': -35.0,
+            'Georgia': -45.0,
+            'Miami': -17.0,
+            'Texas': -10.5,
+            'Vanderbilt': -10.0,
+            'Utah': -16.5,
+            'Tulane': -8.5
+        };
+
         gamesData.forEach(game => {
+            // 1. Try to preserve existing spread
             if ((!game.spread || game.spread === 'N/A') && spreadMap.has(game.id)) {
                 const oldSpread = spreadMap.get(game.id);
                 if (oldSpread && oldSpread !== 'N/A') {
                     game.spread = oldSpread;
+                }
+            }
+
+            // 2. If still N/A, try manual fallback
+            if (!game.spread || game.spread === 'N/A') {
+                if (manualSpreads[game.home.name]) {
+                    game.spread = `${game.home.abbreviation} ${manualSpreads[game.home.name]}`;
+                } else if (manualSpreads[game.away.name]) {
+                    game.spread = `${game.away.abbreviation} ${manualSpreads[game.away.name]}`;
                 }
             }
         });
