@@ -200,15 +200,9 @@ app.post('/api/sync', async (req, res) => {
         };
 
         gamesData.forEach(game => {
-            // 1. Try to preserve existing spread
-            if ((!game.spread || game.spread === 'N/A') && spreadMap.has(game.id)) {
-                const oldSpread = spreadMap.get(game.id);
-                if (oldSpread && oldSpread !== 'N/A') {
-                    game.spread = oldSpread;
-                }
-            }
+            let spreadFound = false;
 
-            // 2. If still N/A, try manual fallback
+            // 1. Try manual fallback (Priority 1: Fixes bad data)
             if (!game.spread || game.spread === 'N/A') {
                 // Helper to check if any key in manualSpreads is contained in the team name
                 const findSpread = (teamName) => {
@@ -221,11 +215,21 @@ app.post('/api/sync', async (req, res) => {
                 const homeSpread = findSpread(game.home.name);
                 if (homeSpread) {
                     game.spread = `${game.home.abbreviation} ${homeSpread}`;
+                    spreadFound = true;
                 } else {
                     const awaySpread = findSpread(game.away.name);
                     if (awaySpread) {
                         game.spread = `${game.away.abbreviation} ${awaySpread}`;
+                        spreadFound = true;
                     }
+                }
+            }
+
+            // 2. If no manual spread, try to preserve existing spread (Priority 2)
+            if (!spreadFound && (!game.spread || game.spread === 'N/A') && spreadMap.has(game.id)) {
+                const oldSpread = spreadMap.get(game.id);
+                if (oldSpread && oldSpread !== 'N/A') {
+                    game.spread = oldSpread;
                 }
             }
         });
