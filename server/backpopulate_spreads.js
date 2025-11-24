@@ -12,28 +12,18 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cfb-pickem';
 
 const spreadMap = {
-    'Ohio State': -12.5, // Updated from search
-    'Miami': -23.5, // Verified
-    'Texas': -20.5, // Verified
-    'Penn State': -11.5, // Verified
-    'Alabama': -13.5, // Updated from search
-    'Boise State': -22.5, // Verified
-    'Notre Dame': -14.0, // Verified
-    'Colorado': -1.5, // Updated from search
-    'Arizona State': -3.0, // Updated from search
-    'Michigan State': -13.5, // Verified
-    'UNLV': -7.5, // Verified
-    'SMU': -9.5, // Verified
-    'Iowa': -6.5, // Verified
-    'Texas A&M': -2.5, // Verified
-    'USC': -4.5, // Verified
-    'Georgia': -42.5, // Verified
-    'Ole Miss': -13.5, // Added
-    'Oregon': -9.5, // Added
-    'Oklahoma': -9.5, // Added (vs Mizzou)
-    'James Madison': -13.5, // Added
-    'Utah': -16.5, // Added
-    'Tulane': -8.5 // Added
+    'Ohio State': -32.5, // 2025 vs Rutgers
+    'Oregon': -10.5, // 2025 vs USC
+    'Oklahoma': -6.5, // 2025 vs Missouri
+    'Michigan': -13.5, // 2025 vs Maryland (Maryland +13.5)
+    'Iowa State': -4.0, // 2025 vs Kansas
+    'Notre Dame': -35.0, // 2025 vs Syracuse
+    'Georgia': -45.0, // 2025 vs Charlotte
+    'Miami': -17.0, // 2025 vs Virginia Tech
+    'Texas': -10.5, // 2025 vs Arkansas
+    'Vanderbilt': -10.0, // 2025 vs Kentucky
+    'Utah': -16.5, // 2025 vs Kansas State
+    'Tulane': -8.5 // 2025 vs Temple
 };
 
 const run = async () => {
