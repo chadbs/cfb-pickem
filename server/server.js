@@ -109,7 +109,7 @@ app.get('/api/state', async (req, res) => {
     try {
         const system = await System.findById('config');
         const games = await Game.find({});
-        const games = await Game.find({});
+
         const users = await User.find({});
         const picks = await Pick.find({});
 
