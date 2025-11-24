@@ -107,6 +107,12 @@ export default function GameSelector({ games, featuredGameIds, onClose, onSave }
                         Selected: <span className={selectedIds.length === 8 ? "text-green-600" : "text-red-600"}>{selectedIds.length}/8</span>
                     </div>
                     <div className="flex space-x-3">
+                        <button
+                            onClick={() => setSelectedIds([])}
+                            className="px-4 py-2 text-red-600 hover:text-red-800 font-bold hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                            Clear All
+                        </button>
                         <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:text-gray-800 font-bold">Cancel</button>
                         <button
                             onClick={handleSave}

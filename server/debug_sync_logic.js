@@ -64,15 +64,16 @@ const run = async () => {
     const manualSpreads = {
         'Ohio State': -32.5,
         'Oregon': -10.5,
-        'Oklahoma': -6.5,
-        'Michigan': -13.5,
+        'Oklahoma Sooners': -6.5, // Specific to avoid State
+        'Michigan Wolverines': -13.5, // Specific to avoid State
         'Iowa State': -4.0,
+        'Iowa Hawkeyes': -16.5, // Added Iowa spread
         'Notre Dame': -35.0,
         'Georgia': -45.0,
-        'Miami': -17.0,
-        'Texas': -10.5,
+        'Miami Hurricanes': -17.0, // Specific to avoid OH
+        'Texas Longhorns': -10.5, // Specific to avoid A&M
         'Vanderbilt': -10.0,
-        'Utah': -16.5,
+        'Utah Utes': -16.5, // Specific to avoid State
         'Tulane': -8.5,
         'Arizona State': -7.5,
         'Penn State': -9.5,
@@ -81,6 +82,11 @@ const run = async () => {
 
     // Simulate the sync logic
     gamesData.forEach(game => {
+        if (!game.name.includes('Iowa')) return; // Filter for Iowa game only
+
+        let spreadFound = false;
+
+        // 1. Try manual fallback (Priority 1: Fixes bad data)
         if (!game.spread || game.spread === 'N/A') {
             const findSpread = (teamName) => {
                 for (const [key, value] of Object.entries(manualSpreads)) {
@@ -93,20 +99,15 @@ const run = async () => {
             if (homeSpread) {
                 game.spread = `${game.home.abbreviation} ${homeSpread}`;
                 console.log(`[FIXED] ${game.name}: Found spread for HOME ${game.home.name} -> ${game.spread}`);
+                spreadFound = true;
             } else {
                 const awaySpread = findSpread(game.away.name);
                 if (awaySpread) {
                     game.spread = `${game.away.abbreviation} ${awaySpread}`;
                     console.log(`[FIXED] ${game.name}: Found spread for AWAY ${game.away.name} -> ${game.spread}`);
-                } else {
-                    // Log failures for specific teams we care about
-                    if (game.name.includes('Colorado') || game.name.includes('Penn') || game.name.includes('Boise')) {
-                        console.log(`[FAILED] ${game.name}: Could not find spread. Home: "${game.home.name}", Away: "${game.away.name}"`);
-                    }
+                    spreadFound = true;
                 }
             }
-        } else {
-            // console.log(`[OK] ${game.name}: Has spread ${game.spread}`);
         }
     });
 };
