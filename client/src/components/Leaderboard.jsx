@@ -4,15 +4,36 @@ import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
 export default function Leaderboard({ users, picks, games, currentWeek, onUserClick }) {
+    const [selectedWeek, setSelectedWeek] = React.useState(currentWeek);
     const sortedUsers = [...users].sort((a, b) => b.wins - a.wins);
+
+    // Update selected week when currentWeek changes (e.g. on initial load)
+    React.useEffect(() => {
+        if (currentWeek) setSelectedWeek(currentWeek);
+    }, [currentWeek]);
 
     return (
         <div className="space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h2 className="text-2xl font-display font-bold mb-6 text-gray-800 flex items-center">
-                    <Trophy className="mr-3 text-yellow-500" />
-                    Season Standings
-                </h2>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-display font-bold text-gray-800 flex items-center">
+                        <Trophy className="mr-3 text-yellow-500" />
+                        Season Standings
+                    </h2>
+                    <div className="flex items-center space-x-2">
+                        <label className="text-sm font-bold text-gray-500">View Week:</label>
+                        <select
+                            value={selectedWeek}
+                            onChange={(e) => setSelectedWeek(Number(e.target.value))}
+                            className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-field focus:border-field block p-2 font-bold"
+                        >
+                            {Array.from({ length: currentWeek }, (_, i) => i + 1).reverse().map(week => (
+                                <option key={week} value={week}>Week {week}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
                 <div className="space-y-3">
                     {sortedUsers.map((user, index) => {
                         let rankStyle = "bg-gray-100 text-gray-500";
@@ -29,12 +50,12 @@ export default function Leaderboard({ users, picks, games, currentWeek, onUserCl
                             icon = <Medal size={16} className="text-orange-600" />;
                         }
 
-                        // Calculate Weekly Record
+                        // Calculate Weekly Record for SELECTED week
                         let weeklyWins = 0;
                         let weeklyLosses = 0;
 
-                        if (picks && games && currentWeek) {
-                            const userWeeklyPicks = picks.filter(p => p.user === user.name && p.week === currentWeek);
+                        if (picks && games) {
+                            const userWeeklyPicks = picks.filter(p => p.user === user.name && p.week === selectedWeek);
                             userWeeklyPicks.forEach(pick => {
                                 if (pick.result === 'win') weeklyWins++;
                                 else if (pick.result === 'loss') weeklyLosses++;
@@ -70,11 +91,11 @@ export default function Leaderboard({ users, picks, games, currentWeek, onUserCl
                                 <div className="flex items-center space-x-8">
                                     <div className="text-right hidden sm:block">
                                         <div className="text-lg font-bold text-gray-700">{weeklyWins}-{weeklyLosses}</div>
-                                        <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Week {currentWeek}</div>
+                                        <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Week {selectedWeek}</div>
                                     </div>
                                     <div className="text-right">
                                         <div className="text-2xl font-bold text-gray-900">{user.wins || 0}</div>
-                                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Wins</div>
+                                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Wins</div>
                                     </div>
                                     {icon && <div className="hidden sm:block">{icon}</div>}
                                 </div>
