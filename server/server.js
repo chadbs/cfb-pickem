@@ -19,7 +19,7 @@ app.use(cors({
 app.use(express.json());
 
 // MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cfb-pickem';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cfb-pickem';
 
 mongoose.connect(MONGODB_URI)
     .then(async () => {
@@ -27,7 +27,7 @@ mongoose.connect(MONGODB_URI)
         // Initialize System config if not exists
         const sys = await System.findById('config');
         if (!sys) {
-            await System.create({ _id: 'config', week: 13, featuredGameIds: [] });
+            await System.create({ _id: 'config', week: 14, featuredGameIds: [] });
             console.log('Initialized System config');
         }
     })
@@ -234,9 +234,21 @@ app.post('/api/sync', async (req, res) => {
             }
         });
 
-        // Update Games
-        await Game.deleteMany({});
-        await Game.insertMany(gamesData);
+        // Add week to game objects
+        gamesData.forEach(g => g.week = week);
+
+        // Update Games (Upsert to preserve history)
+        const bulkOps = gamesData.map(game => ({
+            updateOne: {
+                filter: { id: game.id },
+                update: { $set: game },
+                upsert: true
+            }
+        }));
+
+        if (bulkOps.length > 0) {
+            await Game.bulkWrite(bulkOps);
+        }
 
         // --- CALCULATE WINS ---
         const users = await User.find({});
@@ -295,6 +307,46 @@ app.post('/api/sync', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Sync failed" });
+    }
+});
+
+// Backfill season data (Admin tool)
+app.post('/api/backfill', async (req, res) => {
+    try {
+        console.log("Starting season backfill...");
+        const currentWeek = 14;
+        let totalGames = 0;
+
+        for (let week = 1; week <= currentWeek; week++) {
+            try {
+                const games = await fetchEspnData(week);
+                if (games.length > 0) {
+                    // Add week to game objects
+                    games.forEach(g => g.week = week);
+
+                    const bulkOps = games.map(game => ({
+                        updateOne: {
+                            filter: { id: game.id },
+                            update: { $set: game },
+                            upsert: true
+                        }
+                    }));
+                    await Game.bulkWrite(bulkOps);
+                    totalGames += games.length;
+                    console.log(`Backfilled Week ${week}: ${games.length} games`);
+                }
+            } catch (err) {
+                console.error(`Failed to backfill Week ${week}:`, err.message);
+            }
+            // Polite delay
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        console.log(`Backfill complete! Total games: ${totalGames}`);
+        res.json({ success: true, totalGames });
+    } catch (error) {
+        console.error("Backfill failed:", error);
+        res.status(500).json({ error: "Backfill failed" });
     }
 });
 
