@@ -104,23 +104,45 @@ const fetchEspnData = async (week) => {
 
 // Routes
 
+// Helper: Calculate current week based on date (Starts Mon Aug 26, 2024)
+const getCalculatedWeek = () => {
+    const startDate = new Date('2025-08-25T00:00:00-04:00'); // Week 1 Start (Monday)
+    const now = new Date();
+    const diffTime = Math.abs(now - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const week = Math.floor(diffDays / 7) + 1;
+    return Math.max(1, week); // Ensure at least Week 1
+};
+
 // Get current state
 app.get('/api/state', async (req, res) => {
     try {
-        const system = await System.findById('config');
-        const games = await Game.find({});
+        let system = await System.findById('config');
 
+        // Auto-update week if needed
+        const currentRealWeek = getCalculatedWeek();
+        if (system && system.week !== currentRealWeek) {
+            console.log(`Auto-updating week from ${system.week} to ${currentRealWeek}`);
+            system = await System.findByIdAndUpdate(
+                'config',
+                { week: currentRealWeek },
+                { new: true, upsert: true }
+            );
+        }
+
+        const games = await Game.find({});
         const users = await User.find({});
         const picks = await Pick.find({});
 
         res.json({
-            week: system?.week || 13,
+            week: system?.week || currentRealWeek,
             featuredGameIds: system?.featuredGameIds || [],
             games,
             users,
             picks
         });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Failed to fetch state' });
     }
 });
