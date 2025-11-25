@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { syncWeek } from '../api';
+import { syncWeek, backfillSeason } from '../api';
 
 export default function AdminControls({ currentWeek, onSync }) {
     const [week, setWeek] = useState(currentWeek);
@@ -34,6 +34,26 @@ export default function AdminControls({ currentWeek, onSync }) {
                 className="bg-endzone text-field-dark font-bold px-4 py-1 rounded hover:bg-yellow-400 disabled:opacity-50 transition-colors"
             >
                 {loading ? 'Syncing...' : 'Sync Games'}
+            </button>
+            <button
+                onClick={async () => {
+                    if (confirm("This will fetch data for Weeks 1-14. Continue?")) {
+                        setLoading(true);
+                        try {
+                            await backfillSeason();
+                            alert("Season backfill complete!");
+                            onSync();
+                        } catch (e) {
+                            alert("Backfill failed.");
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }}
+                disabled={loading}
+                className="bg-blue-600 text-white font-bold px-4 py-1 rounded hover:bg-blue-500 disabled:opacity-50 transition-colors"
+            >
+                Backfill Season
             </button>
         </div>
     );
