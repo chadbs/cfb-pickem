@@ -122,6 +122,39 @@ export default function Insights({ games = [], picks = [], users = [] }) {
         return targetConferences.includes(String(rec.conf1)) && targetConferences.includes(String(rec.conf2));
     });
 
+    // 3. Aggregate Conference Power Rankings (Total vs Other Power Conferences)
+    const powerConfs = ['1', '4', '5', '8', '17']; // ACC, Big 12, Big 10, SEC, MW
+    const powerConfStats = {};
+
+    powerConfs.forEach(id => {
+        powerConfStats[id] = { id, name: getConfName(id), wins: 0, losses: 0 };
+    });
+
+    games.forEach(game => {
+        if (game.status !== 'post') return;
+
+        const homeConf = String(game.home.conferenceId);
+        const awayConf = String(game.away.conferenceId);
+
+        // Check if both are in our target list and are different
+        if (powerConfs.includes(homeConf) && powerConfs.includes(awayConf) && homeConf !== awayConf) {
+            if (game.home.winner) {
+                powerConfStats[homeConf].wins++;
+                powerConfStats[awayConf].losses++;
+            } else {
+                powerConfStats[homeConf].losses++;
+                powerConfStats[awayConf].wins++;
+            }
+        }
+    });
+
+    const sortedPowerConfs = Object.values(powerConfStats)
+        .sort((a, b) => {
+            const winPctA = a.wins / (a.wins + a.losses || 1);
+            const winPctB = b.wins / (b.wins + b.losses || 1);
+            return winPctB - winPctA;
+        });
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             <div className="flex items-center space-x-3 mb-8">
@@ -131,6 +164,49 @@ export default function Insights({ games = [], picks = [], users = [] }) {
                 <div>
                     <h1 className="text-3xl font-display font-bold text-gray-900">Performance Insights</h1>
                     <p className="text-gray-500 font-medium">Advanced stats and trends</p>
+                </div>
+            </div>
+
+            {/* Conference Power Rankings */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex items-center space-x-3 mb-6">
+                    <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                        <Trophy size={24} />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800">Conference Power Rankings</h2>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                                <th className="pb-3 pl-4">Conference</th>
+                                <th className="pb-3 text-center">Record vs Others</th>
+                                <th className="pb-3 text-center">Win %</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {sortedPowerConfs.map((conf, idx) => {
+                                const total = conf.wins + conf.losses;
+                                const pct = total > 0 ? ((conf.wins / total) * 100).toFixed(1) : '0.0';
+                                return (
+                                    <tr key={conf.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="py-3 pl-4 font-bold text-gray-900">
+                                            <div className="flex items-center space-x-3">
+                                                <span className="text-gray-400 text-sm">#{idx + 1}</span>
+                                                <span>{conf.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-3 text-center font-bold text-gray-700">
+                                            {conf.wins}-{conf.losses}
+                                        </td>
+                                        <td className="py-3 text-center font-bold text-gray-700">
+                                            {pct}%
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -175,7 +251,7 @@ export default function Insights({ games = [], picks = [], users = [] }) {
                         <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
                             <Grid size={24} />
                         </div>
-                        <h2 className="text-xl font-bold text-gray-800">Conference Wars</h2>
+                        <h2 className="text-xl font-bold text-gray-800">Head-to-Head Matchups</h2>
                     </div>
 
                     {filteredConfRecords.length > 0 ? (
