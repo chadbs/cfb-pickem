@@ -135,7 +135,7 @@ app.get('/api/state', async (req, res) => {
         const picks = await Pick.find({});
 
         res.json({
-            week: system?.week || currentRealWeek,
+            week: system?.week || currentRealWeek || 14,
             featuredGameIds: system?.featuredGameIds || [],
             games,
             users,

@@ -99,11 +99,13 @@ export default function Insights({ games = [], picks = [], users = [] }) {
     });
 
     // Map Conference IDs to Names (Basic mapping for major conferences)
+    // Map Conference IDs to Names (Basic mapping for major conferences)
     const confNames = {
         '1': 'ACC',
         '4': 'Big 12',
         '5': 'Big Ten',
         '8': 'SEC',
+        '17': 'Mountain West',
         '9': 'Pac-12',
         '12': 'C-USA',
         '18': 'Indep',
@@ -111,7 +113,14 @@ export default function Insights({ games = [], picks = [], users = [] }) {
         '251': 'Big South'
     };
 
+    const targetConferences = ['1', '4', '5', '8', '17']; // ACC, Big 12, Big 10, SEC, MW
+
     const getConfName = (id) => confNames[id] || `Conf ${id}`;
+
+    // Filter and sort conference records
+    const filteredConfRecords = Object.values(confRecords).filter(rec => {
+        return targetConferences.includes(String(rec.conf1)) && targetConferences.includes(String(rec.conf2));
+    });
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -169,9 +178,9 @@ export default function Insights({ games = [], picks = [], users = [] }) {
                         <h2 className="text-xl font-bold text-gray-800">Conference Wars</h2>
                     </div>
 
-                    {Object.keys(confRecords).length > 0 ? (
+                    {filteredConfRecords.length > 0 ? (
                         <div className="space-y-4">
-                            {Object.values(confRecords).map((rec, idx) => (
+                            {filteredConfRecords.map((rec, idx) => (
                                 <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                                     <div className="flex-1 text-center">
                                         <div className="font-bold text-gray-900">{getConfName(rec.conf1)}</div>
