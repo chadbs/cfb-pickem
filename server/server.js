@@ -120,9 +120,36 @@ app.get('/api/state', async (req, res) => {
         let system = await System.findById('config');
 
         // Auto-update week if needed
+        // Auto-update week if needed
         const currentRealWeek = getCalculatedWeek();
         if (system && system.week !== currentRealWeek) {
             console.log(`Auto-updating week from ${system.week} to ${currentRealWeek}`);
+
+            // Auto-fetch data for the new week so user doesn't have to hit sync
+            try {
+                console.log(`Auto-fetching data for Week ${currentRealWeek}...`);
+                const gamesData = await fetchEspnData(currentRealWeek);
+
+                // Add week to game objects
+                gamesData.forEach(g => g.week = currentRealWeek);
+
+                // Save games
+                const bulkOps = gamesData.map(game => ({
+                    updateOne: {
+                        filter: { id: game.id },
+                        update: { $set: game },
+                        upsert: true
+                    }
+                }));
+
+                if (bulkOps.length > 0) {
+                    await Game.bulkWrite(bulkOps);
+                }
+                console.log(`Auto-fetch complete for Week ${currentRealWeek}`);
+            } catch (err) {
+                console.error("Auto-fetch failed:", err);
+            }
+
             system = await System.findByIdAndUpdate(
                 'config',
                 { week: currentRealWeek },
