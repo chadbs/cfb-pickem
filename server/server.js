@@ -136,6 +136,7 @@ app.get('/api/state', async (req, res) => {
 
         res.json({
             week: system?.week || currentRealWeek || 14,
+            spreadsLocked: system?.spreadsLocked || false,
             featuredGameIds: system?.featuredGameIds || [],
             games,
             users,
@@ -193,6 +194,18 @@ app.post('/api/sync', async (req, res) => {
     try {
         const gamesData = await fetchEspnData(week);
 
+        // Check lock status
+        const system = await System.findById('config');
+        let spreadsLocked = system?.spreadsLocked || false;
+
+        // Auto-lock if any game has started
+        const anyGameStarted = gamesData.some(g => g.status === 'in' || g.status === 'post');
+        if (anyGameStarted && !spreadsLocked) {
+            console.log("First game started. Auto-locking spreads.");
+            spreadsLocked = true;
+            await System.findByIdAndUpdate('config', { spreadsLocked: true }, { upsert: true });
+        }
+
         // Update System week
         await System.findByIdAndUpdate('config', { week }, { upsert: true });
 
@@ -222,6 +235,15 @@ app.post('/api/sync', async (req, res) => {
         };
 
         gamesData.forEach(game => {
+            // If spreads are locked, ALWAYS use the existing spread from DB if available
+            if (spreadsLocked && spreadMap.has(game.id)) {
+                const lockedSpread = spreadMap.get(game.id);
+                if (lockedSpread && lockedSpread !== 'N/A') {
+                    game.spread = lockedSpread;
+                    return; // Skip other logic
+                }
+            }
+
             let spreadFound = false;
 
             // 1. Try manual fallback (Priority 1: Fixes bad data)
@@ -369,6 +391,18 @@ app.post('/api/backfill', async (req, res) => {
     } catch (error) {
         console.error("Backfill failed:", error);
         res.status(500).json({ error: "Backfill failed" });
+    }
+});
+
+// Toggle spread lock
+app.post('/api/toggle-lock', async (req, res) => {
+    try {
+        const system = await System.findById('config');
+        const newStatus = !system.spreadsLocked;
+        await System.findByIdAndUpdate('config', { spreadsLocked: newStatus });
+        res.json({ success: true, spreadsLocked: newStatus });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to toggle lock" });
     }
 });
 

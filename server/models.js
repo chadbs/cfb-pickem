@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 const systemSchema = new mongoose.Schema({
     _id: { type: String, default: 'config' },
     week: { type: Number, default: 13 },
-    featuredGameIds: { type: [String], default: [] }
+    featuredGameIds: { type: [String], default: [] },
+    spreadsLocked: { type: Boolean, default: false }
 });
 
 const gameSchema = new mongoose.Schema({

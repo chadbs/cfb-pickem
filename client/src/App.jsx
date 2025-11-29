@@ -43,7 +43,7 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
                 <div className="mb-6 flex items-center justify-between bg-gray-800 p-4 rounded-lg text-white shadow-lg">
                     <div className="flex items-center space-x-4">
                         <span className="font-bold text-endzone">ADMIN MODE</span>
-                        <AdminControls currentWeek={state.week} onSync={fetchData} />
+                        <AdminControls currentWeek={state.week} spreadsLocked={state.spreadsLocked} onSync={fetchData} />
                     </div>
                     <button
                         onClick={() => setShowGameSelector(true)}
@@ -270,7 +270,7 @@ function App() {
                         <Route path="/insights" element={
                             <Insights games={state.games} picks={state.picks} users={state.users} />
                         } />
-                        <Route path="/admin" element={<AdminControls currentWeek={state.week} onSync={fetchData} />} />
+                        <Route path="/admin" element={<AdminControls currentWeek={state.week} spreadsLocked={state.spreadsLocked} onSync={fetchData} />} />
                     </Routes>
                 </div>
 

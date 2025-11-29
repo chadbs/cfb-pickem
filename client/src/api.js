@@ -13,5 +13,6 @@ export const submitPicks = (user, picks) => api.post('/picks', { user, picks });
 export const deleteUser = (name) => api.delete(`/users/${name}`);
 export const syncData = (week) => api.post('/sync', { week });
 export const backfillSeason = () => api.post('/backfill');
+export const toggleLock = () => api.post('/toggle-lock');
 
 export default api;

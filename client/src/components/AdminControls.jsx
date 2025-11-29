@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { syncWeek, backfillSeason } from '../api';
+import { syncWeek, backfillSeason, toggleLock } from '../api';
 
-export default function AdminControls({ currentWeek, onSync }) {
+export default function AdminControls({ currentWeek, spreadsLocked, onSync }) {
     const [week, setWeek] = useState(currentWeek);
     const [loading, setLoading] = useState(false);
 
@@ -54,6 +54,26 @@ export default function AdminControls({ currentWeek, onSync }) {
                 className="bg-blue-600 text-white font-bold px-4 py-1 rounded hover:bg-blue-500 disabled:opacity-50 transition-colors"
             >
                 Backfill Season
+            </button>
+            <button
+                onClick={async () => {
+                    setLoading(true);
+                    try {
+                        await toggleLock();
+                        onSync(); // Refresh state
+                    } catch (e) {
+                        alert("Failed to toggle lock");
+                    } finally {
+                        setLoading(false);
+                    }
+                }}
+                disabled={loading}
+                className={`font-bold px-4 py-1 rounded disabled:opacity-50 transition-colors ${spreadsLocked
+                    ? "bg-red-600 text-white hover:bg-red-500"
+                    : "bg-green-600 text-white hover:bg-green-500"
+                    }`}
+            >
+                {spreadsLocked ? 'Unlock Spreads' : 'Lock Spreads'}
             </button>
         </div>
     );
