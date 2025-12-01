@@ -157,7 +157,36 @@ app.get('/api/state', async (req, res) => {
             );
         }
 
-        const games = await Game.find({});
+        let games = await Game.find({});
+
+        // Auto-fetch if DB is empty (Fix for initial load / persistence issues)
+        if (games.length === 0) {
+            console.log(`DB empty. Auto-fetching for Week ${system.week}...`);
+            try {
+                const fetchedGames = await fetchEspnData(system.week);
+
+                // Add week to game objects
+                fetchedGames.forEach(g => g.week = system.week);
+
+                // Save games
+                const bulkOps = fetchedGames.map(game => ({
+                    updateOne: {
+                        filter: { id: game.id },
+                        update: { $set: game },
+                        upsert: true
+                    }
+                }));
+
+                if (bulkOps.length > 0) {
+                    await Game.bulkWrite(bulkOps);
+                }
+                games = fetchedGames; // Return newly fetched games
+                console.log(`Auto-fetch complete. Loaded ${games.length} games.`);
+            } catch (err) {
+                console.error("Auto-fetch failed:", err);
+            }
+        }
+
         const users = await User.find({});
         const picks = await Pick.find({});
 
