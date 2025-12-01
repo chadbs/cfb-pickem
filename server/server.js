@@ -305,7 +305,8 @@ app.post('/api/sync', async (req, res) => {
             'Tulane': -12.5,
             'Tennessee Volunteers': -10.5,
             'Clemson': -2.5,
-            'Alabama': -11.5
+            'Alabama': -11.5,
+            'Air Force': -2.5
         };
 
         gamesData.forEach(game => {
