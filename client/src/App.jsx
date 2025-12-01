@@ -22,8 +22,9 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
         setIsSyncing(false);
     };
 
-    const featuredGames = state.games.filter(g => state.featuredGameIds.includes(g.id));
-    const displayGames = featuredGames.length > 0 ? featuredGames : state.games.slice(0, 8);
+    const currentWeekGames = state.games.filter(g => g.week === state.week);
+    const featuredGames = currentWeekGames.filter(g => state.featuredGameIds.includes(g.id));
+    const displayGames = featuredGames.length > 0 ? featuredGames : currentWeekGames.slice(0, 8);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">

@@ -264,7 +264,12 @@ app.post('/api/sync', async (req, res) => {
         }
 
         // Update System week
-        await System.findByIdAndUpdate('config', { week }, { upsert: true });
+        // If week changed, clear featured games so they can be re-selected
+        if (system.week !== week) {
+            await System.findByIdAndUpdate('config', { week, featuredGameIds: [] }, { upsert: true });
+        } else {
+            await System.findByIdAndUpdate('config', { week }, { upsert: true });
+        }
 
         // Preserve spreads from existing games if API returns N/A (game finished)
         const existingGames = await Game.find({});
@@ -273,19 +278,33 @@ app.post('/api/sync', async (req, res) => {
         // Hardcoded spreads for Week 14 2024 (Opening lines to prevent mid-game shifts)
         const manualSpreads = {
             'Ohio State': -9.5,
-            'Oregon Ducks': -18.5, // Specific
+            'Michigan Wolverines': 9.5, // Explicit underdog
+            'Oregon Ducks': -18.5,
+            'Washington Huskies': 18.5,
             'Texas Longhorns': -6.0,
+            'Texas A&M': 6.0,
             'Notre Dame': -7.5,
-            'Georgia Bulldogs': -20.5, // Specific to avoid Georgia Tech
+            'USC Trojans': 7.5,
+            'Georgia Bulldogs': -20.5,
+            'Georgia Tech': 20.5, // Explicit underdog
             'Iowa Hawkeyes': -5.5,
+            'Nebraska Cornhuskers': 5.5,
             'Miami Hurricanes': -11.5,
+            'Syracuse Orange': 11.5,
             'Penn State': -24.5,
+            'Maryland Terrapins': 24.5,
             'Boise State': -20.5,
+            'Oregon State': 20.5,
             'Arizona State': -9.0,
+            'Arizona Wildcats': 9.0,
             'Tulane': -12.5,
+            'Memphis Tigers': 12.5,
             'Tennessee Volunteers': -10.5,
+            'Vanderbilt Commodores': 10.5,
             'Clemson': -2.5,
-            'Alabama': -11.5
+            'South Carolina Gamecocks': 2.5,
+            'Alabama': -11.5,
+            'Auburn Tigers': 11.5
         };
 
         gamesData.forEach(game => {
@@ -399,9 +418,9 @@ app.post('/api/sync', async (req, res) => {
         }
 
         // Auto-select favorites logic
-        const system = await System.findById('config');
+        const updatedSystem = await System.findById('config');
 
-        if (system.featuredGameIds.length === 0) {
+        if (updatedSystem.featuredGameIds.length === 0) {
             const favorites = ['Colorado', 'Colorado State', 'Nebraska', 'Michigan'];
             const favoriteIds = gamesData
                 .filter(g => favorites.some(fav => g.home.name.includes(fav) || g.away.name.includes(fav)))
