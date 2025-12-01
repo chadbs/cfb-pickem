@@ -53,12 +53,14 @@ export default function Leaderboard({ users, picks, games, currentWeek, onUserCl
                         // Calculate Weekly Record for SELECTED week
                         let weeklyWins = 0;
                         let weeklyLosses = 0;
+                        let weeklyPushes = 0;
 
                         if (picks && games) {
                             const userWeeklyPicks = picks.filter(p => p.user === user.name && p.week === selectedWeek);
                             userWeeklyPicks.forEach(pick => {
                                 if (pick.result === 'win') weeklyWins++;
                                 else if (pick.result === 'loss') weeklyLosses++;
+                                else if (pick.result === 'push') weeklyPushes++;
                             });
                         }
 
@@ -90,7 +92,9 @@ export default function Leaderboard({ users, picks, games, currentWeek, onUserCl
                                 </div>
                                 <div className="flex items-center space-x-8">
                                     <div className="text-right hidden sm:block">
-                                        <div className="text-lg font-bold text-gray-700">{weeklyWins}-{weeklyLosses}</div>
+                                        <div className="text-lg font-bold text-gray-700">
+                                            {weeklyWins}-{weeklyLosses}{weeklyPushes > 0 ? `-${weeklyPushes}` : ''}
+                                        </div>
                                         <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Week {selectedWeek}</div>
                                     </div>
                                     <div className="text-right">
