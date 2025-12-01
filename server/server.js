@@ -499,6 +499,7 @@ app.post('/api/toggle-lock', async (req, res) => {
         const newStatus = !system.spreadsLocked;
         await System.findByIdAndUpdate('config', { spreadsLocked: newStatus });
         res.json({ success: true, spreadsLocked: newStatus });
+    } catch (error) {
         res.status(500).json({ error: "Failed to toggle lock" });
     }
 });
