@@ -119,13 +119,14 @@ app.get('/api/state', async (req, res) => {
     try {
         let system = await System.findById('config');
 
-        // Auto-update week if needed
-        // Auto-update week if needed
+        // Auto-update week if needed (Only if we moved to a NEW week)
         const currentRealWeek = getCalculatedWeek();
-        if (system && system.week !== currentRealWeek) {
-            console.log(`Auto-updating week from ${system.week} to ${currentRealWeek}`);
+        const lastCalculatedWeek = system?.lastCalculatedWeek || 0;
 
-            // Auto-fetch data for the new week so user doesn't have to hit sync
+        if (currentRealWeek > lastCalculatedWeek) {
+            console.log(`New week detected! Auto-updating from ${system?.week} to ${currentRealWeek}`);
+
+            // Auto-fetch data for the new week
             try {
                 console.log(`Auto-fetching data for Week ${currentRealWeek}...`);
                 const gamesData = await fetchEspnData(currentRealWeek);
@@ -150,9 +151,15 @@ app.get('/api/state', async (req, res) => {
                 console.error("Auto-fetch failed:", err);
             }
 
+            // Update System with new week AND lastCalculatedWeek
+            // Clear featured games so they can be re-selected for the new week
             system = await System.findByIdAndUpdate(
                 'config',
-                { week: currentRealWeek },
+                {
+                    week: currentRealWeek,
+                    lastCalculatedWeek: currentRealWeek,
+                    featuredGameIds: []
+                },
                 { new: true, upsert: true }
             );
         }

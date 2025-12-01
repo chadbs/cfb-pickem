@@ -4,7 +4,8 @@ const systemSchema = new mongoose.Schema({
     _id: { type: String, default: 'config' },
     week: { type: Number, default: 13 },
     featuredGameIds: { type: [String], default: [] },
-    spreadsLocked: { type: Boolean, default: false }
+    spreadsLocked: { type: Boolean, default: false },
+    lastCalculatedWeek: { type: Number, default: 0 }
 });
 
 const gameSchema = new mongoose.Schema({
