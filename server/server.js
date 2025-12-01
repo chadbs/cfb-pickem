@@ -498,7 +498,6 @@ app.post('/api/toggle-lock', async (req, res) => {
         const newStatus = !system.spreadsLocked;
         await System.findByIdAndUpdate('config', { spreadsLocked: newStatus });
         res.json({ success: true, spreadsLocked: newStatus });
-    } catch (error) {
         res.status(500).json({ error: "Failed to toggle lock" });
     }
 });
@@ -515,6 +514,46 @@ app.post('/api/settings', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: "Settings update failed" });
+    }
+});
+
+// Update single game spread (Admin)
+app.post('/api/game/:id/spread', async (req, res) => {
+    const { id } = req.params;
+    const { spread } = req.body;
+
+    try {
+        const game = await Game.findOne({ id });
+        if (!game) return res.status(404).json({ error: "Game not found" });
+
+        game.spread = spread;
+        await game.save();
+
+        // Recalculate winner for this game immediately
+        if (game.status === 'post') {
+            const winnerId = calculateSpreadWinner(game);
+            if (winnerId) {
+                const gamePicks = await Pick.find({ gameId: game.id });
+                for (const pick of gamePicks) {
+                    let result = 'loss';
+                    if (winnerId === 'PUSH') result = 'push';
+                    else if (pick.teamId === winnerId) result = 'win';
+                    await Pick.findByIdAndUpdate(pick._id, { result });
+                }
+            }
+
+            // Recalculate all user wins
+            const users = await User.find({});
+            for (const user of users) {
+                const userWins = await Pick.countDocuments({ user: user.name, result: 'win' });
+                await User.findOneAndUpdate({ name: user.name }, { wins: userWins });
+            }
+        }
+
+        res.json({ success: true, game });
+    } catch (error) {
+        console.error("Failed to update spread:", error);
+        res.status(500).json({ error: "Failed to update spread" });
     }
 });
 

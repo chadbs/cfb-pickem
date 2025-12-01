@@ -159,7 +159,7 @@ const TeamButton = ({ team, isSelected, onClick, picks = [], spread, gameStatus,
     );
 };
 
-const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
+const GameCard = ({ game, selectedTeamId, onPick, picks = [], isEditingSpreads, onUpdateSpread }) => {
     const homePicks = picks.filter(p => p.teamId === game.home.id);
     const awayPicks = picks.filter(p => p.teamId === game.away.id);
 
@@ -168,6 +168,14 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
     const isFinal = game.status === 'post';
 
     const spreadWinnerId = getSpreadWinner(game);
+
+    const [editSpread, setEditSpread] = React.useState(game.spread);
+
+    const handleSpreadSubmit = (e) => {
+        if (e.key === 'Enter') {
+            onUpdateSpread(game.id, editSpread);
+        }
+    };
 
     return (
         <motion.div
@@ -187,9 +195,20 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [] }) => {
                 </div>
                 <div className="flex items-center space-x-2 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">
                     <TrendingUp size={16} className="text-field" />
-                    <span className="text-sm font-mono font-bold text-gray-800">
-                        {game.spread}
-                    </span>
+                    {isEditingSpreads ? (
+                        <input
+                            type="text"
+                            value={editSpread}
+                            onChange={(e) => setEditSpread(e.target.value)}
+                            onKeyDown={handleSpreadSubmit}
+                            onBlur={() => onUpdateSpread(game.id, editSpread)}
+                            className="text-xs font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 w-24 text-right"
+                        />
+                    ) : (
+                        <span className="text-sm font-mono font-bold text-gray-800">
+                            {game.spread}
+                        </span>
+                    )}
                 </div>
             </div>
 
