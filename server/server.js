@@ -235,13 +235,20 @@ const calculateSpreadWinner = (game) => {
     let adjustedHomeScore = homeScore;
     let adjustedAwayScore = awayScore;
 
-    if (game.home.abbreviation === favoriteAbbr) {
+    if (game.home.abbreviation === favoriteAbbr || game.home.abbreviation.startsWith(favoriteAbbr) || favoriteAbbr.startsWith(game.home.abbreviation)) {
         adjustedHomeScore += spreadValue; // spreadValue is negative, e.g. -7.5
-    } else if (game.away.abbreviation === favoriteAbbr) {
+    } else if (game.away.abbreviation === favoriteAbbr || game.away.abbreviation.startsWith(favoriteAbbr) || favoriteAbbr.startsWith(game.away.abbreviation)) {
         adjustedAwayScore += spreadValue;
     } else {
-        // Fallback if abbreviation doesn't match (rare)
-        return null;
+        // Fallback: Check if team name contains the favoriteAbbr (e.g. "AF" in "Air Force")
+        // This is risky but helps with "AF" vs "AFA"
+        if (game.home.name.includes(favoriteAbbr) || favoriteAbbr === 'AF') {
+            if (game.home.abbreviation === 'AFA') adjustedHomeScore += spreadValue;
+            else if (game.away.abbreviation === 'AFA') adjustedAwayScore += spreadValue;
+            else return null;
+        } else {
+            return null;
+        }
     }
 
     if (adjustedHomeScore > adjustedAwayScore) return game.home.id;
@@ -286,7 +293,7 @@ app.post('/api/sync', async (req, res) => {
         // Hardcoded spreads for Week 14 2024 (Opening lines to prevent mid-game shifts)
         const manualSpreads = {
             'Ohio State': -9.5,
-            'Oregon Ducks': -18.5,
+            'Oregon Ducks': -6.5,
             'Texas Longhorns': -6.0,
             'Notre Dame': -7.5,
             'Georgia Bulldogs': -20.5,
