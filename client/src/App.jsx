@@ -23,8 +23,23 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
     };
 
     const currentWeekGames = state.games.filter(g => g.week === state.week);
-    const featuredGames = currentWeekGames.filter(g => state.featuredGameIds.includes(g.id));
-    const displayGames = featuredGames.length > 0 ? featuredGames : currentWeekGames.slice(0, 8);
+
+    // Calculate games to display
+    let displayGames = [];
+
+    // If viewing a past week, try to show only games that were picked
+    const isPastWeek = state.week < 14; // Assuming 14 is current/latest for now, or use logic
+    // Better: check if there are picks for this week
+    const picksForWeek = state.picks.filter(p => p.week === state.week);
+    const pickedGameIds = [...new Set(picksForWeek.map(p => p.gameId))];
+
+    if (pickedGameIds.length > 0) {
+        displayGames = currentWeekGames.filter(g => pickedGameIds.includes(g.id));
+    } else {
+        // Fallback: Use featured if available, else first 8
+        const featuredGames = currentWeekGames.filter(g => state.featuredGameIds.includes(g.id));
+        displayGames = featuredGames.length > 0 ? featuredGames : currentWeekGames.slice(0, 8);
+    }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
