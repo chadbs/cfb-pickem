@@ -158,10 +158,11 @@ app.get('/api/state', async (req, res) => {
         }
 
         let games = await Game.find({});
+        const currentWeekGames = games.filter(g => g.week === system.week);
 
-        // Auto-fetch if DB is empty (Fix for initial load / persistence issues)
-        if (games.length === 0) {
-            console.log(`DB empty. Auto-fetching for Week ${system.week}...`);
+        // Auto-fetch if DB is empty OR current week games are missing
+        if (games.length === 0 || currentWeekGames.length === 0) {
+            console.log(`Missing games for Week ${system.week}. Auto-fetching...`);
             try {
                 const fetchedGames = await fetchEspnData(system.week);
 
@@ -288,15 +289,6 @@ app.post('/api/sync', async (req, res) => {
         };
 
         gamesData.forEach(game => {
-            // If spreads are locked, ALWAYS use the existing spread from DB if available
-            if (spreadsLocked && spreadMap.has(game.id)) {
-                const lockedSpread = spreadMap.get(game.id);
-                if (lockedSpread && lockedSpread !== 'N/A') {
-                    game.spread = lockedSpread;
-                    return; // Skip other logic
-                }
-            }
-
             let spreadFound = false;
 
             // Helper to check if team matches manual spread key
@@ -315,7 +307,7 @@ app.post('/api/sync', async (req, res) => {
             };
 
             // FORCE OVERRIDE for Week 14 to fix mid-game spread changes
-            // If we have a manual spread, use it regardless of what ESPN says
+            // If we have a manual spread, use it regardless of what ESPN says OR if locked
             if (week === 14) {
                 const homeSpread = findSpread(game.home.name);
                 if (homeSpread !== null) {
@@ -327,6 +319,15 @@ app.post('/api/sync', async (req, res) => {
                         game.spread = `${game.away.abbreviation} ${awaySpread}`;
                         spreadFound = true;
                     }
+                }
+            }
+
+            // If spreads are locked AND we didn't just force override it, use the existing spread from DB
+            if (!spreadFound && spreadsLocked && spreadMap.has(game.id)) {
+                const lockedSpread = spreadMap.get(game.id);
+                if (lockedSpread && lockedSpread !== 'N/A') {
+                    game.spread = lockedSpread;
+                    return; // Skip other logic
                 }
             }
 
