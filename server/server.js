@@ -299,10 +299,17 @@ app.post('/api/sync', async (req, res) => {
 
             let spreadFound = false;
 
-            // Helper to check if any key in manualSpreads is contained in the team name
+            // Helper to check if team matches manual spread key
             const findSpread = (teamName) => {
+                // Special case: Georgia Tech should NOT match Georgia
+                if (teamName.includes('Georgia Tech')) return null;
+
                 for (const [key, value] of Object.entries(manualSpreads)) {
-                    if (teamName.includes(key)) return value;
+                    // Check if key is in name (e.g. "Ohio State" in "Ohio State Buckeyes")
+                    // OR if name is in key (e.g. "Georgia" in "Georgia Bulldogs")
+                    if (teamName.includes(key) || key.includes(teamName)) {
+                        return value;
+                    }
                 }
                 return null;
             };
@@ -311,12 +318,12 @@ app.post('/api/sync', async (req, res) => {
             // If we have a manual spread, use it regardless of what ESPN says
             if (week === 14) {
                 const homeSpread = findSpread(game.home.name);
-                if (homeSpread) {
+                if (homeSpread !== null) {
                     game.spread = `${game.home.abbreviation} ${homeSpread}`;
                     spreadFound = true;
                 } else {
                     const awaySpread = findSpread(game.away.name);
-                    if (awaySpread) {
+                    if (awaySpread !== null) {
                         game.spread = `${game.away.abbreviation} ${awaySpread}`;
                         spreadFound = true;
                     }
@@ -326,12 +333,12 @@ app.post('/api/sync', async (req, res) => {
             // 1. Try manual fallback if still not found (Standard logic for other weeks)
             if (!spreadFound && (!game.spread || game.spread === 'N/A')) {
                 const homeSpread = findSpread(game.home.name);
-                if (homeSpread) {
+                if (homeSpread !== null) {
                     game.spread = `${game.home.abbreviation} ${homeSpread}`;
                     spreadFound = true;
                 } else {
                     const awaySpread = findSpread(game.away.name);
-                    if (awaySpread) {
+                    if (awaySpread !== null) {
                         game.spread = `${game.away.abbreviation} ${awaySpread}`;
                         spreadFound = true;
                     }
