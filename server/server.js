@@ -593,12 +593,35 @@ app.post('/api/picks', async (req, res) => {
 // Delete user
 // --- PLAYOFF ROUTES ---
 
+// Projected 12-Team Field (Default)
+const DEFAULT_PLAYOFF_TEAMS = [
+    { seed: 1, name: 'Oregon', id: 'seed-1', abbreviation: 'ORE' },
+    { seed: 2, name: 'Georgia', id: 'seed-2', abbreviation: 'UGA' },
+    { seed: 3, name: 'Boise State', id: 'seed-3', abbreviation: 'BSU' },
+    { seed: 4, name: 'Arizona State', id: 'seed-4', abbreviation: 'ASU' },
+    { seed: 5, name: 'Texas', id: 'seed-5', abbreviation: 'TEX' },
+    { seed: 6, name: 'Penn State', id: 'seed-6', abbreviation: 'PSU' },
+    { seed: 7, name: 'Notre Dame', id: 'seed-7', abbreviation: 'ND' },
+    { seed: 8, name: 'Ohio State', id: 'seed-8', abbreviation: 'OSU' },
+    { seed: 9, name: 'Tennessee', id: 'seed-9', abbreviation: 'TENN' },
+    { seed: 10, name: 'Indiana', id: 'seed-10', abbreviation: 'IND' },
+    { seed: 11, name: 'SMU', id: 'seed-11', abbreviation: 'SMU' },
+    { seed: 12, name: 'Clemson', id: 'seed-12', abbreviation: 'CLEM' }
+];
+
 // Get Playoff Config (Seeds)
 app.get('/api/playoff/config', async (req, res) => {
     try {
         let config = await PlayoffConfig.findById('playoff_config');
-        if (!config) {
-            config = await PlayoffConfig.create({ _id: 'playoff_config', teams: [] });
+
+        // Auto-populate if missing or empty
+        if (!config || config.teams.length === 0) {
+            config = await PlayoffConfig.findOneAndUpdate(
+                { _id: 'playoff_config' },
+                { teams: DEFAULT_PLAYOFF_TEAMS },
+                { new: true, upsert: true }
+            );
+            console.log("Auto-populated playoff config with defaults");
         }
         res.json(config);
     } catch (error) {

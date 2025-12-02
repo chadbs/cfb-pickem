@@ -25,33 +25,6 @@ const userSchema = new mongoose.Schema({
     name: { type: String, required: true, unique: true },
     wins: { type: Number, default: 0 }
 });
-import mongoose from 'mongoose';
-
-const systemSchema = new mongoose.Schema({
-    _id: { type: String, default: 'config' },
-    week: { type: Number, default: 13 },
-    featuredGameIds: { type: [String], default: [] },
-    spreadsLocked: { type: Boolean, default: false },
-    lastCalculatedWeek: { type: Number, default: 0 }
-});
-
-const gameSchema = new mongoose.Schema({
-    id: { type: String, required: true, unique: true },
-    name: String,
-    shortName: String,
-    date: String,
-    status: String,
-    period: Number,
-    clock: String,
-    spread: String,
-    home: Object,
-    away: Object
-}, { strict: false }); // Allow flexible game data structure
-
-const userSchema = new mongoose.Schema({
-    name: { type: String, required: true, unique: true },
-    wins: { type: Number, default: 0 }
-});
 
 const pickSchema = new mongoose.Schema({
     user: { type: String, required: true },
