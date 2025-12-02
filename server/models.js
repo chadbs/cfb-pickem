@@ -23,7 +23,8 @@ const gameSchema = new mongoose.Schema({
 
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true, unique: true },
-    wins: { type: Number, default: 0 }
+    wins: { type: Number, default: 0 },
+    playoffPoints: { type: Number, default: 0 }
 });
 
 const pickSchema = new mongoose.Schema({
@@ -57,7 +58,9 @@ const playoffConfigSchema = new mongoose.Schema({
         logo: String,
         id: String,
         conference: String
-    }]
+    }],
+    // Store actual winners: { "R1-G1": "Oregon" }
+    results: { type: Map, of: String }
 });
 
 export const System = mongoose.model('System', systemSchema);

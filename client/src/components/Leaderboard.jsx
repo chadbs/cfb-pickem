@@ -5,7 +5,13 @@ import clsx from 'clsx';
 
 export default function Leaderboard({ users, picks, games, currentWeek, onUserClick }) {
     const [selectedWeek, setSelectedWeek] = React.useState(currentWeek);
-    const sortedUsers = [...users].sort((a, b) => b.wins - a.wins);
+
+    // Sort by Total Score (Wins + Playoff Points)
+    const sortedUsers = [...users].sort((a, b) => {
+        const scoreA = (a.wins || 0) + (a.playoffPoints || 0);
+        const scoreB = (b.wins || 0) + (b.playoffPoints || 0);
+        return scoreB - scoreA;
+    });
 
     // Update selected week when currentWeek changes (e.g. on initial load)
     React.useEffect(() => {
@@ -28,84 +34,63 @@ export default function Leaderboard({ users, picks, games, currentWeek, onUserCl
                             className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-field focus:border-field block p-2 font-bold"
                         >
                             {Array.from({ length: currentWeek }, (_, i) => i + 1).reverse().map(week => (
-                                <option key={week} value={week}>Week {week}</option>
+                                <option key={week} value={week}>{week === 16 ? 'Playoff' : `Week ${week}`}</option>
                             ))}
                         </select>
                     </div>
                 </div>
 
-                <div className="space-y-3">
-                    {sortedUsers.map((user, index) => {
-                        let rankStyle = "bg-gray-100 text-gray-500";
-                        let icon = null;
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Rank</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">User</th>
+                                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Reg. Wins</th>
+                                <th className="px-6 py-3 text-right text-xs font-bold text-purple-600 uppercase tracking-wider">Playoff Pts</th>
+                                <th className="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">Total Score</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {sortedUsers.map((user, index) => {
+                                const totalScore = (user.wins || 0) + (user.playoffPoints || 0);
+                                let rankStyle = "text-gray-500";
+                                if (index === 0) rankStyle = "text-yellow-600 font-bold";
+                                else if (index === 1) rankStyle = "text-gray-700 font-bold";
+                                else if (index === 2) rankStyle = "text-orange-700 font-bold";
 
-                        if (index === 0) {
-                            rankStyle = "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-400";
-                            icon = <Trophy size={16} className="text-yellow-600" />;
-                        } else if (index === 1) {
-                            rankStyle = "bg-gray-200 text-gray-700 ring-1 ring-gray-400";
-                            icon = <Medal size={16} className="text-gray-500" />;
-                        } else if (index === 2) {
-                            rankStyle = "bg-orange-100 text-orange-800 ring-1 ring-orange-300";
-                            icon = <Medal size={16} className="text-orange-600" />;
-                        }
-
-                        // Calculate Weekly Record for SELECTED week
-                        let weeklyWins = 0;
-                        let weeklyLosses = 0;
-                        let weeklyPushes = 0;
-
-                        if (picks && games) {
-                            const userWeeklyPicks = picks.filter(p => p.user === user.name && p.week === selectedWeek);
-                            userWeeklyPicks.forEach(pick => {
-                                if (pick.result === 'win') weeklyWins++;
-                                else if (pick.result === 'loss') weeklyLosses++;
-                                else if (pick.result === 'push') weeklyPushes++;
-                            });
-                        }
-
-                        return (
-                            <motion.div
-                                key={user.name}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                onClick={() => onUserClick && onUserClick(user.name)}
-                                className={clsx(
-                                    "flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group border border-transparent hover:border-gray-200",
-                                    index < 3 ? "bg-white shadow-sm" : "bg-gray-50/50"
-                                )}
-                            >
-                                <div className="flex items-center space-x-4">
-                                    <div className={clsx(
-                                        "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
-                                        rankStyle
-                                    )}>
-                                        {index + 1}
-                                    </div>
-                                    <div>
-                                        <span className="font-bold text-gray-900 text-lg group-hover:text-field transition-colors">
+                                return (
+                                    <tr
+                                        key={user.name}
+                                        onClick={() => onUserClick && onUserClick(user.name)}
+                                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                    >
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span className={clsx("inline-flex items-center justify-center w-6 h-6 rounded-full",
+                                                index === 0 ? "bg-yellow-100 text-yellow-800" :
+                                                    index === 1 ? "bg-gray-100 text-gray-800" :
+                                                        index === 2 ? "bg-orange-100 text-orange-800" : "text-gray-500"
+                                            )}>
+                                                {index + 1}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {user.name}
-                                        </span>
-                                        {index === 0 && <span className="ml-2 text-xs font-bold text-yellow-600 uppercase tracking-wide">Leader</span>}
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-8">
-                                    <div className="text-right hidden sm:block">
-                                        <div className="text-lg font-bold text-gray-700">
-                                            {weeklyWins}-{weeklyLosses}{weeklyPushes > 0 ? `-${weeklyPushes}` : ''}
-                                        </div>
-                                        <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Week {selectedWeek}</div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-2xl font-bold text-gray-900">{user.wins || 0}</div>
-                                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Wins</div>
-                                    </div>
-                                    {icon && <div className="hidden sm:block">{icon}</div>}
-                                </div>
-                            </motion.div>
-                        );
-                    })}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right font-mono">
+                                            {user.wins || 0}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-purple-600 text-right font-mono font-bold">
+                                            {user.playoffPoints || 0}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-mono font-bold text-lg">
+                                            {totalScore}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

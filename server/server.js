@@ -646,6 +646,67 @@ app.post('/api/playoff/config', async (req, res) => {
     }
 });
 
+// Set Playoff Results (Admin)
+app.post('/api/playoff/results', async (req, res) => {
+    const { results } = req.body; // { "R1-G1": "TeamID", ... }
+    try {
+        const config = await PlayoffConfig.findByIdAndUpdate(
+            'playoff_config',
+            { results },
+            { new: true, upsert: true }
+        );
+
+        // Trigger score calculation
+        await calculatePlayoffScores();
+
+        res.json({ success: true, config });
+    } catch (error) {
+        console.error("Error updating playoff results:", error);
+        res.status(500).json({ error: "Failed to update playoff results" });
+    }
+});
+
+// Calculate Playoff Scores
+async function calculatePlayoffScores() {
+    try {
+        const config = await PlayoffConfig.findById('playoff_config');
+        if (!config || !config.results) return;
+
+        const results = config.results; // Map of MatchID -> WinnerID
+        const users = await User.find({});
+
+        // Scoring Weights
+        const POINTS = {
+            'R1': 1,
+            'QF': 2,
+            'SF': 4,
+            'F': 8
+        };
+
+        for (const user of users) {
+            const bracket = await Bracket.findOne({ user: user.name });
+            let points = 0;
+
+            if (bracket && bracket.picks) {
+                for (const [matchId, pickedTeamId] of bracket.picks) {
+                    const actualWinnerId = results.get(matchId);
+                    if (actualWinnerId && actualWinnerId === pickedTeamId) {
+                        // Determine round from MatchID (e.g., "R1-G1" -> "R1")
+                        const round = matchId.split('-')[0];
+                        points += (POINTS[round] || 1);
+                    }
+                }
+            }
+
+            user.playoffPoints = points;
+            await user.save();
+        }
+        console.log("Playoff scores calculated.");
+    } catch (error) {
+        console.error("Error calculating playoff scores:", error);
+    }
+}
+
 // Get User Bracket
 app.get('/api/playoff/bracket/:user', async (req, res) => {
     const { user } = req.params;
