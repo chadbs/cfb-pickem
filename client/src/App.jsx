@@ -6,6 +6,7 @@ import Leaderboard from './components/Leaderboard';
 import AdminControls from './components/AdminControls';
 import GameSelector from './components/GameSelector';
 import UserPicksModal from './components/UserPicksModal';
+import Bracket from './components/Bracket';
 import Insights from './pages/Insights';
 import { getState, submitPicks, deleteUser, syncData, updateSpread } from './api';
 import { Settings, CheckCircle, RefreshCw } from 'lucide-react';
@@ -86,47 +87,51 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
                 />
             )}
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
-                    {displayGames.map(game => (
-                        <GameCard
-                            key={game.id}
-                            game={game}
-                            selectedTeamId={currentPicks[game.id]}
-                            onPick={(teamId) => handlePick(game.id, teamId)}
-                            picks={state.picks.filter(p => p.gameId === game.id && p.week === state.week)}
-                            isEditingSpreads={isEditingSpreads}
-                            onUpdateSpread={onUpdateSpread}
-                        />
-                    ))}
-                </div>
+            {state.week === 16 ? (
+                <Bracket currentUser={currentUser} />
+            ) : (
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
+                        {displayGames.map(game => (
+                            <GameCard
+                                key={game.id}
+                                game={game}
+                                selectedTeamId={currentPicks[game.id]}
+                                onPick={(teamId) => handlePick(game.id, teamId)}
+                                picks={state.picks.filter(p => p.gameId === game.id && p.week === state.week)}
+                                isEditingSpreads={isEditingSpreads}
+                                onUpdateSpread={onUpdateSpread}
+                            />
+                        ))}
+                    </div>
 
-                <div className="mt-8 flex justify-end sticky bottom-6 z-30">
-                    <AnimatePresence mode="wait">
-                        {submitSuccess ? (
-                            <motion.div
-                                initial={{ scale: 0.8, opacity: 0, y: 20 }}
-                                animate={{ scale: 1, opacity: 1, y: 0 }}
-                                exit={{ scale: 0.8, opacity: 0, y: 20 }}
-                                className="bg-green-600 text-white font-bold py-4 px-8 rounded-full shadow-xl flex items-center space-x-2"
-                            >
-                                <CheckCircle size={24} />
-                                <span>Picks Submitted!</span>
-                            </motion.div>
-                        ) : (
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleSubmit}
-                                disabled={isSubmitting}
-                                className="bg-field hover:bg-field-dark text-white font-bold py-4 px-10 rounded-full shadow-xl transform transition-all hover:shadow-2xl ring-4 ring-white disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isSubmitting ? 'Submitting...' : 'Submit Picks'}
-                            </motion.button>
-                        )}
-                    </AnimatePresence>
+                    <div className="mt-8 flex justify-end sticky bottom-6 z-30">
+                        <AnimatePresence mode="wait">
+                            {submitSuccess ? (
+                                <motion.div
+                                    initial={{ scale: 0.8, opacity: 0, y: 20 }}
+                                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                                    exit={{ scale: 0.8, opacity: 0, y: 20 }}
+                                    className="bg-green-600 text-white font-bold py-4 px-8 rounded-full shadow-xl flex items-center space-x-2"
+                                >
+                                    <CheckCircle size={24} />
+                                    <span>Picks Submitted!</span>
+                                </motion.div>
+                            ) : (
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting}
+                                    className="bg-field hover:bg-field-dark text-white font-bold py-4 px-10 rounded-full shadow-xl transform transition-all hover:shadow-2xl ring-4 ring-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? 'Submitting...' : 'Submit Picks'}
+                                </motion.button>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

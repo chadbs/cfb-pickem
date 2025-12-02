@@ -3,7 +3,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import axios from 'axios';
 import dotenv from 'dotenv';
-import { System, Game, User, Pick } from './models.js';
+import { System, Game, User, Pick, Bracket, PlayoffConfig } from './models.js';
 
 dotenv.config();
 
@@ -591,6 +591,66 @@ app.post('/api/picks', async (req, res) => {
 });
 
 // Delete user
+// --- PLAYOFF ROUTES ---
+
+// Get Playoff Config (Seeds)
+app.get('/api/playoff/config', async (req, res) => {
+    try {
+        let config = await PlayoffConfig.findById('playoff_config');
+        if (!config) {
+            config = await PlayoffConfig.create({ _id: 'playoff_config', teams: [] });
+        }
+        res.json(config);
+    } catch (error) {
+        console.error("Error fetching playoff config:", error);
+        res.status(500).json({ error: "Failed to fetch playoff config" });
+    }
+});
+
+// Update Playoff Config (Admin)
+app.post('/api/playoff/config', async (req, res) => {
+    const { teams } = req.body;
+    try {
+        const config = await PlayoffConfig.findByIdAndUpdate(
+            'playoff_config',
+            { teams },
+            { new: true, upsert: true }
+        );
+        res.json({ success: true, config });
+    } catch (error) {
+        console.error("Error updating playoff config:", error);
+        res.status(500).json({ error: "Failed to update playoff config" });
+    }
+});
+
+// Get User Bracket
+app.get('/api/playoff/bracket/:user', async (req, res) => {
+    const { user } = req.params;
+    try {
+        const bracket = await Bracket.findOne({ user });
+        res.json(bracket || { user, picks: {} });
+    } catch (error) {
+        console.error("Error fetching bracket:", error);
+        res.status(500).json({ error: "Failed to fetch bracket" });
+    }
+});
+
+// Save User Bracket
+app.post('/api/playoff/bracket', async (req, res) => {
+    const { user, picks } = req.body;
+    try {
+        const bracket = await Bracket.findOneAndUpdate(
+            { user },
+            { picks, timestamp: Date.now() },
+            { new: true, upsert: true }
+        );
+        res.json({ success: true, bracket });
+    } catch (error) {
+        console.error("Error saving bracket:", error);
+        res.status(500).json({ error: "Failed to save bracket" });
+    }
+});
+
 app.delete('/api/users/:name', async (req, res) => {
     const { name } = req.params;
     try {
