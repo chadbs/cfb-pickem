@@ -593,20 +593,20 @@ app.post('/api/picks', async (req, res) => {
 // Delete user
 // --- PLAYOFF ROUTES ---
 
-// Projected 12-Team Field (Default)
+// Projected 12-Team Field (2025 Projections)
 const DEFAULT_PLAYOFF_TEAMS = [
-    { seed: 1, name: 'Oregon', id: 'seed-1', abbreviation: 'ORE' },
-    { seed: 2, name: 'Georgia', id: 'seed-2', abbreviation: 'UGA' },
-    { seed: 3, name: 'Boise State', id: 'seed-3', abbreviation: 'BSU' },
-    { seed: 4, name: 'Arizona State', id: 'seed-4', abbreviation: 'ASU' },
-    { seed: 5, name: 'Texas', id: 'seed-5', abbreviation: 'TEX' },
+    { seed: 1, name: 'Ohio State', id: 'seed-1', abbreviation: 'OSU' },
+    { seed: 2, name: 'Indiana', id: 'seed-2', abbreviation: 'IND' },
+    { seed: 3, name: 'Texas A&M', id: 'seed-3', abbreviation: 'TAMU' },
+    { seed: 4, name: 'Georgia', id: 'seed-4', abbreviation: 'UGA' },
+    { seed: 5, name: 'Oregon', id: 'seed-5', abbreviation: 'ORE' },
     { seed: 6, name: 'Penn State', id: 'seed-6', abbreviation: 'PSU' },
     { seed: 7, name: 'Notre Dame', id: 'seed-7', abbreviation: 'ND' },
-    { seed: 8, name: 'Ohio State', id: 'seed-8', abbreviation: 'OSU' },
+    { seed: 8, name: 'Alabama', id: 'seed-8', abbreviation: 'ALA' },
     { seed: 9, name: 'Tennessee', id: 'seed-9', abbreviation: 'TENN' },
-    { seed: 10, name: 'Indiana', id: 'seed-10', abbreviation: 'IND' },
-    { seed: 11, name: 'SMU', id: 'seed-11', abbreviation: 'SMU' },
-    { seed: 12, name: 'Clemson', id: 'seed-12', abbreviation: 'CLEM' }
+    { seed: 10, name: 'SMU', id: 'seed-10', abbreviation: 'SMU' },
+    { seed: 11, name: 'Miami (FL)', id: 'seed-11', abbreviation: 'MIA' },
+    { seed: 12, name: 'Boise State', id: 'seed-12', abbreviation: 'BSU' }
 ];
 
 // Get Playoff Config (Seeds)

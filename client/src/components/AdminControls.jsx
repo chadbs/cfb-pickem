@@ -104,9 +104,10 @@ export default function AdminControls({ currentWeek, spreadsLocked, onSync, isEd
                     onChange={(e) => setWeek(parseInt(e.target.value))}
                     className="bg-gray-600 text-white text-sm font-bold rounded px-2 py-1 border-none focus:ring-2 focus:ring-field"
                 >
-                    {[...Array(18)].map((_, i) => (
-                        <option key={i} value={i + 1}>{i + 1}</option>
-                    ))}
+                    {[...Array(18)].map((_, i) => {
+                        const w = i + 1;
+                        return <option key={w} value={w}>{w === 16 ? 'Playoff' : w}</option>;
+                    })}
                 </select>
                 <button
                     onClick={handleSaveWeek}
