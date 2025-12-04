@@ -719,6 +719,21 @@ app.get('/api/playoff/bracket/:user', async (req, res) => {
     }
 });
 
+// Get All User Championship Picks
+app.get('/api/playoff/all-picks', async (req, res) => {
+    try {
+        const brackets = await Bracket.find({});
+        const picks = brackets.map(b => ({
+            user: b.user,
+            winnerId: b.picks.get('F-G1') // Championship Match ID
+        })).filter(p => p.winnerId); // Only return if they picked a winner
+        res.json(picks);
+    } catch (error) {
+        console.error("Error fetching all picks:", error);
+        res.status(500).json({ error: "Failed to fetch all picks" });
+    }
+});
+
 // Save User Bracket
 app.post('/api/playoff/bracket', async (req, res) => {
     const { user, picks } = req.body;

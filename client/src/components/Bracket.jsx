@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
 import { Trophy, Shield } from 'lucide-react';
-import { getPlayoffConfig, getBracket, saveBracket } from '../api';
+import { getPlayoffConfig, getBracket, saveBracket, getAllBracketPicks } from '../api';
 
 // 12-Team Bracket Structure
 // R1: 5v12, 6v11, 7v10, 8v9
@@ -59,18 +59,21 @@ const Matchup = ({ id, team1, team2, onPick, winnerId, label }) => {
 export default function Bracket({ currentUser }) {
     const [config, setConfig] = useState({ teams: [] });
     const [picks, setPicks] = useState({});
+    const [allPicks, setAllPicks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [configRes, bracketRes] = await Promise.all([
+                const [configRes, bracketRes, allPicksRes] = await Promise.all([
                     getPlayoffConfig(),
-                    getBracket(currentUser)
+                    getBracket(currentUser),
+                    getAllBracketPicks()
                 ]);
                 setConfig(configRes.data);
                 setPicks(bracketRes.data.picks || {});
+                setAllPicks(allPicksRes.data || []);
             } catch (error) {
                 console.error("Failed to load bracket data", error);
             } finally {
@@ -201,6 +204,32 @@ export default function Bracket({ currentUser }) {
                                     <div className="text-2xl font-bold">{champion.name}</div>
                                 </div>
                             </motion.div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Everyone's Picks Section */}
+                <div className="mt-12 border-t border-gray-200 pt-8">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <Shield className="mr-2 text-field" size={20} />
+                        Who is everyone picking?
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {allPicks.map((pick, idx) => {
+                            const team = getTeam(pick.winnerId);
+                            if (!team) return null;
+                            return (
+                                <div key={idx} className="bg-white border border-gray-200 p-3 rounded-lg flex items-center justify-between shadow-sm">
+                                    <span className="font-bold text-gray-700">{pick.user}</span>
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-sm text-gray-600">{team.name}</span>
+                                        {team.logo && <img src={team.logo} alt={team.name} className="w-6 h-6 object-contain" />}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {allPicks.length === 0 && (
+                            <div className="text-gray-500 italic">No other picks yet.</div>
                         )}
                     </div>
                 </div>
