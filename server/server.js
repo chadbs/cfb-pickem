@@ -27,8 +27,15 @@ mongoose.connect(MONGODB_URI)
         // Initialize System config if not exists
         const sys = await System.findById('config');
         if (!sys) {
-            await System.create({ _id: 'config', week: 14, featuredGameIds: [] });
-            console.log('Initialized System config');
+            await System.create({ _id: 'config', week: 15, featuredGameIds: [] });
+            console.log('Initialized System config to Week 15');
+        } else if (sys.week < 15) {
+            // Auto-update to Week 15 if currently lagging behind
+            sys.week = 15;
+            sys.lastCalculatedWeek = 15; // Prevent auto-sync on first load
+            sys.featuredGameIds = []; // Clear featured for new week
+            await sys.save();
+            console.log('Auto-updated System config to Week 15');
         }
     })
     .catch(err => console.error('MongoDB connection error:', err));
