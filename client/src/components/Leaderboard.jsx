@@ -46,6 +46,9 @@ export default function Leaderboard({ users, picks, games, currentWeek, onUserCl
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Rank</th>
                                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">User</th>
+                                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    {selectedWeek === 16 ? 'Playoff' : `Week ${selectedWeek}`} Record
+                                </th>
                                 <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Reg. Wins</th>
                                 <th className="px-6 py-3 text-right text-xs font-bold text-purple-600 uppercase tracking-wider">Playoff Pts</th>
                                 <th className="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">Total Score</th>
@@ -58,6 +61,20 @@ export default function Leaderboard({ users, picks, games, currentWeek, onUserCl
                                 if (index === 0) rankStyle = "text-yellow-600 font-bold";
                                 else if (index === 1) rankStyle = "text-gray-700 font-bold";
                                 else if (index === 2) rankStyle = "text-orange-700 font-bold";
+
+                                // Calculate Weekly Record
+                                let weeklyWins = 0;
+                                let weeklyLosses = 0;
+                                let weeklyPushes = 0;
+                                if (picks) {
+                                    const userWeeklyPicks = picks.filter(p => p.user === user.name && p.week === selectedWeek);
+                                    userWeeklyPicks.forEach(pick => {
+                                        if (pick.result === 'win') weeklyWins++;
+                                        else if (pick.result === 'loss') weeklyLosses++;
+                                        else if (pick.result === 'push') weeklyPushes++;
+                                    });
+                                }
+                                const weeklyRecord = `${weeklyWins}-${weeklyLosses}${weeklyPushes > 0 ? `-${weeklyPushes}` : ''}`;
 
                                 return (
                                     <tr
@@ -76,6 +93,9 @@ export default function Leaderboard({ users, picks, games, currentWeek, onUserCl
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {user.name}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right font-mono font-bold">
+                                            {selectedWeek === 16 ? '-' : weeklyRecord}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right font-mono">
                                             {user.wins || 0}
