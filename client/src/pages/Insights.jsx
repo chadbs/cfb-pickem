@@ -58,8 +58,15 @@ export default function Insights({ games = [], picks = [], users = [] }) {
     });
 
     const sortedAts = Object.values(atsRecords)
-        .filter(t => (t.wins + t.losses) > 0)
-        .sort((a, b) => (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1)))
+        .filter(t => (t.wins + t.losses) >= 4) // Minimum 4 games to qualify
+        .sort((a, b) => {
+            // Sort by Win % first
+            const pctA = a.wins / (a.wins + a.losses || 1);
+            const pctB = b.wins / (b.wins + b.losses || 1);
+            if (pctA !== pctB) return pctB - pctA;
+            // Tie-break with total wins
+            return b.wins - a.wins;
+        })
         .slice(0, 5);
 
 

@@ -44,7 +44,7 @@ mongoose.connect(MONGODB_URI)
 const fetchEspnData = async (week) => {
     try {
         // Fetch FBS (groups=80) games
-        const url = `http://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?week=${week}&groups=80&limit=100`;
+        const url = `http://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?week=${week}&groups=80&limit=300`;
         const response = await axios.get(url);
         const events = response.data.events;
 
@@ -463,12 +463,17 @@ app.post('/api/sync', async (req, res) => {
 app.post('/api/backfill', async (req, res) => {
     try {
         console.log("Starting season backfill...");
-        const currentWeek = 14;
+        console.log("Starting season backfill...");
+        const sys = await System.findById('config');
+        const currentWeek = sys?.week || 16;
         let totalGames = 0;
 
         for (let week = 1; week <= currentWeek; week++) {
             try {
+                console.log(`Fetching Week ${week}...`);
                 const games = await fetchEspnData(week);
+                console.log(`Fetched ${games.length} games for Week ${week}`);
+
                 if (games.length > 0) {
                     // Add week to game objects
                     games.forEach(g => g.week = week);
