@@ -181,20 +181,20 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [], isEditingSpreads, 
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden hover:shadow-2xl transition-all duration-300 group"
+            className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-white/50 overflow-hidden hover:shadow-xl transition-all duration-300 group hover:-translate-y-1"
         >
             {/* Header */}
-            <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex justify-between items-center">
+            <div className="bg-white/50 border-b border-gray-100 px-4 py-3 flex justify-between items-center backdrop-blur-sm">
                 <div className="flex items-center space-x-2 text-gray-500">
-                    <Clock size={14} />
+                    <Clock size={14} className={isLive ? "text-red-500" : ""} />
                     <span className="text-xs font-bold uppercase tracking-wide">
-                        {isLive ? <span className="text-red-500 animate-pulse">LIVE</span> :
-                            isFinal ? "FINAL" :
+                        {isLive ? <span className="text-red-500 animate-pulse font-black">LIVE NOW</span> :
+                            isFinal ? <span className="text-gray-900 font-black">FINAL</span> :
                                 gameDate.toLocaleTimeString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
                     </span>
                 </div>
-                <div className="flex items-center space-x-2 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">
-                    <TrendingUp size={16} className="text-field" />
+                <div className="flex items-center space-x-2 bg-white px-3 py-1 rounded-full border border-gray-100 shadow-sm ring-1 ring-gray-50">
+                    <TrendingUp size={14} className="text-field" />
                     {isEditingSpreads ? (
                         <input
                             type="text"
@@ -202,10 +202,10 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [], isEditingSpreads, 
                             onChange={(e) => setEditSpread(e.target.value)}
                             onKeyDown={handleSpreadSubmit}
                             onBlur={() => onUpdateSpread(game.id, editSpread)}
-                            className="text-xs font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 w-24 text-right"
+                            className="text-xs font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 w-20 text-right focus:ring-2 focus:ring-field focus:border-field outline-none"
                         />
                     ) : (
-                        <span className="text-sm font-mono font-bold text-gray-800">
+                        <span className="text-xs font-mono font-bold text-gray-700">
                             {game.spread}
                         </span>
                     )}
@@ -214,7 +214,7 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [], isEditingSpreads, 
 
             {/* Matchup Area */}
             <div className="p-4 relative">
-                <div className="flex space-x-4">
+                <div className="flex space-x-3 md:space-x-4">
                     <TeamButton
                         team={game.home}
                         isSelected={selectedTeamId === game.home.id}
@@ -227,7 +227,7 @@ const GameCard = ({ game, selectedTeamId, onPick, picks = [], isEditingSpreads, 
 
                     {/* VS Badge */}
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
-                        <div className="bg-white border-2 border-gray-100 text-gray-300 font-black text-[10px] w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
+                        <div className="bg-white border-4 border-gray-50 text-gray-300 font-black text-[10px] w-9 h-9 rounded-full flex items-center justify-center shadow-lg">
                             VS
                         </div>
                     </div>

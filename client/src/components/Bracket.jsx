@@ -155,63 +155,69 @@ export default function Bracket({ currentUser }) {
     }
 
     return (
-        <div className="overflow-x-auto pb-8">
-            <div className="min-w-[1000px] p-8">
-                <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-3xl font-display font-bold text-gray-900 flex items-center">
-                        <Trophy className="text-yellow-500 mr-3" size={32} />
-                        College Football Playoff
-                    </h2>
-                    {saving && <span className="text-sm text-gray-500 animate-pulse">Saving...</span>}
+        <div className="pb-12">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6 px-4 md:px-0">
+                <h2 className="text-2xl md:text-3xl font-display font-bold text-gray-900 flex items-center">
+                    <Trophy className="text-yellow-500 mr-3" size={28} />
+                    College Football Playoff
+                </h2>
+                {saving && <span className="text-sm text-gray-500 animate-pulse font-medium">Saving...</span>}
+            </div>
+
+            {/* Scrollable Bracket Container */}
+            <div className="overflow-x-auto pb-8 -mx-4 px-4 md:mx-0 md:px-0 custom-scrollbar relative">
+                <div className="min-w-[1000px] p-4 md:p-8 bg-white/50 rounded-xl border border-white/60 shadow-sm backdrop-blur-sm">
+                    <div className="flex justify-between space-x-8">
+                        {/* Round 1 */}
+                        <div className="flex flex-col justify-around space-y-8">
+                            <Matchup id="R1-G1" team1={r1g1_home} team2={r1g1_away} onPick={handlePick} winnerId={picks['R1-G1']} label="First Round" />
+                            <Matchup id="R1-G2" team1={r1g2_home} team2={r1g2_away} onPick={handlePick} winnerId={picks['R1-G2']} />
+                            <Matchup id="R1-G3" team1={r1g3_home} team2={r1g3_away} onPick={handlePick} winnerId={picks['R1-G3']} />
+                            <Matchup id="R1-G4" team1={r1g4_home} team2={r1g4_away} onPick={handlePick} winnerId={picks['R1-G4']} />
+                        </div>
+
+                        {/* Quarterfinals */}
+                        <div className="flex flex-col justify-around space-y-16 mt-8">
+                            <Matchup id="QF-G1" team1={qf1_home} team2={qf1_away} onPick={handlePick} winnerId={picks['QF-G1']} label="Quarterfinals" />
+                            <Matchup id="QF-G2" team1={qf2_home} team2={qf2_away} onPick={handlePick} winnerId={picks['QF-G2']} />
+                            <Matchup id="QF-G3" team1={qf3_home} team2={qf3_away} onPick={handlePick} winnerId={picks['QF-G3']} />
+                            <Matchup id="QF-G4" team1={qf4_home} team2={qf4_away} onPick={handlePick} winnerId={picks['QF-G4']} />
+                        </div>
+
+                        {/* Semifinals */}
+                        <div className="flex flex-col justify-around space-y-32 mt-16">
+                            <Matchup id="SF-G1" team1={sf1_home} team2={sf1_away} onPick={handlePick} winnerId={picks['SF-G1']} label="Semifinals" />
+                            <Matchup id="SF-G2" team1={sf2_home} team2={sf2_away} onPick={handlePick} winnerId={picks['SF-G2']} />
+                        </div>
+
+                        {/* Championship */}
+                        <div className="flex flex-col justify-center mt-32">
+                            <Matchup id="F-G1" team1={final_home} team2={final_away} onPick={handlePick} winnerId={picks['F-G1']} label="National Championship" />
+
+                            {champion && (
+                                <motion.div
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="mt-8 text-center"
+                                >
+                                    <div className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">National Champion</div>
+                                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white p-6 rounded-xl shadow-xl inline-block ring-4 ring-yellow-100">
+                                        <Trophy size={48} className="mx-auto mb-2 text-yellow-100" />
+                                        <div className="text-2xl font-black tracking-tight">{champion.name}</div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <div className="flex justify-between space-x-8">
-                    {/* Round 1 */}
-                    <div className="flex flex-col justify-around space-y-8">
-                        <Matchup id="R1-G1" team1={r1g1_home} team2={r1g1_away} onPick={handlePick} winnerId={picks['R1-G1']} label="First Round" />
-                        <Matchup id="R1-G2" team1={r1g2_home} team2={r1g2_away} onPick={handlePick} winnerId={picks['R1-G2']} />
-                        <Matchup id="R1-G3" team1={r1g3_home} team2={r1g3_away} onPick={handlePick} winnerId={picks['R1-G3']} />
-                        <Matchup id="R1-G4" team1={r1g4_home} team2={r1g4_away} onPick={handlePick} winnerId={picks['R1-G4']} />
-                    </div>
-
-                    {/* Quarterfinals */}
-                    <div className="flex flex-col justify-around space-y-16 mt-8">
-                        <Matchup id="QF-G1" team1={qf1_home} team2={qf1_away} onPick={handlePick} winnerId={picks['QF-G1']} label="Quarterfinals" />
-                        <Matchup id="QF-G2" team1={qf2_home} team2={qf2_away} onPick={handlePick} winnerId={picks['QF-G2']} />
-                        <Matchup id="QF-G3" team1={qf3_home} team2={qf3_away} onPick={handlePick} winnerId={picks['QF-G3']} />
-                        <Matchup id="QF-G4" team1={qf4_home} team2={qf4_away} onPick={handlePick} winnerId={picks['QF-G4']} />
-                    </div>
-
-                    {/* Semifinals */}
-                    <div className="flex flex-col justify-around space-y-32 mt-16">
-                        <Matchup id="SF-G1" team1={sf1_home} team2={sf1_away} onPick={handlePick} winnerId={picks['SF-G1']} label="Semifinals" />
-                        <Matchup id="SF-G2" team1={sf2_home} team2={sf2_away} onPick={handlePick} winnerId={picks['SF-G2']} />
-                    </div>
-
-                    {/* Championship */}
-                    <div className="flex flex-col justify-center mt-32">
-                        <Matchup id="F-G1" team1={final_home} team2={final_away} onPick={handlePick} winnerId={picks['F-G1']} label="National Championship" />
-
-                        {champion && (
-                            <motion.div
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                className="mt-8 text-center"
-                            >
-                                <div className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">National Champion</div>
-                                <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white p-6 rounded-xl shadow-xl inline-block">
-                                    <Trophy size={48} className="mx-auto mb-2" />
-                                    <div className="text-2xl font-bold">{champion.name}</div>
-                                </div>
-                            </motion.div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Everyone's Picks Section */}
-                <div className="mt-12 border-t border-gray-200 pt-8">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                        <Shield className="mr-2 text-field" size={20} />
+            {/* Everyone's Picks Section - Outside Scroll */}
+            <div className="mt-8">
+                <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <Shield className="mr-3 text-field" size={24} />
                         Who is everyone picking?
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -219,17 +225,17 @@ export default function Bracket({ currentUser }) {
                             const team = getTeam(pick.winnerId);
                             if (!team) return null;
                             return (
-                                <div key={idx} className="bg-white border border-gray-200 p-3 rounded-lg flex items-center justify-between shadow-sm">
+                                <div key={idx} className="bg-gray-50 hover:bg-white border border-gray-200 hover:border-gray-300 p-4 rounded-xl flex items-center justify-between transition-all duration-200 shadow-sm hover:shadow-md group">
                                     <span className="font-bold text-gray-700">{pick.user}</span>
-                                    <div className="flex items-center space-x-2">
-                                        <span className="text-sm text-gray-600">{team.name}</span>
-                                        {team.logo && <img src={team.logo} alt={team.name} className="w-6 h-6 object-contain" />}
+                                    <div className="flex items-center space-x-3">
+                                        <span className="text-sm font-bold text-gray-900 group-hover:text-field transition-colors">{team.name}</span>
+                                        {team.logo && <img src={team.logo} alt={team.name} className="w-8 h-8 object-contain drop-shadow-sm" />}
                                     </div>
                                 </div>
                             );
                         })}
                         {allPicks.length === 0 && (
-                            <div className="text-gray-500 italic">No other picks yet.</div>
+                            <div className="text-gray-400 italic py-4">No other championship picks yet. be the first!</div>
                         )}
                     </div>
                 </div>
