@@ -163,7 +163,74 @@ export default function Insights({ games = [], picks = [], users = [] }) {
         });
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+    // 4. User Trends Analysis
+    const userStats = {}; // { username: { favorites: 0, underdogs: 0, total: 0, teamCounts: {} } }
+
+        users.forEach(user => {
+            userStats[user.name] = { favorites: 0, underdogs: 0, total: 0, teamCounts: {} };
+        });
+
+    picks.forEach(pick => {
+        if (!userStats[pick.user]) return;
+
+        const game = games.find(g => g.id === pick.gameId);
+        if (!game) return;
+
+        // Track Team Loyalty
+        const teamId = pick.teamId;
+        const teamName = game.home.id === teamId ? game.home.name : game.away.name;
+        userStats[pick.user].teamCounts[teamName] = (userStats[pick.user].teamCounts[teamName] || 0) + 1;
+
+        // Determine Favorite (Proxy: Spread -> Rank -> Home)
+        let favoriteId = null;
+
+        // 1. Try Spread
+        const spreadData = parseSpread(game.spread);
+        if (spreadData) {
+            favoriteId = (game.home.abbreviation === spreadData.team || game.home.name.includes(spreadData.team))
+                ? game.home.id
+                : game.away.id;
+        }
+        // 2. Try Rank (Lower rank number is better, e.g. #1 vs #25)
+        else if (game.home.rank < 99 || game.away.rank < 99) {
+            if (game.home.rank < game.away.rank) favoriteId = game.home.id;
+            else if (game.away.rank < game.home.rank) favoriteId = game.away.id;
+        }
+
+        if (favoriteId) {
+            userStats[pick.user].total++;
+            if (pick.teamId === favoriteId) {
+                userStats[pick.user].favorites++;
+            } else {
+                userStats[pick.user].underdogs++;
+            }
+        }
+    });
+
+    const userTrends = Object.entries(userStats).map(([name, stats]) => {
+        const favPct = stats.total > 0 ? (stats.favorites / stats.total) * 100 : 0;
+
+        // Find most picked team
+        let mostPickedTeam = { name: "N/A", count: 0 };
+        Object.entries(stats.teamCounts).forEach(([team, count]) => {
+            if (count > mostPickedTeam.count) mostPickedTeam = { name: team, count };
+        });
+
+        return { name, favPct, mostPickedTeam, total: stats.total };
+    });
+
+    // Sort key metrics
+    const chalkEater = [...userTrends].sort((a, b) => b.favPct - a.favPct)[0]; // Likes Favorites
+    const gambler = [...userTrends].sort((a, b) => a.favPct - b.favPct)[0]; // Likes Underdogs
+
+    // Find biggest homer
+    // Only counts if they picked the team > 2 times to avoid noise
+    const biggestHomer = [...userTrends]
+        .filter(u => u.mostPickedTeam.count > 2)
+        .sort((a, b) => b.mostPickedTeam.count - a.mostPickedTeam.count)[0];
+
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-12">
             <div className="flex items-center space-x-3 mb-8">
                 <div className="p-3 bg-field rounded-xl text-white shadow-lg">
                     <TrendingUp size={32} />
@@ -172,6 +239,34 @@ export default function Insights({ games = [], picks = [], users = [] }) {
                     <h1 className="text-3xl font-display font-bold text-gray-900">Performance Insights</h1>
                     <p className="text-gray-500 font-medium">Advanced stats and trends</p>
                 </div>
+            </div>
+
+            {/* User Betting Personalities */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {chalkEater && chalkEater.total > 0 && (
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 text-2xl">👑</div>
+                        <h3 className="text-gray-500 font-bold uppercase text-xs tracking-wider mb-1">The Chalk Eater</h3>
+                        <div className="text-2xl font-bold text-gray-900 mb-2">{chalkEater.name}</div>
+                        <p className="text-sm text-gray-600">Picks favorites <strong>{chalkEater.favPct.toFixed(1)}%</strong> of the time.</p>
+                    </div>
+                )}
+                {gambler && gambler.total > 0 && (
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                        <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-4 text-2xl">🎲</div>
+                        <h3 className="text-gray-500 font-bold uppercase text-xs tracking-wider mb-1">The Gambler</h3>
+                        <div className="text-2xl font-bold text-gray-900 mb-2">{gambler.name}</div>
+                        <p className="text-sm text-gray-600">Picks underdogs <strong>{(100 - gambler.favPct).toFixed(1)}%</strong> of the time.</p>
+                    </div>
+                )}
+                {biggestHomer && (
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                        <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4 text-2xl">❤️</div>
+                        <h3 className="text-gray-500 font-bold uppercase text-xs tracking-wider mb-1">The Super Fan</h3>
+                        <div className="text-2xl font-bold text-gray-900 mb-2">{biggestHomer.name}</div>
+                        <p className="text-sm text-gray-600">Picked <strong>{biggestHomer.mostPickedTeam.name}</strong> {biggestHomer.mostPickedTeam.count} times!</p>
+                    </div>
+                )}
             </div>
 
             {/* Conference Power Rankings */}
@@ -224,7 +319,7 @@ export default function Insights({ games = [], picks = [], users = [] }) {
                         <div className="p-2 bg-green-100 text-green-600 rounded-lg">
                             <Shield size={24} />
                         </div>
-                        <h2 className="text-xl font-bold text-gray-800">Best ATS Teams</h2>
+                        <h2 className="text-xl font-bold text-gray-800">Best ATS Teams (Min 4 Games)</h2>
                     </div>
 
                     {sortedAts.length > 0 ? (
@@ -247,7 +342,7 @@ export default function Insights({ games = [], picks = [], users = [] }) {
                         </div>
                     ) : (
                         <div className="text-center py-12 text-gray-400 italic">
-                            Not enough finished games to calculate ATS records yet.
+                            Not enough Games with Spread data found.
                         </div>
                     )}
                 </div>
