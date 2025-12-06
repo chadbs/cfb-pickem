@@ -137,7 +137,7 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
 }
 
 function App() {
-    const [state, setState] = useState({ week: 14, games: [], featuredGameIds: [], users: [], picks: [] });
+    const [state, setState] = useState({ week: 15, games: [], featuredGameIds: [], users: [], picks: [] });
     const [currentUser, setCurrentUser] = useState('');
     const [currentPicks, setCurrentPicks] = useState({});
     const [loading, setLoading] = useState(true);

@@ -9,6 +9,13 @@ export default function AdminControls({ currentWeek, spreadsLocked, onSync, isEd
     const [showPlayoffConfig, setShowPlayoffConfig] = useState(false);
     const [playoffTeams, setPlayoffTeams] = useState([]);
 
+    // Sync local state when parent prop changes (e.g. after fetch)
+    React.useEffect(() => {
+        if (currentWeek) {
+            setWeek(currentWeek);
+        }
+    }, [currentWeek]);
+
     const handleSaveWeek = async () => {
         setLoading(true);
         try {
