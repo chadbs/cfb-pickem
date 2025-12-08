@@ -198,11 +198,12 @@ export default function Insights({ games = [], picks = [], users = [] }) {
 
     picks.forEach(pick => {
         const game = games.find(g => g.id === pick.gameId);
-        if (!game || !game.spread || game.spread === 'N/A') return;
+        if (!game) return;
 
         const stats = userStats[pick.user];
         if (!stats) return;
 
+        // Count ALL picks for homer/super fan detection (no spread requirement)
         stats.total++;
 
         // Track team picks for "homer" detection
@@ -211,6 +212,9 @@ export default function Insights({ games = [], picks = [], users = [] }) {
             const teamName = pickedTeam.name;
             stats.teamPicks[teamName] = (stats.teamPicks[teamName] || 0) + 1;
         }
+
+        // Only calculate favorites/underdogs if we have spread data
+        if (!game.spread || game.spread === 'N/A') return;
 
         const spreadData = parseSpread(game.spread);
         if (!spreadData) return;
