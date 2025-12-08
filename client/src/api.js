@@ -7,6 +7,7 @@ const api = axios.create({
 });
 
 export const getState = () => api.get('/state');
+export const getStateForWeek = (week) => api.get(`/state?week=${week}`); // Fast week switching
 export const syncWeek = (week) => api.post('/sync', { week });
 export const saveSettings = (settings) => api.post('/settings', settings);
 export const submitPicks = (user, picks) => api.post('/picks', { user, picks });

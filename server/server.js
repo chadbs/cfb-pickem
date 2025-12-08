@@ -126,11 +126,14 @@ app.get('/api/state', async (req, res) => {
     try {
         let system = await System.findById('config');
 
+        // Check if viewing a specific week (for week switching without sync)
+        const requestedWeek = req.query.week ? parseInt(req.query.week) : null;
+
         // Auto-update week number if needed (no ESPN fetch - that's what sync is for)
         const currentRealWeek = getCalculatedWeek();
         const lastCalculatedWeek = system?.lastCalculatedWeek || 0;
 
-        if (currentRealWeek > lastCalculatedWeek) {
+        if (!requestedWeek && currentRealWeek > lastCalculatedWeek) {
             console.log(`New week detected! Auto-updating week from ${system?.week} to ${currentRealWeek}`);
             // Just update the week number, don't fetch ESPN data (that's slow)
             // User can click "Update Scores" to sync when ready
@@ -145,13 +148,17 @@ app.get('/api/state', async (req, res) => {
             );
         }
 
+        // Determine which week to show
+        const displayWeek = requestedWeek || system?.week || currentRealWeek || 15;
+
         // Return cached data from MongoDB immediately (no ESPN API calls)
         const games = await Game.find({});
         const users = await User.find({});
         const picks = await Pick.find({});
 
         res.json({
-            week: system?.week || currentRealWeek || 15,
+            week: displayWeek,
+            systemWeek: system?.week || currentRealWeek || 15, // The actual current system week
             spreadsLocked: system?.spreadsLocked || false,
             featuredGameIds: system?.featuredGameIds || [],
             games,

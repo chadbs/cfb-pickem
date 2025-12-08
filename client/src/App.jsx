@@ -8,11 +8,11 @@ import GameSelector from './components/GameSelector';
 import UserPicksModal from './components/UserPicksModal';
 import Bracket from './components/Bracket';
 import Insights from './pages/Insights';
-import { getState, submitPicks, deleteUser, syncData, updateSpread } from './api';
+import { getState, getStateForWeek, submitPicks, deleteUser, syncData, updateSpread } from './api';
 import { Settings, CheckCircle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, handleSubmit, submitSuccess, fetchData, isSubmitting, onSync, isEditingSpreads, onUpdateSpread, onToggleEditSpreads }) {
+function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, handleSubmit, submitSuccess, fetchData, isSubmitting, onSync, isEditingSpreads, onUpdateSpread, onToggleEditSpreads, selectedWeek, systemWeek, onWeekChange }) {
     const [showGameSelector, setShowGameSelector] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const isAdmin = currentUser && currentUser.toLowerCase() === 'chad';
@@ -44,16 +44,32 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <h2 className="text-2xl font-display font-bold text-gray-800">Weekly Picks</h2>
-                <button
-                    onClick={handleSyncClick}
-                    disabled={isSyncing}
-                    className="flex items-center space-x-2 bg-white text-gray-600 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm font-bold"
-                >
-                    <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
-                    <span>{isSyncing ? 'Updating...' : 'Update Scores'}</span>
-                </button>
+                <div className="flex items-center space-x-3">
+                    {/* Week Picker */}
+                    <select
+                        value={selectedWeek}
+                        onChange={(e) => onWeekChange(Number(e.target.value))}
+                        className="bg-white text-gray-700 px-3 py-2 rounded-lg border border-gray-200 hover:border-gray-300 transition-all shadow-sm text-sm font-bold focus:ring-2 focus:ring-field focus:border-field outline-none"
+                    >
+                        {Array.from({ length: 16 }, (_, i) => i + 1).map(week => (
+                            <option key={week} value={week}>
+                                {week === 16 ? '🏆 Playoff' : `Week ${week}`}
+                                {week === systemWeek && week !== 16 ? ' (Current)' : ''}
+                            </option>
+                        ))}
+                    </select>
+                    {/* Sync Button */}
+                    <button
+                        onClick={handleSyncClick}
+                        disabled={isSyncing}
+                        className="flex items-center space-x-2 bg-white text-gray-600 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm font-bold"
+                    >
+                        <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+                        <span>{isSyncing ? 'Updating...' : 'Update Scores'}</span>
+                    </button>
+                </div>
             </div>
 
             {isAdmin && (
@@ -137,7 +153,8 @@ function Home({ state, currentUser, setCurrentUser, currentPicks, handlePick, ha
 }
 
 function App() {
-    const [state, setState] = useState({ week: 15, games: [], featuredGameIds: [], users: [], picks: [] });
+    const [state, setState] = useState({ week: 15, systemWeek: 15, games: [], featuredGameIds: [], users: [], picks: [] });
+    const [selectedWeek, setSelectedWeek] = useState(null); // null = use system week
     const [currentUser, setCurrentUser] = useState('');
     const [currentPicks, setCurrentPicks] = useState({});
     const [loading, setLoading] = useState(true);
@@ -178,9 +195,27 @@ function App() {
         }
     };
 
+    // Fast week switching - uses cached data only
+    const handleWeekChange = async (week) => {
+        setSelectedWeek(week);
+        try {
+            const res = await getStateForWeek(week);
+            setState(res.data);
+        } catch (error) {
+            console.error("Failed to fetch week data", error);
+        }
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
+
+    // Set initial selectedWeek from state
+    useEffect(() => {
+        if (selectedWeek === null && state.systemWeek) {
+            setSelectedWeek(state.systemWeek);
+        }
+    }, [state.systemWeek]);
 
     // Persist user in localStorage
     useEffect(() => {
@@ -292,10 +327,13 @@ function App() {
                             submitSuccess={submitSuccess}
                             fetchData={fetchData}
                             isSubmitting={isSubmitting}
-                            onSync={() => handleSync(state.week)}
+                            onSync={() => handleSync(selectedWeek || state.week)}
                             isEditingSpreads={isEditingSpreads}
                             onUpdateSpread={handleUpdateSpread}
                             onToggleEditSpreads={() => setIsEditingSpreads(!isEditingSpreads)}
+                            selectedWeek={selectedWeek || state.week}
+                            systemWeek={state.systemWeek || state.week}
+                            onWeekChange={handleWeekChange}
                         />
                     } />
                     <Route path="/leaderboard" element={
