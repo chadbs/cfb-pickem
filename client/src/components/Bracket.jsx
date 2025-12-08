@@ -17,37 +17,41 @@ const Matchup = ({ id, team1, team2, onPick, winnerId, label }) => {
     return (
         <div className="flex flex-col justify-center my-4 relative">
             {label && <div className="text-xs font-bold text-gray-400 mb-1 text-center uppercase tracking-wider">{label}</div>}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden w-48">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden w-56">
                 {/* Team 1 */}
                 <button
                     onClick={() => team1 && onPick(id, team1.id)}
                     className={clsx(
-                        "w-full flex items-center justify-between px-3 py-2 border-b border-gray-100 transition-colors",
-                        isTeam1Winner ? "bg-green-50 text-green-800" : "hover:bg-gray-50",
+                        "w-full flex items-center justify-between px-3 py-2.5 border-b border-gray-100 transition-all duration-200",
+                        isTeam1Winner ? "bg-green-50 text-green-800 ring-2 ring-inset ring-green-400" : "hover:bg-gray-50",
                         !team1 && "opacity-50 cursor-default"
                     )}
                     disabled={!team1}
                 >
                     <div className="flex items-center space-x-2">
-                        {team1?.seed && <span className="text-xs font-mono text-gray-500">{team1.seed}</span>}
+                        {team1?.logo && <img src={team1.logo} alt="" className="w-6 h-6 object-contain" />}
+                        {team1?.seed && <span className="text-xs font-mono text-gray-400 font-bold">{team1.seed}</span>}
                         <span className="text-sm font-bold truncate">{team1?.name || 'TBD'}</span>
                     </div>
+                    {isTeam1Winner && <span className="text-green-600 text-xs font-bold">✓</span>}
                 </button>
 
                 {/* Team 2 */}
                 <button
                     onClick={() => team2 && onPick(id, team2.id)}
                     className={clsx(
-                        "w-full flex items-center justify-between px-3 py-2 transition-colors",
-                        isTeam2Winner ? "bg-green-50 text-green-800" : "hover:bg-gray-50",
+                        "w-full flex items-center justify-between px-3 py-2.5 transition-all duration-200",
+                        isTeam2Winner ? "bg-green-50 text-green-800 ring-2 ring-inset ring-green-400" : "hover:bg-gray-50",
                         !team2 && "opacity-50 cursor-default"
                     )}
                     disabled={!team2}
                 >
                     <div className="flex items-center space-x-2">
-                        {team2?.seed && <span className="text-xs font-mono text-gray-500">{team2.seed}</span>}
+                        {team2?.logo && <img src={team2.logo} alt="" className="w-6 h-6 object-contain" />}
+                        {team2?.seed && <span className="text-xs font-mono text-gray-400 font-bold">{team2.seed}</span>}
                         <span className="text-sm font-bold truncate">{team2?.name || 'TBD'}</span>
                     </div>
+                    {isTeam2Winner && <span className="text-green-600 text-xs font-bold">✓</span>}
                 </button>
             </div>
             {/* Connector Line */}

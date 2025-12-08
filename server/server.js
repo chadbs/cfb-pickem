@@ -126,40 +126,14 @@ app.get('/api/state', async (req, res) => {
     try {
         let system = await System.findById('config');
 
-        // Auto-update week if needed (Only if we moved to a NEW week)
+        // Auto-update week number if needed (no ESPN fetch - that's what sync is for)
         const currentRealWeek = getCalculatedWeek();
         const lastCalculatedWeek = system?.lastCalculatedWeek || 0;
 
         if (currentRealWeek > lastCalculatedWeek) {
-            console.log(`New week detected! Auto-updating from ${system?.week} to ${currentRealWeek}`);
-
-            // Auto-fetch data for the new week
-            try {
-                console.log(`Auto-fetching data for Week ${currentRealWeek}...`);
-                const gamesData = await fetchEspnData(currentRealWeek);
-
-                // Add week to game objects
-                gamesData.forEach(g => g.week = currentRealWeek);
-
-                // Save games
-                const bulkOps = gamesData.map(game => ({
-                    updateOne: {
-                        filter: { id: game.id },
-                        update: { $set: game },
-                        upsert: true
-                    }
-                }));
-
-                if (bulkOps.length > 0) {
-                    await Game.bulkWrite(bulkOps);
-                }
-                console.log(`Auto-fetch complete for Week ${currentRealWeek}`);
-            } catch (err) {
-                console.error("Auto-fetch failed:", err);
-            }
-
-            // Update System with new week AND lastCalculatedWeek
-            // Clear featured games so they can be re-selected for the new week
+            console.log(`New week detected! Auto-updating week from ${system?.week} to ${currentRealWeek}`);
+            // Just update the week number, don't fetch ESPN data (that's slow)
+            // User can click "Update Scores" to sync when ready
             system = await System.findByIdAndUpdate(
                 'config',
                 {
@@ -171,42 +145,13 @@ app.get('/api/state', async (req, res) => {
             );
         }
 
-        let games = await Game.find({});
-        const currentWeekGames = games.filter(g => g.week === system.week);
-
-        // Auto-fetch if DB is empty OR current week games are missing
-        if (games.length === 0 || currentWeekGames.length === 0) {
-            console.log(`Missing games for Week ${system.week}. Auto-fetching...`);
-            try {
-                const fetchedGames = await fetchEspnData(system.week);
-
-                // Add week to game objects
-                fetchedGames.forEach(g => g.week = system.week);
-
-                // Save games
-                const bulkOps = fetchedGames.map(game => ({
-                    updateOne: {
-                        filter: { id: game.id },
-                        update: { $set: game },
-                        upsert: true
-                    }
-                }));
-
-                if (bulkOps.length > 0) {
-                    await Game.bulkWrite(bulkOps);
-                }
-                games = fetchedGames; // Return newly fetched games
-                console.log(`Auto-fetch complete. Loaded ${games.length} games.`);
-            } catch (err) {
-                console.error("Auto-fetch failed:", err);
-            }
-        }
-
+        // Return cached data from MongoDB immediately (no ESPN API calls)
+        const games = await Game.find({});
         const users = await User.find({});
         const picks = await Pick.find({});
 
         res.json({
-            week: system?.week || currentRealWeek || 14,
+            week: system?.week || currentRealWeek || 15,
             spreadsLocked: system?.spreadsLocked || false,
             featuredGameIds: system?.featuredGameIds || [],
             games,
@@ -399,31 +344,78 @@ app.post('/api/sync', async (req, res) => {
             await Game.bulkWrite(bulkOps);
         }
 
-        // --- CALCULATE WINS ---
-        const users = await User.find({});
+        // --- CALCULATE WINS (OPTIMIZED) ---
+        // Only process finished games from this sync
+        const finishedGames = gamesData.filter(g => g.status === 'post');
 
-        // 1. Update Picks with results
-        for (const game of gamesData) {
-            if (game.status === 'post') {
+        if (finishedGames.length > 0) {
+            // Get all picks for finished games in ONE query
+            const finishedGameIds = finishedGames.map(g => g.id);
+            const allPicks = await Pick.find({ gameId: { $in: finishedGameIds } });
+
+            // Build a map of gameId -> winner for quick lookup
+            const winnerMap = new Map();
+            for (const game of finishedGames) {
                 const winnerId = calculateSpreadWinner(game);
                 if (winnerId) {
-                    const gamePicks = await Pick.find({ gameId: game.id });
-                    for (const pick of gamePicks) {
-                        let result = 'loss';
-                        if (winnerId === 'PUSH') result = 'push';
-                        else if (pick.teamId === winnerId) result = 'win';
-
-                        // Update the pick
-                        await Pick.findByIdAndUpdate(pick._id, { result });
-                    }
+                    winnerMap.set(game.id, winnerId);
                 }
             }
-        }
 
-        // 2. Recalculate User Wins
-        for (const user of users) {
-            const userWins = await Pick.countDocuments({ user: user.name, result: 'win' });
-            await User.findOneAndUpdate({ name: user.name }, { wins: userWins });
+            // Calculate results and prepare bulk updates
+            const pickUpdates = [];
+            for (const pick of allPicks) {
+                const winnerId = winnerMap.get(pick.gameId);
+                if (winnerId) {
+                    let result = 'loss';
+                    if (winnerId === 'PUSH') result = 'push';
+                    else if (pick.teamId === winnerId) result = 'win';
+
+                    pickUpdates.push({
+                        updateOne: {
+                            filter: { _id: pick._id },
+                            update: { $set: { result } }
+                        }
+                    });
+                }
+            }
+
+            // Execute all pick updates in ONE bulk operation
+            if (pickUpdates.length > 0) {
+                await Pick.bulkWrite(pickUpdates);
+            }
+
+            // Recalculate user wins using aggregation (much faster)
+            const winCounts = await Pick.aggregate([
+                { $match: { result: 'win' } },
+                { $group: { _id: '$user', wins: { $sum: 1 } } }
+            ]);
+
+            // Build bulk user updates
+            const userUpdates = winCounts.map(({ _id, wins }) => ({
+                updateOne: {
+                    filter: { name: _id },
+                    update: { $set: { wins } }
+                }
+            }));
+
+            // Also reset wins to 0 for users with no wins
+            const usersWithWins = new Set(winCounts.map(w => w._id));
+            const users = await User.find({});
+            for (const user of users) {
+                if (!usersWithWins.has(user.name)) {
+                    userUpdates.push({
+                        updateOne: {
+                            filter: { name: user.name },
+                            update: { $set: { wins: 0 } }
+                        }
+                    });
+                }
+            }
+
+            if (userUpdates.length > 0) {
+                await User.bulkWrite(userUpdates);
+            }
         }
 
         // Auto-select favorites logic
@@ -605,20 +597,20 @@ app.post('/api/picks', async (req, res) => {
 // Delete user
 // --- PLAYOFF ROUTES ---
 
-// Projected 12-Team Field (2025 Projections)
+// Official 2025 12-Team CFB Playoff Field
 const DEFAULT_PLAYOFF_TEAMS = [
-    { seed: 1, name: 'Ohio State', id: 'seed-1', abbreviation: 'OSU' },
-    { seed: 2, name: 'Indiana', id: 'seed-2', abbreviation: 'IND' },
-    { seed: 3, name: 'Texas A&M', id: 'seed-3', abbreviation: 'TAMU' },
-    { seed: 4, name: 'Georgia', id: 'seed-4', abbreviation: 'UGA' },
+    { seed: 1, name: 'Indiana', id: 'seed-1', abbreviation: 'IND' },
+    { seed: 2, name: 'Ohio State', id: 'seed-2', abbreviation: 'OSU' },
+    { seed: 3, name: 'Georgia', id: 'seed-3', abbreviation: 'UGA' },
+    { seed: 4, name: 'Texas Tech', id: 'seed-4', abbreviation: 'TTU' },
     { seed: 5, name: 'Oregon', id: 'seed-5', abbreviation: 'ORE' },
-    { seed: 6, name: 'Penn State', id: 'seed-6', abbreviation: 'PSU' },
-    { seed: 7, name: 'Notre Dame', id: 'seed-7', abbreviation: 'ND' },
-    { seed: 8, name: 'Alabama', id: 'seed-8', abbreviation: 'ALA' },
-    { seed: 9, name: 'Tennessee', id: 'seed-9', abbreviation: 'TENN' },
-    { seed: 10, name: 'SMU', id: 'seed-10', abbreviation: 'SMU' },
-    { seed: 11, name: 'Miami (FL)', id: 'seed-11', abbreviation: 'MIA' },
-    { seed: 12, name: 'Boise State', id: 'seed-12', abbreviation: 'BSU' }
+    { seed: 6, name: 'Ole Miss', id: 'seed-6', abbreviation: 'MISS' },
+    { seed: 7, name: 'Texas A&M', id: 'seed-7', abbreviation: 'TA&M' },
+    { seed: 8, name: 'Oklahoma', id: 'seed-8', abbreviation: 'OU' },
+    { seed: 9, name: 'Alabama', id: 'seed-9', abbreviation: 'ALA' },
+    { seed: 10, name: 'Miami (FL)', id: 'seed-10', abbreviation: 'MIA' },
+    { seed: 11, name: 'Tulane', id: 'seed-11', abbreviation: 'TULN' },
+    { seed: 12, name: 'James Madison', id: 'seed-12', abbreviation: 'JMU' }
 ];
 
 // Get Playoff Config (Seeds)

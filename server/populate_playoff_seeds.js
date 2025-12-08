@@ -6,19 +6,20 @@ dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cfb-pickem';
 
+// Official 2025 12-Team CFB Playoff Field
 const projectedTeams = [
-    { seed: 1, name: 'Oregon' },
-    { seed: 2, name: 'Georgia' },
-    { seed: 3, name: 'Boise State' },
-    { seed: 4, name: 'Arizona State' },
-    { seed: 5, name: 'Texas' },
-    { seed: 6, name: 'Penn State' },
-    { seed: 7, name: 'Notre Dame' },
-    { seed: 8, name: 'Ohio State' },
-    { seed: 9, name: 'Tennessee' },
-    { seed: 10, name: 'Indiana' },
-    { seed: 11, name: 'SMU' },
-    { seed: 12, name: 'Clemson' }
+    { seed: 1, name: 'Indiana' },
+    { seed: 2, name: 'Ohio State' },
+    { seed: 3, name: 'Georgia' },
+    { seed: 4, name: 'Texas Tech' },
+    { seed: 5, name: 'Oregon' },
+    { seed: 6, name: 'Ole Miss' },
+    { seed: 7, name: 'Texas A&M' },
+    { seed: 8, name: 'Oklahoma' },
+    { seed: 9, name: 'Alabama' },
+    { seed: 10, name: 'Miami' },
+    { seed: 11, name: 'Tulane' },
+    { seed: 12, name: 'James Madison' }
 ];
 
 mongoose.connect(MONGODB_URI)
