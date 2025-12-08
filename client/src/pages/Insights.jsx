@@ -119,8 +119,20 @@ export default function Insights({ games = [], picks = [], users = [] }) {
         '251': 'Big South'
     };
 
-    // 2025 Season Conference Records (Power 4)
-    // Based on current regular season non-conference results
+    const targetConferences = ['1', '4', '5', '8']; // ACC, Big 12, Big 10, SEC (Power 4)
+
+    const getConfName = (id) => confNames[id] || id; // Return ID as-is if no name mapping
+
+    // Filter to Power 4 conference matchups from calculated data
+    const dynamicConfRecords = Object.values(confRecords).filter(rec => {
+        return targetConferences.includes(String(rec.conf1)) && targetConferences.includes(String(rec.conf2));
+    }).map(rec => ({
+        ...rec,
+        conf1: getConfName(rec.conf1),
+        conf2: getConfName(rec.conf2)
+    }));
+
+    // 2025 Season Conference Records (Fallback if no dynamic data)
     const season2025ConfRecords = [
         { conf1: 'SEC', conf2: 'ACC', wins1: 6, wins2: 4 },
         { conf1: 'SEC', conf2: 'Big Ten', wins1: 2, wins2: 1 },
@@ -129,12 +141,8 @@ export default function Insights({ games = [], picks = [], users = [] }) {
         { conf1: 'Big Ten', conf2: 'ACC', wins1: 2, wins2: 1 },
     ];
 
-    const targetConferences = ['1', '4', '5', '8', '17']; // ACC, Big 12, Big 10, SEC, MW
-
-    const getConfName = (id) => confNames[id] || `Conf ${id}`;
-
-    // Use 2025 season data for conference matchups
-    const filteredConfRecords = season2025ConfRecords;
+    // Use dynamic data if available, otherwise fall back to hardcoded 2025 data
+    const filteredConfRecords = dynamicConfRecords.length > 0 ? dynamicConfRecords : season2025ConfRecords;
 
     // 3. Aggregate Conference Power Rankings (Total vs Other Power Conferences)
     const powerConfs = ['1', '4', '5', '8', '17']; // ACC, Big 12, Big 10, SEC, MW
