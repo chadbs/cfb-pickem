@@ -156,6 +156,68 @@ export default function Insights({ games = [], picks = [], users = [] }) {
     });
 
     const sortedPowerConfs = Object.values(powerConfStats)
+        .filter(c => (c.wins + c.losses) > 0)
+        .sort((a, b) => {
+            const pctA = a.wins / (a.wins + a.losses || 1);
+            const pctB = b.wins / (b.wins + b.losses || 1);
+            return pctB - pctA;
+        });
+
+    // 4. User Betting Personalities
+    const userStats = {};
+    users.forEach(user => {
+        userStats[user.name] = { name: user.name, favorites: 0, underdogs: 0, total: 0, teamPicks: {} };
+    });
+
+    picks.forEach(pick => {
+        const game = games.find(g => g.id === pick.gameId);
+        if (!game || !game.spread || game.spread === 'N/A') return;
+
+        const stats = userStats[pick.user];
+        if (!stats) return;
+
+        stats.total++;
+
+        // Track team picks for "homer" detection
+        const pickedTeam = pick.teamId === game.home.id ? game.home : game.away;
+        if (pickedTeam) {
+            const teamName = pickedTeam.name;
+            stats.teamPicks[teamName] = (stats.teamPicks[teamName] || 0) + 1;
+        }
+
+        const spreadData = parseSpread(game.spread);
+        if (!spreadData) return;
+
+        const isHomeFav = game.home.abbreviation === spreadData.team || game.home.name.includes(spreadData.team);
+        const pickedFavorite = (isHomeFav && pick.teamId === game.home.id) || (!isHomeFav && pick.teamId === game.away.id);
+
+        if (pickedFavorite) stats.favorites++;
+        else stats.underdogs++;
+    });
+
+    // Find chalk eater (picks favorites most)
+    const chalkEater = Object.values(userStats)
+        .filter(u => u.total >= 5)
+        .map(u => ({ ...u, favPct: (u.favorites / u.total) * 100 }))
+        .sort((a, b) => b.favPct - a.favPct)[0] || null;
+
+    // Find gambler (picks underdogs most)
+    const gambler = Object.values(userStats)
+        .filter(u => u.total >= 5)
+        .map(u => ({ ...u, favPct: (u.favorites / u.total) * 100 }))
+        .sort((a, b) => a.favPct - b.favPct)[0] || null;
+
+    // Find biggest homer (picks same team most often)
+    const biggestHomer = Object.values(userStats)
+        .map(u => {
+            const entries = Object.entries(u.teamPicks);
+            if (entries.length === 0) return null;
+            const [teamName, count] = entries.sort((a, b) => b[1] - a[1])[0];
+            return { name: u.name, mostPickedTeam: { name: teamName, count } };
+        })
+        .filter(u => u && u.mostPickedTeam.count >= 3)
+        .sort((a, b) => b.mostPickedTeam.count - a.mostPickedTeam.count)[0] || null;
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-12">
             <div className="flex items-center space-x-3 mb-8">
