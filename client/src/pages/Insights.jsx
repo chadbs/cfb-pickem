@@ -224,13 +224,13 @@ export default function Insights({ games = [], picks = [], users = [] }) {
 
     // Find chalk eater (picks favorites most)
     const chalkEater = Object.values(userStats)
-        .filter(u => u.total >= 3) // Lowered threshold for more visibility
+        .filter(u => u.total >= 2) // Threshold: 2 total picks
         .map(u => ({ ...u, favPct: (u.favorites / u.total) * 100 }))
         .sort((a, b) => b.favPct - a.favPct)[0] || null;
 
     // Find gambler (picks underdogs most)
     const gambler = Object.values(userStats)
-        .filter(u => u.total >= 3) // Lowered threshold for more visibility
+        .filter(u => u.total >= 2) // Threshold: 2 total picks
         .map(u => ({ ...u, favPct: (u.favorites / u.total) * 100 }))
         .sort((a, b) => a.favPct - b.favPct)[0] || null;
 
@@ -242,7 +242,7 @@ export default function Insights({ games = [], picks = [], users = [] }) {
             const [teamName, count] = entries.sort((a, b) => b[1] - a[1])[0];
             return { name: u.name, mostPickedTeam: { name: teamName, count } };
         })
-        .filter(u => u && u.mostPickedTeam.count >= 2) // Lowered from 3 to 2
+        .filter(u => u && u.mostPickedTeam.count >= 1) // Show if picked any team at least once
         .sort((a, b) => b.mostPickedTeam.count - a.mostPickedTeam.count)[0] || null;
 
     return (
