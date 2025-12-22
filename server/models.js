@@ -60,7 +60,20 @@ const playoffConfigSchema = new mongoose.Schema({
         conference: String
     }],
     // Store actual winners: { "R1-G1": "Oregon" }
-    results: { type: Map, of: String }
+    // Store actual winners: { "R1-G1": "Oregon" }
+    results: { type: Map, of: String },
+    // Store detailed match info: { "R1-G1": { homeScore: "35", awayScore: "21", status: "post" } }
+    matchDetails: {
+        type: Map,
+        of: new mongoose.Schema({
+            homeScore: String,
+            awayScore: String,
+            status: String,
+            clock: String,
+            period: Number,
+            winnerId: String
+        }, { _id: false })
+    }
 });
 
 export const System = mongoose.model('System', systemSchema);
