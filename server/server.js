@@ -27,12 +27,12 @@ mongoose.connect(MONGODB_URI)
         // Initialize System config if not exists
         const sys = await System.findById('config');
         if (!sys) {
-            await System.create({ _id: 'config', week: 15, featuredGameIds: [] });
-            console.log('Initialized System config to Week 15');
-        } else if (sys.week < 15) {
-            // Auto-update to Week 15 if currently lagging behind
-            sys.week = 15;
-            sys.lastCalculatedWeek = 15; // Prevent auto-sync on first load
+            await System.create({ _id: 'config', week: 17, featuredGameIds: [] });
+            console.log('Initialized System config to Week 17 (Playoff)');
+        } else if (sys.week < 17) {
+            // Auto-update to Week 17 if currently lagging behind
+            sys.week = 17;
+            sys.lastCalculatedWeek = 17; // Prevent auto-sync on first load
             sys.featuredGameIds = []; // Clear featured for new week
             await sys.save();
             console.log('Auto-updated System config to Week 15');
@@ -149,7 +149,8 @@ app.get('/api/state', async (req, res) => {
         }
 
         // Determine which week to show
-        const displayWeek = requestedWeek || system?.week || currentRealWeek || 15;
+        // Determine which week to show
+        const displayWeek = requestedWeek || system?.week || currentRealWeek || 17;
 
         // Return cached data from MongoDB immediately (no ESPN API calls)
         const games = await Game.find({});
