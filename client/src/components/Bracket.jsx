@@ -10,7 +10,7 @@ import { getPlayoffConfig, getBracket, saveBracket, getAllBracketPicks } from '.
 // SF: QF1 vs QF4, QF2 vs QF3
 // F: SF1 vs SF2
 
-const Matchup = ({ id, team1, team2, onPick, winnerId, actualWinnerId, label }) => {
+const Matchup = ({ id, team1, team2, onPick, winnerId, actualWinnerId, label, details }) => {
     // If there is an actual winner, that team is the ONLY one that should look like a winner
     // If the user picked the actual winner -> Green Check
     // If the user picked wrong -> Red X (or just show actual winner)
@@ -23,9 +23,27 @@ const Matchup = ({ id, team1, team2, onPick, winnerId, actualWinnerId, label }) 
 
     const isDecided = !!actualWinnerId;
 
+    // Get scores from details if available
+    const hasScores = details && (details.homeScore !== undefined || details.awayScore !== undefined);
+    const team1Score = details?.homeScore;
+    const team2Score = details?.awayScore;
+    const gameStatus = details?.status;
+    const isLive = gameStatus === 'in';
+
     return (
         <div className="flex flex-col justify-center my-4 relative">
             {label && <div className="text-xs font-bold text-gray-400 mb-1 text-center uppercase tracking-wider">{label}</div>}
+            {/* Game Status Indicator */}
+            {hasScores && isLive && (
+                <div className="text-xs font-bold text-red-500 mb-1 text-center animate-pulse">
+                    🔴 LIVE - {details.clock} Q{details.period}
+                </div>
+            )}
+            {hasScores && gameStatus === 'post' && (
+                <div className="text-xs font-bold text-gray-500 mb-1 text-center">
+                    FINAL
+                </div>
+            )}
             <div className={clsx("bg-white border rounded-lg shadow-sm overflow-hidden w-56", isDecided ? "border-gray-300" : "border-gray-200")}>
                 {/* Team 1 */}
                 <button
@@ -49,8 +67,11 @@ const Matchup = ({ id, team1, team2, onPick, winnerId, actualWinnerId, label }) 
                         {team1?.seed && <span className="text-xs font-mono text-gray-400 font-bold">{team1.seed}</span>}
                         <span className="text-sm font-bold truncate">{team1?.name || 'TBD'}</span>
                     </div>
-                    {isTeam1Actual && <span className="text-green-600 text-xs font-bold bg-green-200 px-1.5 py-0.5 rounded">WIN</span>}
-                    {isTeam1Picked && !isDecided && <span className="text-blue-500 text-xs font-bold">PICK</span>}
+                    <div className="flex items-center space-x-2">
+                        {hasScores && <span className={clsx("text-lg font-black", isTeam1Actual ? "text-green-600" : "text-gray-800")}>{team1Score}</span>}
+                        {isTeam1Actual && <span className="text-green-600 text-xs font-bold bg-green-200 px-1.5 py-0.5 rounded">WIN</span>}
+                        {isTeam1Picked && !isDecided && <span className="text-blue-500 text-xs font-bold">PICK</span>}
+                    </div>
                 </button>
 
                 {/* Team 2 */}
@@ -71,8 +92,11 @@ const Matchup = ({ id, team1, team2, onPick, winnerId, actualWinnerId, label }) 
                         {team2?.seed && <span className="text-xs font-mono text-gray-400 font-bold">{team2.seed}</span>}
                         <span className="text-sm font-bold truncate">{team2?.name || 'TBD'}</span>
                     </div>
-                    {isTeam2Actual && <span className="text-green-600 text-xs font-bold bg-green-200 px-1.5 py-0.5 rounded">WIN</span>}
-                    {isTeam2Picked && !isDecided && <span className="text-blue-500 text-xs font-bold">PICK</span>}
+                    <div className="flex items-center space-x-2">
+                        {hasScores && <span className={clsx("text-lg font-black", isTeam2Actual ? "text-green-600" : "text-gray-800")}>{team2Score}</span>}
+                        {isTeam2Actual && <span className="text-green-600 text-xs font-bold bg-green-200 px-1.5 py-0.5 rounded">WIN</span>}
+                        {isTeam2Picked && !isDecided && <span className="text-blue-500 text-xs font-bold">PICK</span>}
+                    </div>
                 </button>
             </div>
             {/* Connector Line */}
@@ -208,10 +232,10 @@ export default function Bracket({ currentUser }) {
                     <div className="flex justify-between space-x-8">
                         {/* Round 1 */}
                         <div className="flex flex-col justify-around space-y-8">
-                            <Matchup id="R1-G1" team1={r1g1_home} team2={r1g1_away} onPick={handlePick} winnerId={picks['R1-G1']} actualWinnerId={getActualWinnerId('R1-G1')} label="First Round" />
-                            <Matchup id="R1-G2" team1={r1g2_home} team2={r1g2_away} onPick={handlePick} winnerId={picks['R1-G2']} actualWinnerId={getActualWinnerId('R1-G2')} />
-                            <Matchup id="R1-G3" team1={r1g3_home} team2={r1g3_away} onPick={handlePick} winnerId={picks['R1-G3']} actualWinnerId={getActualWinnerId('R1-G3')} />
-                            <Matchup id="R1-G4" team1={r1g4_home} team2={r1g4_away} onPick={handlePick} winnerId={picks['R1-G4']} actualWinnerId={getActualWinnerId('R1-G4')} />
+                            <Matchup id="R1-G1" team1={r1g1_home} team2={r1g1_away} onPick={handlePick} winnerId={picks['R1-G1']} actualWinnerId={getActualWinnerId('R1-G1')} details={getMatchDetails('R1-G1')} label="First Round" />
+                            <Matchup id="R1-G2" team1={r1g2_home} team2={r1g2_away} onPick={handlePick} winnerId={picks['R1-G2']} actualWinnerId={getActualWinnerId('R1-G2')} details={getMatchDetails('R1-G2')} />
+                            <Matchup id="R1-G3" team1={r1g3_home} team2={r1g3_away} onPick={handlePick} winnerId={picks['R1-G3']} actualWinnerId={getActualWinnerId('R1-G3')} details={getMatchDetails('R1-G3')} />
+                            <Matchup id="R1-G4" team1={r1g4_home} team2={r1g4_away} onPick={handlePick} winnerId={picks['R1-G4']} actualWinnerId={getActualWinnerId('R1-G4')} details={getMatchDetails('R1-G4')} />
                         </div>
 
                         {/* Quarterfinals */}

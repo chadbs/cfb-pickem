@@ -298,13 +298,13 @@ async function syncPlayoffResults(gamesData) {
         // Helper to find team by seed
         const getTeamBySeed = (seed) => config.teams.find(t => t.seed === seed);
 
-        // Define Matches for Round 1 (Seeds)
-        // R1-G1 (5 vs 12), R1-G2 (6 vs 11), R1-G3 (7 vs 10), R1-G4 (8 vs 9)
+        // Define Matches for Round 1 (Seeds) - Matches Bracket.jsx
+        // R1-G1 (8 vs 9), R1-G2 (5 vs 12), R1-G3 (6 vs 11), R1-G4 (7 vs 10)
         const r1Matches = [
-            { id: 'R1-G1', seeds: [5, 12] },
-            { id: 'R1-G2', seeds: [6, 11] },
-            { id: 'R1-G3', seeds: [7, 10] },
-            { id: 'R1-G4', seeds: [8, 9] }
+            { id: 'R1-G1', seeds: [8, 9] },
+            { id: 'R1-G2', seeds: [5, 12] },
+            { id: 'R1-G3', seeds: [6, 11] },
+            { id: 'R1-G4', seeds: [7, 10] }
         ];
 
         // Process Round 1
