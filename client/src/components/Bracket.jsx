@@ -211,21 +211,21 @@ export default function Bracket({ currentUser }) {
 
                         {/* Quarterfinals */}
                         <div className="flex flex-col justify-around space-y-16 mt-8">
-                            <Matchup id="QF-G1" team1={qf1_home} team2={qf1_away} onPick={handlePick} winnerId={picks['QF-G1']} actualWinnerId={getActualWinnerId('QF-G1')} label="Quarterfinals" />
-                            <Matchup id="QF-G2" team1={qf2_home} team2={qf2_away} onPick={handlePick} winnerId={picks['QF-G2']} actualWinnerId={getActualWinnerId('QF-G2')} />
-                            <Matchup id="QF-G3" team1={qf3_home} team2={qf3_away} onPick={handlePick} winnerId={picks['QF-G3']} actualWinnerId={getActualWinnerId('QF-G3')} />
-                            <Matchup id="QF-G4" team1={qf4_home} team2={qf4_away} onPick={handlePick} winnerId={picks['QF-G4']} actualWinnerId={getActualWinnerId('QF-G4')} />
+                            <Matchup id="QF-G1" team1={qf1_home} team2={qf1_away} onPick={handlePick} winnerId={picks['QF-G1']} actualWinnerId={getActualWinnerId('QF-G1')} details={getMatchDetails('QF-G1')} label="Quarterfinals" />
+                            <Matchup id="QF-G2" team1={qf2_home} team2={qf2_away} onPick={handlePick} winnerId={picks['QF-G2']} actualWinnerId={getActualWinnerId('QF-G2')} details={getMatchDetails('QF-G2')} />
+                            <Matchup id="QF-G3" team1={qf3_home} team2={qf3_away} onPick={handlePick} winnerId={picks['QF-G3']} actualWinnerId={getActualWinnerId('QF-G3')} details={getMatchDetails('QF-G3')} />
+                            <Matchup id="QF-G4" team1={qf4_home} team2={qf4_away} onPick={handlePick} winnerId={picks['QF-G4']} actualWinnerId={getActualWinnerId('QF-G4')} details={getMatchDetails('QF-G4')} />
                         </div>
 
                         {/* Semifinals */}
                         <div className="flex flex-col justify-around space-y-32 mt-16">
-                            <Matchup id="SF-G1" team1={sf1_home} team2={sf1_away} onPick={handlePick} winnerId={picks['SF-G1']} actualWinnerId={getActualWinnerId('SF-G1')} label="Semifinals" />
-                            <Matchup id="SF-G2" team1={sf2_home} team2={sf2_away} onPick={handlePick} winnerId={picks['SF-G2']} actualWinnerId={getActualWinnerId('SF-G2')} />
+                            <Matchup id="SF-G1" team1={sf1_home} team2={sf1_away} onPick={handlePick} winnerId={picks['SF-G1']} actualWinnerId={getActualWinnerId('SF-G1')} details={getMatchDetails('SF-G1')} label="Semifinals" />
+                            <Matchup id="SF-G2" team1={sf2_home} team2={sf2_away} onPick={handlePick} winnerId={picks['SF-G2']} actualWinnerId={getActualWinnerId('SF-G2')} details={getMatchDetails('SF-G2')} />
                         </div>
 
                         {/* Championship */}
                         <div className="flex flex-col justify-center mt-32">
-                            <Matchup id="F-G1" team1={final_home} team2={final_away} onPick={handlePick} winnerId={picks['F-G1']} actualWinnerId={getActualWinnerId('F-G1')} label="National Championship" />
+                            <Matchup id="F-G1" team1={final_home} team2={final_away} onPick={handlePick} winnerId={picks['F-G1']} actualWinnerId={getActualWinnerId('F-G1')} details={getMatchDetails('F-G1')} label="National Championship" />
 
                             {champion && (
                                 <motion.div
