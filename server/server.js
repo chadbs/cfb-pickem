@@ -109,6 +109,59 @@ const fetchEspnData = async (week) => {
     }
 };
 
+// Helper: Fetch CFP Games (by date range for 2024 playoffs)
+const fetchCfpGames = async () => {
+    try {
+        // CFP Round 1 dates: Dec 20-21, 2024
+        const dates = ['20241220', '20241221', '20241222'];
+        let allGames = [];
+
+        for (const date of dates) {
+            const url = `http://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${date}&limit=50`;
+            const response = await axios.get(url);
+            const events = response.data.events || [];
+
+            const games = events.map(event => {
+                const competition = event.competitions[0];
+                const home = competition.competitors.find(c => c.homeAway === 'home');
+                const away = competition.competitors.find(c => c.homeAway === 'away');
+
+                return {
+                    id: event.id,
+                    name: event.name,
+                    shortName: event.shortName,
+                    date: event.date,
+                    status: event.status.type.state,
+                    period: event.status.period,
+                    clock: event.status.displayClock,
+                    home: {
+                        id: home.id,
+                        name: home.team.displayName,
+                        abbreviation: home.team.abbreviation,
+                        score: home.score,
+                        logo: home.team.logo
+                    },
+                    away: {
+                        id: away.id,
+                        name: away.team.displayName,
+                        abbreviation: away.team.abbreviation,
+                        score: away.score,
+                        logo: away.team.logo
+                    }
+                };
+            });
+
+            allGames = allGames.concat(games);
+        }
+
+        console.log(`Fetched ${allGames.length} CFP games`);
+        return allGames;
+    } catch (error) {
+        console.error("Error fetching CFP data:", error);
+        return [];
+    }
+};
+
 // Routes
 
 // Helper: Calculate current week based on date (Starts Mon Aug 26, 2024)
@@ -222,6 +275,18 @@ async function syncPlayoffResults(gamesData) {
         const config = await PlayoffConfig.findById('playoff_config');
         if (!config || config.teams.length === 0) return;
 
+        // If gamesData is empty or doesn't have playoff games, fetch CFP games directly
+        let playoffGames = gamesData;
+        if (!gamesData || gamesData.length === 0) {
+            console.log('No gamesData provided, fetching CFP games...');
+            playoffGames = await fetchCfpGames();
+        }
+
+        if (!playoffGames || playoffGames.length === 0) {
+            console.log('No playoff games found.');
+            return;
+        }
+
         let updated = false;
         // Ensure results and matchDetails are Maps
         if (!config.results) config.results = new Map();
@@ -250,7 +315,7 @@ async function syncPlayoffResults(gamesData) {
             if (!team1 || !team2) continue;
 
             // Find game involving these two teams
-            const game = gamesData.find(g =>
+            const game = playoffGames.find(g =>
                 (g.home.id === team1.id || g.home.name.includes(team1.name)) &&
                 (g.away.id === team2.id || g.away.name.includes(team2.name)) ||
                 (g.home.id === team2.id || g.home.name.includes(team2.name)) &&
