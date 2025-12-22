@@ -117,6 +117,6 @@ export default function Leaderboard({ users, picks, games, currentWeek, onUserCl
                     </table>
                 </div>
             </div>
-        </div >
+        </div>
     );
 }
