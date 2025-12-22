@@ -215,6 +215,74 @@ const calculateSpreadWinner = (game) => {
     return 'PUSH';
 };
 
+// Helper: Sync Playoff Results
+async function syncPlayoffResults(gamesData) {
+    try {
+        const config = await PlayoffConfig.findById('playoff_config');
+        if (!config || config.teams.length === 0) return;
+
+        let updated = false;
+        // Ensure results is a Map
+        if (!config.results) config.results = new Map();
+        const results = config.results;
+
+        // Helper to find team by seed
+        const getTeamBySeed = (seed) => config.teams.find(t => t.seed === seed);
+
+        // Define Matches for Round 1 (Seeds)
+        // R1-G1 (5 vs 12), R1-G2 (6 vs 11), R1-G3 (7 vs 10), R1-G4 (8 vs 9)
+        const r1Matches = [
+            { id: 'R1-G1', seeds: [5, 12] },
+            { id: 'R1-G2', seeds: [6, 11] },
+            { id: 'R1-G3', seeds: [7, 10] },
+            { id: 'R1-G4', seeds: [8, 9] }
+        ];
+
+        // Process Round 1
+        for (const match of r1Matches) {
+            const team1 = getTeamBySeed(match.seeds[0]);
+            const team2 = getTeamBySeed(match.seeds[1]);
+
+            if (!team1 || !team2) continue;
+
+            // Find game involving these two teams
+            // We check ID match or Name match to be safe
+            const game = gamesData.find(g =>
+                (g.home.id === team1.id || g.home.name.includes(team1.name)) &&
+                (g.away.id === team2.id || g.away.name.includes(team2.name)) ||
+                (g.home.id === team2.id || g.home.name.includes(team2.name)) &&
+                (g.away.id === team1.id || g.away.name.includes(team1.name))
+            );
+
+            if (game && game.status === 'post') {
+                const homeScore = parseInt(game.home.score);
+                const awayScore = parseInt(game.away.score);
+                const winnerId = homeScore > awayScore ? game.home.id : game.away.id;
+
+                // Map back to our seeded team ID if needed, 
+                // but usually the game winner ID should match the team ID in config
+
+                // Update result if not already set or different
+                if (results.get(match.id) !== winnerId) {
+                    results.set(match.id, winnerId);
+                    updated = true;
+                    console.log(`Updated Playoff Match ${match.id}: Winner ${winnerId}`);
+                }
+            }
+        }
+
+        // FUTURE: Add QF logic here which requires knowing who advanced.
+        // For now, focusing on R1 as requested.
+
+        if (updated) {
+            await PlayoffConfig.findByIdAndUpdate('playoff_config', { results });
+            await calculatePlayoffScores();
+        }
+    } catch (error) {
+        console.error("Error syncing playoff results:", error);
+    }
+}
+
 // Sync data from ESPN
 // Sync data from ESPN
 app.post('/api/sync', async (req, res) => {
@@ -351,6 +419,9 @@ app.post('/api/sync', async (req, res) => {
             await Game.bulkWrite(bulkOps);
         }
 
+        // --- SYNC PLAYOFF RESULTS ---
+        await syncPlayoffResults(gamesData);
+
         // --- CALCULATE WINS (OPTIMIZED) ---
         // Only process finished games from this sync
         const finishedGames = gamesData.filter(g => g.status === 'post');
@@ -454,7 +525,7 @@ app.post('/api/sync', async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Sync failed" });
+        res.status(500).json({ error: "Sync failed", message: error.message, stack: error.stack });
     }
 });
 
