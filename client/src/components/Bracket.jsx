@@ -137,6 +137,11 @@ export default function Bracket({ currentUser }) {
         return config.results[matchId];
     };
 
+    const getMatchDetails = (matchId) => {
+        if (!config.matchDetails) return null;
+        return config.matchDetails[matchId];
+    };
+
     // Derived Teams for Rounds
     // R1
     const r1g1_home = config.teams.find(t => t.seed === 8);
