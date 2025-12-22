@@ -223,9 +223,12 @@ async function syncPlayoffResults(gamesData) {
         if (!config || config.teams.length === 0) return;
 
         let updated = false;
-        // Ensure results is a Map
+        // Ensure results and matchDetails are Maps
         if (!config.results) config.results = new Map();
+        if (!config.matchDetails) config.matchDetails = new Map();
+
         const results = config.results;
+        const matchDetails = config.matchDetails;
 
         // Helper to find team by seed
         const getTeamBySeed = (seed) => config.teams.find(t => t.seed === seed);
@@ -247,7 +250,6 @@ async function syncPlayoffResults(gamesData) {
             if (!team1 || !team2) continue;
 
             // Find game involving these two teams
-            // We check ID match or Name match to be safe
             const game = gamesData.find(g =>
                 (g.home.id === team1.id || g.home.name.includes(team1.name)) &&
                 (g.away.id === team2.id || g.away.name.includes(team2.name)) ||
@@ -255,19 +257,38 @@ async function syncPlayoffResults(gamesData) {
                 (g.away.id === team1.id || g.away.name.includes(team1.name))
             );
 
-            if (game && game.status === 'post') {
-                const homeScore = parseInt(game.home.score);
-                const awayScore = parseInt(game.away.score);
-                const winnerId = homeScore > awayScore ? game.home.id : game.away.id;
+            if (game) {
+                // Determine which team is home/away in our config context to map scores correctly
+                const isTeam1Home = game.home.id === team1.id || game.home.name.includes(team1.name);
 
-                // Map back to our seeded team ID if needed, 
-                // but usually the game winner ID should match the team ID in config
+                const score1 = isTeam1Home ? game.home.score : game.away.score;
+                const score2 = isTeam1Home ? game.away.score : game.home.score;
 
-                // Update result if not already set or different
-                if (results.get(match.id) !== winnerId) {
-                    results.set(match.id, winnerId);
-                    updated = true;
-                    console.log(`Updated Playoff Match ${match.id}: Winner ${winnerId}`);
+                const details = {
+                    homeScore: score1,
+                    awayScore: score2,
+                    status: game.status,
+                    clock: game.clock,
+                    period: game.period
+                };
+
+                // Update Match Details (Scores)
+                matchDetails.set(match.id, details);
+                updated = true;
+
+                if (game.status === 'post') {
+                    const homeScoreConf = parseInt(score1);
+                    const awayScoreConf = parseInt(score2);
+                    const winnerId = homeScoreConf > awayScoreConf ? team1.id : team2.id;
+
+                    // Update result if not already set or different
+                    if (results.get(match.id) !== winnerId) {
+                        results.set(match.id, winnerId);
+                        updated = true;
+                        console.log(`Updated Playoff Match ${match.id}: Winner ${winnerId}`);
+                    }
+                    details.winnerId = winnerId;
+                    matchDetails.set(match.id, details);
                 }
             }
         }
@@ -276,7 +297,7 @@ async function syncPlayoffResults(gamesData) {
         // For now, focusing on R1 as requested.
 
         if (updated) {
-            await PlayoffConfig.findByIdAndUpdate('playoff_config', { results });
+            await PlayoffConfig.updateOne({ _id: 'playoff_config' }, { results, matchDetails });
             await calculatePlayoffScores();
         }
     } catch (error) {
