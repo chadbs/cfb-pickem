@@ -931,6 +931,75 @@ app.delete('/api/users/:name', async (req, res) => {
     }
 });
 
+// Reset/Update Playoff Config with 2025-26 CFP Teams and Scores
+app.post('/api/playoff/reset', async (req, res) => {
+    try {
+        // 2025-26 CFP 12-Team Bracket - Official Seeding
+        const CFP_2026_TEAMS = [
+            { seed: 1, name: "Oregon", abbreviation: "ORE", id: "2483", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/2483.png" },
+            { seed: 2, name: "Georgia", abbreviation: "UGA", id: "61", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/61.png" },
+            { seed: 3, name: "Boise State", abbreviation: "BSU", id: "68", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/68.png" },
+            { seed: 4, name: "Arizona State", abbreviation: "ASU", id: "9", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/9.png" },
+            { seed: 5, name: "Texas", abbreviation: "TEX", id: "251", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/251.png" },
+            { seed: 6, name: "Penn State", abbreviation: "PSU", id: "213", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/213.png" },
+            { seed: 7, name: "Notre Dame", abbreviation: "ND", id: "87", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/87.png" },
+            { seed: 8, name: "Ohio State", abbreviation: "OSU", id: "194", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/194.png" },
+            { seed: 9, name: "Tennessee", abbreviation: "TENN", id: "2633", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/2633.png" },
+            { seed: 10, name: "Indiana", abbreviation: "IND", id: "84", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/84.png" },
+            { seed: 11, name: "SMU", abbreviation: "SMU", id: "2567", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/2567.png" },
+            { seed: 12, name: "Clemson", abbreviation: "CLEM", id: "228", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/228.png" }
+        ];
+
+        // R1 Results (from ESPN API Dec 20-21, 2024)
+        const R1_RESULTS = [
+            { id: 'R1-G1', homeScore: '42', awayScore: '17', status: 'post', winnerId: '194' },  // OSU wins
+            { id: 'R1-G2', homeScore: '38', awayScore: '24', status: 'post', winnerId: '251' },  // TEX wins
+            { id: 'R1-G3', homeScore: '38', awayScore: '10', status: 'post', winnerId: '213' },  // PSU wins
+            { id: 'R1-G4', homeScore: '27', awayScore: '17', status: 'post', winnerId: '87' }    // ND wins
+        ];
+
+        // Update teams
+        await PlayoffConfig.findByIdAndUpdate(
+            'playoff_config',
+            { teams: CFP_2026_TEAMS, year: 2026 },
+            { upsert: true }
+        );
+
+        // Get config and update results/matchDetails
+        const config = await PlayoffConfig.findById('playoff_config');
+        if (!config.results) config.results = new Map();
+        if (!config.matchDetails) config.matchDetails = new Map();
+
+        for (const game of R1_RESULTS) {
+            const details = {
+                homeScore: game.homeScore,
+                awayScore: game.awayScore,
+                status: game.status,
+                clock: '0:00',
+                period: 4,
+                winnerId: game.winnerId
+            };
+            config.matchDetails.set(game.id, details);
+            config.results.set(game.id, game.winnerId);
+        }
+
+        await PlayoffConfig.updateOne(
+            { _id: 'playoff_config' },
+            { results: config.results, matchDetails: config.matchDetails }
+        );
+
+        res.json({
+            success: true,
+            message: 'Playoff config reset with 2025-26 CFP teams and R1 scores',
+            teams: CFP_2026_TEAMS.map(t => t.name),
+            r1Winners: ['Ohio State', 'Texas', 'Penn State', 'Notre Dame']
+        });
+    } catch (error) {
+        console.error("Error resetting playoff config:", error);
+        res.status(500).json({ error: "Failed to reset playoff config" });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
