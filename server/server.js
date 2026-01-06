@@ -1009,17 +1009,27 @@ app.post('/api/playoff/reset', async (req, res) => {
         // 2025-26 CFP Results
         // R1 (Dec 19-20, 2025): #9 ALA beat #8 OU 34-24, #10 MIA beat #7 TAMU 10-3, #6 MISS beat #11 TULN 41-10, #5 ORE beat #12 JMU 51-34
         // QF (Dec 31, 2025 - Jan 1, 2026): #1 IND beat #9 ALA 38-3, #5 ORE beat #4 TTU 23-0, #6 MISS beat #3 UGA 39-34, #10 MIA beat #2 OSU 24-14
+        // Note: homeScore = team1 score (bye team for QF), awayScore = team2 score (R1 winner for QF)
         const PLAYOFF_RESULTS = [
-            // Round 1
-            { id: 'R1-G1', homeScore: '24', awayScore: '34', status: 'post', winnerId: '333' },   // #8 OU 24, #9 ALA 34 -> Alabama wins
-            { id: 'R1-G2', homeScore: '51', awayScore: '34', status: 'post', winnerId: '2483' },  // #5 ORE 51, #12 JMU 34 -> Oregon wins
-            { id: 'R1-G3', homeScore: '41', awayScore: '10', status: 'post', winnerId: '145' },   // #6 MISS 41, #11 TULN 10 -> Ole Miss wins
-            { id: 'R1-G4', homeScore: '3', awayScore: '10', status: 'post', winnerId: '2390' },   // #7 TAMU 3, #10 MIA 10 -> Miami wins
-            // Quarterfinals
-            { id: 'QF-G1', homeScore: '38', awayScore: '3', status: 'post', winnerId: '84' },     // #1 IND 38, #9 ALA 3 -> Indiana wins (Rose)
-            { id: 'QF-G2', homeScore: '23', awayScore: '0', status: 'post', winnerId: '2483' },   // #5 ORE 23, #4 TTU 0 -> Oregon wins (Orange)
-            { id: 'QF-G3', homeScore: '39', awayScore: '34', status: 'post', winnerId: '145' },   // #6 MISS 39, #3 UGA 34 -> Ole Miss wins (Sugar)
-            { id: 'QF-G4', homeScore: '24', awayScore: '14', status: 'post', winnerId: '2390' }   // #10 MIA 24, #2 OSU 14 -> Miami wins (Cotton)
+            // Round 1: home=higher seed, away=lower seed
+            // R1-G1: #8 OU (home) vs #9 ALA (away) -> ALA wins 34-24
+            { id: 'R1-G1', homeScore: '24', awayScore: '34', status: 'post', winnerId: '333' },
+            // R1-G2: #5 ORE (home) vs #12 JMU (away) -> ORE wins 51-34
+            { id: 'R1-G2', homeScore: '51', awayScore: '34', status: 'post', winnerId: '2483' },
+            // R1-G3: #6 MISS (home) vs #11 TULN (away) -> MISS wins 41-10
+            { id: 'R1-G3', homeScore: '41', awayScore: '10', status: 'post', winnerId: '145' },
+            // R1-G4: #7 TAMU (home) vs #10 MIA (away) -> MIA wins 10-3
+            { id: 'R1-G4', homeScore: '3', awayScore: '10', status: 'post', winnerId: '2390' },
+
+            // Quarterfinals: home=bye team, away=R1 winner
+            // QF-G1: #1 IND (home) vs #9 ALA (away, R1-G1 winner) -> IND wins 38-3
+            { id: 'QF-G1', homeScore: '38', awayScore: '3', status: 'post', winnerId: '84' },
+            // QF-G2: #4 TTU (home) vs #5 ORE (away, R1-G2 winner) -> ORE wins 23-0
+            { id: 'QF-G2', homeScore: '0', awayScore: '23', status: 'post', winnerId: '2483' },
+            // QF-G3: #3 UGA (home) vs #6 MISS (away, R1-G3 winner) -> MISS wins 39-34
+            { id: 'QF-G3', homeScore: '34', awayScore: '39', status: 'post', winnerId: '145' },
+            // QF-G4: #2 OSU (home) vs #10 MIA (away, R1-G4 winner) -> MIA wins 24-14
+            { id: 'QF-G4', homeScore: '14', awayScore: '24', status: 'post', winnerId: '2390' }
         ];
 
         // Update teams
