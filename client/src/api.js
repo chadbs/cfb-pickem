@@ -23,5 +23,8 @@ export const updatePlayoffConfig = (teams) => api.post('/playoff/config', { team
 export const getBracket = (user) => api.get(`/playoff/bracket/${user}`);
 export const saveBracket = (user, picks) => api.post('/playoff/bracket', { user, picks });
 export const getAllBracketPicks = () => api.get('/playoff/all-picks');
+export const syncPlayoff = () => api.post('/playoff/sync');
+export const resetPlayoff = () => api.post('/playoff/reset');
+
 
 export default api;

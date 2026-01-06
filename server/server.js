@@ -109,11 +109,15 @@ const fetchEspnData = async (week) => {
     }
 };
 
-// Helper: Fetch CFP Games (by date range for 2024 playoffs)
+// Helper: Fetch CFP Games (by date range for 2025-26 playoffs)
 const fetchCfpGames = async () => {
     try {
-        // CFP Round 1 dates: Dec 20-21, 2024
-        const dates = ['20241220', '20241221', '20241222'];
+        // 2025-26 CFP dates:
+        // R1: Dec 19-20, 2025
+        // QF: Dec 31, 2025 - Jan 1, 2026
+        // SF: Jan 8-9, 2026
+        // Championship: Jan 19, 2026
+        const dates = ['20251219', '20251220', '20251231', '20260101', '20260108', '20260109', '20260119'];
         let allGames = [];
 
         for (const date of dates) {
@@ -287,6 +291,8 @@ async function syncPlayoffResults(gamesData) {
             return;
         }
 
+        console.log(`Processing ${playoffGames.length} CFP games for sync...`);
+
         let updated = false;
         // Ensure results and matchDetails are Maps
         if (!config.results) config.results = new Map();
@@ -298,21 +304,18 @@ async function syncPlayoffResults(gamesData) {
         // Helper to find team by seed
         const getTeamBySeed = (seed) => config.teams.find(t => t.seed === seed);
 
-        // Define Matches for Round 1 (Seeds) - Matches Bracket.jsx
-        // R1-G1 (8 vs 9), R1-G2 (5 vs 12), R1-G3 (6 vs 11), R1-G4 (7 vs 10)
-        const r1Matches = [
-            { id: 'R1-G1', seeds: [8, 9] },
-            { id: 'R1-G2', seeds: [5, 12] },
-            { id: 'R1-G3', seeds: [6, 11] },
-            { id: 'R1-G4', seeds: [7, 10] }
-        ];
+        // Helper to find team by ID
+        const getTeamById = (id) => config.teams.find(t => t.id === id);
 
-        // Process Round 1
-        for (const match of r1Matches) {
-            const team1 = getTeamBySeed(match.seeds[0]);
-            const team2 = getTeamBySeed(match.seeds[1]);
+        // Helper to get winner of a match (from results or return null)
+        const getMatchWinner = (matchId) => {
+            const winnerId = results.get(matchId);
+            return winnerId ? getTeamById(winnerId) : null;
+        };
 
-            if (!team1 || !team2) continue;
+        // Helper to process a match
+        const processMatch = (matchId, team1, team2) => {
+            if (!team1 || !team2) return;
 
             // Find game involving these two teams
             const game = playoffGames.find(g =>
@@ -338,7 +341,7 @@ async function syncPlayoffResults(gamesData) {
                 };
 
                 // Update Match Details (Scores)
-                matchDetails.set(match.id, details);
+                matchDetails.set(matchId, details);
                 updated = true;
 
                 if (game.status === 'post') {
@@ -347,28 +350,81 @@ async function syncPlayoffResults(gamesData) {
                     const winnerId = homeScoreConf > awayScoreConf ? team1.id : team2.id;
 
                     // Update result if not already set or different
-                    if (results.get(match.id) !== winnerId) {
-                        results.set(match.id, winnerId);
+                    if (results.get(matchId) !== winnerId) {
+                        results.set(matchId, winnerId);
                         updated = true;
-                        console.log(`Updated Playoff Match ${match.id}: Winner ${winnerId}`);
+                        console.log(`Updated Playoff Match ${matchId}: Winner ${winnerId}`);
                     }
                     details.winnerId = winnerId;
-                    matchDetails.set(match.id, details);
+                    matchDetails.set(matchId, details);
                 }
             }
+        };
+
+        // Define Matches for Round 1 - Bracket.jsx structure:
+        // R1-G1 (8 vs 9), R1-G2 (5 vs 12), R1-G3 (6 vs 11), R1-G4 (7 vs 10)
+        const r1Matches = [
+            { id: 'R1-G1', seeds: [8, 9] },
+            { id: 'R1-G2', seeds: [5, 12] },
+            { id: 'R1-G3', seeds: [6, 11] },
+            { id: 'R1-G4', seeds: [7, 10] }
+        ];
+
+        // Process Round 1
+        for (const match of r1Matches) {
+            const team1 = getTeamBySeed(match.seeds[0]);
+            const team2 = getTeamBySeed(match.seeds[1]);
+            processMatch(match.id, team1, team2);
         }
 
-        // FUTURE: Add QF logic here which requires knowing who advanced.
-        // For now, focusing on R1 as requested.
+        // Quarterfinals - Top 4 seeds had byes, play R1 winners
+        // QF-G1: #1 vs winner of R1-G1 (8/9)
+        // QF-G2: #4 vs winner of R1-G2 (5/12) 
+        // QF-G3: #3 vs winner of R1-G3 (6/11)
+        // QF-G4: #2 vs winner of R1-G4 (7/10)
+        const qfMatches = [
+            { id: 'QF-G1', byeSeed: 1, r1Match: 'R1-G1' },
+            { id: 'QF-G2', byeSeed: 4, r1Match: 'R1-G2' },
+            { id: 'QF-G3', byeSeed: 3, r1Match: 'R1-G3' },
+            { id: 'QF-G4', byeSeed: 2, r1Match: 'R1-G4' }
+        ];
+
+        for (const match of qfMatches) {
+            const byeTeam = getTeamBySeed(match.byeSeed);
+            const r1Winner = getMatchWinner(match.r1Match);
+            processMatch(match.id, byeTeam, r1Winner);
+        }
+
+        // Semifinals
+        // SF-G1: winner of QF-G1 vs winner of QF-G2
+        // SF-G2: winner of QF-G3 vs winner of QF-G4
+        const sfMatches = [
+            { id: 'SF-G1', qfMatches: ['QF-G1', 'QF-G2'] },
+            { id: 'SF-G2', qfMatches: ['QF-G3', 'QF-G4'] }
+        ];
+
+        for (const match of sfMatches) {
+            const team1 = getMatchWinner(match.qfMatches[0]);
+            const team2 = getMatchWinner(match.qfMatches[1]);
+            processMatch(match.id, team1, team2);
+        }
+
+        // Final
+        // F-G1: winner of SF-G1 vs winner of SF-G2
+        const sf1Winner = getMatchWinner('SF-G1');
+        const sf2Winner = getMatchWinner('SF-G2');
+        processMatch('F-G1', sf1Winner, sf2Winner);
 
         if (updated) {
             await PlayoffConfig.updateOne({ _id: 'playoff_config' }, { results, matchDetails });
             await calculatePlayoffScores();
+            console.log('Playoff results synced successfully.');
         }
     } catch (error) {
         console.error("Error syncing playoff results:", error);
     }
 }
+
 
 // Sync data from ESPN
 // Sync data from ESPN
@@ -762,20 +818,20 @@ app.post('/api/picks', async (req, res) => {
 // Delete user
 // --- PLAYOFF ROUTES ---
 
-// Official 2025 12-Team CFB Playoff Field
+// Official 2025-26 12-Team CFB Playoff Field
 const DEFAULT_PLAYOFF_TEAMS = [
-    { seed: 1, name: 'Indiana', id: 'seed-1', abbreviation: 'IND' },
-    { seed: 2, name: 'Ohio State', id: 'seed-2', abbreviation: 'OSU' },
-    { seed: 3, name: 'Georgia', id: 'seed-3', abbreviation: 'UGA' },
-    { seed: 4, name: 'Texas Tech', id: 'seed-4', abbreviation: 'TTU' },
-    { seed: 5, name: 'Oregon', id: 'seed-5', abbreviation: 'ORE' },
-    { seed: 6, name: 'Ole Miss', id: 'seed-6', abbreviation: 'MISS' },
-    { seed: 7, name: 'Texas A&M', id: 'seed-7', abbreviation: 'TA&M' },
-    { seed: 8, name: 'Oklahoma', id: 'seed-8', abbreviation: 'OU' },
-    { seed: 9, name: 'Alabama', id: 'seed-9', abbreviation: 'ALA' },
-    { seed: 10, name: 'Miami (FL)', id: 'seed-10', abbreviation: 'MIA' },
-    { seed: 11, name: 'Tulane', id: 'seed-11', abbreviation: 'TULN' },
-    { seed: 12, name: 'James Madison', id: 'seed-12', abbreviation: 'JMU' }
+    { seed: 1, name: 'Indiana', id: '84', abbreviation: 'IND', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/84.png' },
+    { seed: 2, name: 'Ohio State', id: '194', abbreviation: 'OSU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/194.png' },
+    { seed: 3, name: 'Georgia', id: '61', abbreviation: 'UGA', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/61.png' },
+    { seed: 4, name: 'Texas Tech', id: '2641', abbreviation: 'TTU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/2641.png' },
+    { seed: 5, name: 'Oregon', id: '2483', abbreviation: 'ORE', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/2483.png' },
+    { seed: 6, name: 'Ole Miss', id: '145', abbreviation: 'MISS', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/145.png' },
+    { seed: 7, name: 'Texas A&M', id: '245', abbreviation: 'TAMU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/245.png' },
+    { seed: 8, name: 'Oklahoma', id: '201', abbreviation: 'OU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/201.png' },
+    { seed: 9, name: 'Alabama', id: '333', abbreviation: 'ALA', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/333.png' },
+    { seed: 10, name: 'Miami', id: '2390', abbreviation: 'MIA', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/2390.png' },
+    { seed: 11, name: 'Tulane', id: '2655', abbreviation: 'TULN', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/2655.png' },
+    { seed: 12, name: 'James Madison', id: '256', abbreviation: 'JMU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/256.png' }
 ];
 
 // Get Playoff Config (Seeds)
@@ -936,26 +992,34 @@ app.post('/api/playoff/reset', async (req, res) => {
     try {
         // 2025-26 CFP 12-Team Bracket - Official Seeding
         const CFP_2026_TEAMS = [
-            { seed: 1, name: "Oregon", abbreviation: "ORE", id: "2483", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/2483.png" },
-            { seed: 2, name: "Georgia", abbreviation: "UGA", id: "61", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/61.png" },
-            { seed: 3, name: "Boise State", abbreviation: "BSU", id: "68", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/68.png" },
-            { seed: 4, name: "Arizona State", abbreviation: "ASU", id: "9", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/9.png" },
-            { seed: 5, name: "Texas", abbreviation: "TEX", id: "251", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/251.png" },
-            { seed: 6, name: "Penn State", abbreviation: "PSU", id: "213", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/213.png" },
-            { seed: 7, name: "Notre Dame", abbreviation: "ND", id: "87", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/87.png" },
-            { seed: 8, name: "Ohio State", abbreviation: "OSU", id: "194", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/194.png" },
-            { seed: 9, name: "Tennessee", abbreviation: "TENN", id: "2633", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/2633.png" },
-            { seed: 10, name: "Indiana", abbreviation: "IND", id: "84", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/84.png" },
-            { seed: 11, name: "SMU", abbreviation: "SMU", id: "2567", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/2567.png" },
-            { seed: 12, name: "Clemson", abbreviation: "CLEM", id: "228", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/228.png" }
+            { seed: 1, name: 'Indiana', id: '84', abbreviation: 'IND', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/84.png' },
+            { seed: 2, name: 'Ohio State', id: '194', abbreviation: 'OSU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/194.png' },
+            { seed: 3, name: 'Georgia', id: '61', abbreviation: 'UGA', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/61.png' },
+            { seed: 4, name: 'Texas Tech', id: '2641', abbreviation: 'TTU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/2641.png' },
+            { seed: 5, name: 'Oregon', id: '2483', abbreviation: 'ORE', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/2483.png' },
+            { seed: 6, name: 'Ole Miss', id: '145', abbreviation: 'MISS', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/145.png' },
+            { seed: 7, name: 'Texas A&M', id: '245', abbreviation: 'TAMU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/245.png' },
+            { seed: 8, name: 'Oklahoma', id: '201', abbreviation: 'OU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/201.png' },
+            { seed: 9, name: 'Alabama', id: '333', abbreviation: 'ALA', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/333.png' },
+            { seed: 10, name: 'Miami', id: '2390', abbreviation: 'MIA', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/2390.png' },
+            { seed: 11, name: 'Tulane', id: '2655', abbreviation: 'TULN', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/2655.png' },
+            { seed: 12, name: 'James Madison', id: '256', abbreviation: 'JMU', logo: 'https://a.espncdn.com/i/teamlogos/ncaa/500/256.png' }
         ];
 
-        // R1 Results (from ESPN API Dec 20-21, 2024)
-        const R1_RESULTS = [
-            { id: 'R1-G1', homeScore: '42', awayScore: '17', status: 'post', winnerId: '194' },  // OSU wins
-            { id: 'R1-G2', homeScore: '38', awayScore: '24', status: 'post', winnerId: '251' },  // TEX wins
-            { id: 'R1-G3', homeScore: '38', awayScore: '10', status: 'post', winnerId: '213' },  // PSU wins
-            { id: 'R1-G4', homeScore: '27', awayScore: '17', status: 'post', winnerId: '87' }    // ND wins
+        // 2025-26 CFP Results
+        // R1 (Dec 19-20, 2025): #9 ALA beat #8 OU 34-24, #10 MIA beat #7 TAMU 10-3, #6 MISS beat #11 TULN 41-10, #5 ORE beat #12 JMU 51-34
+        // QF (Dec 31, 2025 - Jan 1, 2026): #1 IND beat #9 ALA 38-3, #5 ORE beat #4 TTU 23-0, #6 MISS beat #3 UGA 39-34, #10 MIA beat #2 OSU 24-14
+        const PLAYOFF_RESULTS = [
+            // Round 1
+            { id: 'R1-G1', homeScore: '24', awayScore: '34', status: 'post', winnerId: '333' },   // #8 OU 24, #9 ALA 34 -> Alabama wins
+            { id: 'R1-G2', homeScore: '51', awayScore: '34', status: 'post', winnerId: '2483' },  // #5 ORE 51, #12 JMU 34 -> Oregon wins
+            { id: 'R1-G3', homeScore: '41', awayScore: '10', status: 'post', winnerId: '145' },   // #6 MISS 41, #11 TULN 10 -> Ole Miss wins
+            { id: 'R1-G4', homeScore: '3', awayScore: '10', status: 'post', winnerId: '2390' },   // #7 TAMU 3, #10 MIA 10 -> Miami wins
+            // Quarterfinals
+            { id: 'QF-G1', homeScore: '38', awayScore: '3', status: 'post', winnerId: '84' },     // #1 IND 38, #9 ALA 3 -> Indiana wins (Rose)
+            { id: 'QF-G2', homeScore: '23', awayScore: '0', status: 'post', winnerId: '2483' },   // #5 ORE 23, #4 TTU 0 -> Oregon wins (Orange)
+            { id: 'QF-G3', homeScore: '39', awayScore: '34', status: 'post', winnerId: '145' },   // #6 MISS 39, #3 UGA 34 -> Ole Miss wins (Sugar)
+            { id: 'QF-G4', homeScore: '24', awayScore: '14', status: 'post', winnerId: '2390' }   // #10 MIA 24, #2 OSU 14 -> Miami wins (Cotton)
         ];
 
         // Update teams
@@ -970,7 +1034,7 @@ app.post('/api/playoff/reset', async (req, res) => {
         if (!config.results) config.results = new Map();
         if (!config.matchDetails) config.matchDetails = new Map();
 
-        for (const game of R1_RESULTS) {
+        for (const game of PLAYOFF_RESULTS) {
             const details = {
                 homeScore: game.homeScore,
                 awayScore: game.awayScore,
@@ -990,15 +1054,35 @@ app.post('/api/playoff/reset', async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Playoff config reset with 2025-26 CFP teams and R1 scores',
+            message: 'Playoff config reset with 2025-26 CFP teams and R1+QF scores',
             teams: CFP_2026_TEAMS.map(t => t.name),
-            r1Winners: ['Ohio State', 'Texas', 'Penn State', 'Notre Dame']
+            r1Winners: ['Alabama', 'Oregon', 'Ole Miss', 'Miami'],
+            qfWinners: ['Indiana', 'Oregon', 'Ole Miss', 'Miami']
         });
     } catch (error) {
         console.error("Error resetting playoff config:", error);
         res.status(500).json({ error: "Failed to reset playoff config" });
     }
 });
+
+// Sync Playoff Data from ESPN (fetch latest scores)
+app.post('/api/playoff/sync', async (req, res) => {
+    try {
+        console.log('Syncing playoff data from ESPN...');
+        await syncPlayoffResults([]);
+        const config = await PlayoffConfig.findById('playoff_config');
+        res.json({
+            success: true,
+            message: 'Playoff data synced from ESPN',
+            results: config.results ? Object.fromEntries(config.results) : {},
+            matchDetails: config.matchDetails ? Object.fromEntries(config.matchDetails) : {}
+        });
+    } catch (error) {
+        console.error("Error syncing playoff data:", error);
+        res.status(500).json({ error: "Failed to sync playoff data" });
+    }
+});
+
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
