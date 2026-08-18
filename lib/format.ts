@@ -22,6 +22,37 @@ export function formatKickoff(ts: number, timeZone?: string): string {
   }).format(new Date(ts));
 }
 
+/** Just the clock time — the day is carried by the group heading above. */
+export function formatTime(ts: number, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(new Date(ts));
+}
+
+/**
+ * Games are grouped by their Eastern date — the day college football labels a
+ * game by, and a fixed zone so the grouping is identical on server and client.
+ */
+export function dayKey(ts: number): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(ts));
+}
+
+export function dayLabel(ts: number): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(ts));
+}
+
 export function formatKickoffLong(ts: number, timeZone?: string): string {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",

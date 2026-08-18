@@ -8,6 +8,8 @@ import { StandingsPanel } from "@/components/StandingsPanel";
 import { WeekNav } from "@/components/WeekNav";
 import { WeekProgress } from "@/components/WeekProgress";
 import { LEAGUE_NAME } from "@/lib/config";
+import { dayKey, dayLabel } from "@/lib/format";
+import type { GameView } from "@/lib/view-types";
 import { getBoard, getPlayerBySlug, getPlayers, getSeasonStandings } from "@/lib/queries";
 import { getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
 
@@ -104,9 +106,24 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                     browse everyone else&apos;s in the meantime.
                   </div>
                 )}
-                <div className="grid gap-2.5 xl:grid-cols-2">
-                  {board.map((game) => (
-                    <GameCard key={game.id} game={game} players={players} meId={meId} />
+                <div className="space-y-5">
+                  {groupByDay(board).map((group) => (
+                    <section key={group.key}>
+                      <div className="mb-2 flex items-baseline gap-2.5">
+                        <h2 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-dim)]">
+                          {group.label}
+                        </h2>
+                        <span className="nums text-[11px] text-[var(--ink-faint)]">
+                          {group.games.length}
+                        </span>
+                        <span className="h-px flex-1 bg-[var(--line)]" />
+                      </div>
+                      <div className="grid gap-3 xl:grid-cols-2">
+                        {group.games.map((game) => (
+                          <GameCard key={game.id} game={game} players={players} meId={meId} />
+                        ))}
+                      </div>
+                    </section>
                   ))}
                 </div>
               </>
@@ -126,6 +143,18 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       </main>
     </>
   );
+}
+
+/** Ten games spread across Thursday to Sunday read as one pile without this. */
+function groupByDay(games: GameView[]) {
+  const groups: Array<{ key: string; label: string; games: GameView[] }> = [];
+  for (const game of games) {
+    const key = dayKey(game.kickoff);
+    const last = groups.at(-1);
+    if (last?.key === key) last.games.push(game);
+    else groups.push({ key, label: dayLabel(game.kickoff), games: [game] });
+  }
+  return groups;
 }
 
 function EmptyWeek({ week }: { week: number }) {

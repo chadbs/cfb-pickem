@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { setPick } from "@/app/actions";
 import { Avatar } from "./Avatar";
 import { readableTeamColor } from "@/lib/color";
-import { formatKickoffLong, formatSpread, spreadForSide } from "@/lib/format";
+import { formatSpread, formatTime, spreadForSide } from "@/lib/format";
 import { useIsClient } from "@/lib/use-is-client";
 import type { PickResult, Side } from "@/lib/scoring";
 import type { GamePick, GameView, PlayerView, TeamView } from "@/lib/view-types";
@@ -59,19 +59,30 @@ export function GameCard({
     >
       <GameHeader game={game} />
 
-      <div className="grid grid-cols-2 gap-2 p-2 pt-0">
-        {(["away", "home"] as const).map((side) => (
-          <SideButton
-            key={side}
-            game={game}
-            side={side}
-            picks={picks}
-            playerById={playerById}
-            meId={meId}
-            editable={editable}
-            onPick={pick}
-          />
-        ))}
+      {/* away @ home, with the separator spelled out so a card reads as one
+          matchup rather than two loose tiles sitting next to each other. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-1.5 px-2.5 pb-2.5">
+        <SideButton
+          game={game}
+          side="away"
+          picks={picks}
+          playerById={playerById}
+          meId={meId}
+          editable={editable}
+          onPick={pick}
+        />
+        <span className="self-center text-[10.5px] font-medium lowercase text-[var(--ink-faint)]">
+          {game.neutralSite ? "vs" : "@"}
+        </span>
+        <SideButton
+          game={game}
+          side="home"
+          picks={picks}
+          playerById={playerById}
+          meId={meId}
+          editable={editable}
+          onPick={pick}
+        />
       </div>
 
       {error && <p className="px-3 pb-2.5 text-[11.5px] text-[var(--loss)]">{error}</p>}
@@ -84,10 +95,11 @@ export function GameCard({
 function GameHeader({ game }: { game: GameView }) {
   // Server renders Eastern — the sport's default and stable for every viewer —
   // then the browser swaps in the local zone once hydrated.
+  // The day is carried by the group heading, so the card only needs a time.
   const isClient = useIsClient();
   const when = isClient
-    ? formatKickoffLong(game.kickoff)
-    : `${formatKickoffLong(game.kickoff, "America/New_York")} ET`;
+    ? formatTime(game.kickoff)
+    : `${formatTime(game.kickoff, "America/New_York")} ET`;
 
   return (
     <div className="flex items-center gap-2 px-3 pb-2 pt-2.5 text-[11px]">
@@ -189,7 +201,7 @@ function SideButton({
             </span>
           </div>
           <div className="nums truncate text-[10.5px] leading-tight text-[var(--ink-faint)]">
-            {team.record ?? " "}
+            {team.record && team.record !== "0-0" ? team.record : " "}
           </div>
         </div>
 
@@ -204,7 +216,9 @@ function SideButton({
         )}
       </div>
 
-      <div className="flex items-center gap-1.5">
+      {/* Line on the left, whoever took this side on the right. Sharing one row
+          keeps a pre-kickoff card from carrying two mostly-empty rows. */}
+      <div className="flex min-h-[22px] flex-wrap items-center gap-x-1.5 gap-y-1">
         <span
           className="nums rounded-md px-1.5 py-0.5 text-[12.5px] font-semibold"
           style={{
@@ -224,30 +238,31 @@ function SideButton({
             covering
           </span>
         )}
-      </div>
 
-      {/* Who's on this side. The shared layoutId glides an avatar across the
-          card when someone flips sides instead of popping it out and back in. */}
-      <div className="flex min-h-[22px] flex-wrap items-center gap-1">
-        {sidePicks.map((p) => {
-          const player = playerById.get(p.playerId);
-          if (!player) return null;
-          return (
-            <motion.span
-              key={p.playerId}
-              layoutId={`pick-${game.id}-${p.playerId}`}
-              transition={{ type: "spring", stiffness: 520, damping: 34 }}
-            >
-              <Avatar
-                player={player}
-                size={22}
-                result={result}
-                isMe={p.playerId === meId}
-                title={`${player.name} · ${team.abbr}`}
-              />
-            </motion.span>
-          );
-        })}
+        {/* The shared layoutId glides an avatar across the card when someone
+            flips sides instead of popping it out and back in. */}
+        <span className="ml-auto flex items-center gap-1">
+          {sidePicks.map((p) => {
+            const player = playerById.get(p.playerId);
+            if (!player) return null;
+            return (
+              <motion.span
+                key={p.playerId}
+                layoutId={`pick-${game.id}-${p.playerId}`}
+                transition={{ type: "spring", stiffness: 520, damping: 34 }}
+                className="flex"
+              >
+                <Avatar
+                  player={player}
+                  size={21}
+                  result={result}
+                  isMe={p.playerId === meId}
+                  title={`${player.name} · ${team.abbr}`}
+                />
+              </motion.span>
+            );
+          })}
+        </span>
       </div>
     </button>
   );
