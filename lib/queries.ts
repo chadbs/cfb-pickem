@@ -2,9 +2,11 @@ import { and, asc, eq } from "drizzle-orm";
 import { db, ready, schema } from "./db";
 import {
   buildLeaderboard,
+  coverMargin,
   coveringSide,
   effectiveSpread,
   gradePick,
+  spreadForPick,
   type Side,
 } from "./scoring";
 import type { GamePick, GameView, PlayerView, StandingView } from "./view-types";
@@ -89,12 +91,17 @@ export async function getBoard(season: number, week: number): Promise<GameView[]
   for (const p of allPicks) {
     const game = rows.find((g) => g.id === p.gameId)!;
     const side = p.side as Side;
+    // Each pick is settled at the number its owner took, not the closing line.
+    const lockedAt = spreadForPick(game, p.spreadAtPick);
     const list = byGame.get(p.gameId) ?? [];
     list.push({
       playerId: p.playerId,
       side,
-      result: gradePick(game, side),
-      liveCovering: game.status === "in" && coveringSide(game) === side,
+      result: gradePick(game, side, lockedAt),
+      liveCovering:
+        game.status === "in" && (coverMargin(game, side, lockedAt) ?? 0) > 0,
+      lockedAt,
+      lineMoved: lockedAt !== null && lockedAt !== effectiveSpread(game),
     });
     byGame.set(p.gameId, list);
   }
@@ -122,6 +129,7 @@ export async function getSeasonStandings(season: number): Promise<SeasonStanding
     .select({
       playerId: picks.playerId,
       side: picks.side,
+      spreadAtPick: picks.spreadAtPick,
       week: games.week,
       kickoff: games.kickoff,
       completed: games.completed,
@@ -138,7 +146,8 @@ export async function getSeasonStandings(season: number): Promise<SeasonStanding
     playerId: r.playerId,
     week: r.week,
     kickoff: r.kickoff,
-    result: gradePick(r, r.side as Side),
+    // Settled at the number each player took — same rule as the board.
+    result: gradePick(r, r.side as Side, spreadForPick(r, r.spreadAtPick)),
   }));
 
   const standings: StandingView[] = buildLeaderboard(roster, graded).map((s) => ({

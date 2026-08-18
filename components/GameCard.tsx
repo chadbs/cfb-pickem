@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useOptimistic, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { motion } from "motion/react";
 import { setPick } from "@/app/actions";
 import { Avatar } from "./Avatar";
@@ -22,6 +22,7 @@ export function GameCard({
 }) {
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState(0);
 
   const [picks, applyOptimistic] = useOptimistic(
     game.picks,
@@ -30,12 +31,29 @@ export function GameCard({
       const others = state.filter((p) => p.playerId !== next.playerId);
       // Tapping the side you're already on clears the pick.
       if (mine?.side === next.side) return others;
-      return [...others, { playerId: next.playerId, side: next.side, result: null, liveCovering: false }];
+      return [
+        ...others,
+        {
+          playerId: next.playerId,
+          side: next.side,
+          result: null,
+          liveCovering: false,
+          // You take the number that's on screen right now.
+          lockedAt: game.gradingSpread,
+          lineMoved: false,
+        },
+      ];
     },
   );
 
   // Only the person selected in the header can change anything here.
   const editable = !game.locked && meId !== null;
+
+  useEffect(() => {
+    if (!savedAt) return;
+    const t = setTimeout(() => setSavedAt(0), 1800);
+    return () => clearTimeout(t);
+  }, [savedAt]);
 
   function pick(side: Side) {
     if (!editable) return;
@@ -43,7 +61,8 @@ export function GameCard({
     startTransition(async () => {
       applyOptimistic({ playerId: meId!, side });
       const res = await setPick(meId!, game.id, side);
-      if (!res.ok) setError(res.error ?? "Something went wrong");
+      if (res.ok) setSavedAt(Date.now());
+      else setError(res.error ?? "Something went wrong");
     });
   }
 
@@ -57,7 +76,7 @@ export function GameCard({
       transition={{ duration: 0.26, ease: [0.2, 0.8, 0.2, 1] }}
       className="card flex flex-col overflow-hidden"
     >
-      <GameHeader game={game} />
+      <GameHeader game={game} saved={savedAt !== 0} />
 
       {/* away @ home, with the separator spelled out so a card reads as one
           matchup rather than two loose tiles sitting next to each other. */}
@@ -92,9 +111,7 @@ export function GameCard({
 
 /* ------------------------------------------------------------------ header */
 
-function GameHeader({ game }: { game: GameView }) {
-  // Server renders Eastern — the sport's default and stable for every viewer —
-  // then the browser swaps in the local zone once hydrated.
+function GameHeader({ game, saved }: { game: GameView; saved: boolean }) {
   // The day is carried by the group heading, so the card only needs a time.
   const isClient = useIsClient();
   const when = isClient
@@ -120,8 +137,31 @@ function GameHeader({ game }: { game: GameView }) {
       )}
 
       <span className="ml-auto flex min-w-0 items-center gap-2 text-[var(--ink-faint)]">
-        {game.broadcast && <span className="truncate">{game.broadcast}</span>}
-        {game.overUnder && <span className="nums hidden sm:inline">O/U {game.overUnder}</span>}
+        {saved ? (
+          <motion.span
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-1 font-medium text-[var(--win)]"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-2.5 w-2.5"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            Saved
+          </motion.span>
+        ) : (
+          <>
+            {game.broadcast && <span className="truncate">{game.broadcast}</span>}
+            {game.overUnder && <span className="nums hidden sm:inline">O/U {game.overUnder}</span>}
+          </>
+        )}
       </span>
     </div>
   );
@@ -153,8 +193,12 @@ function SideButton({
   const sidePicks = picks.filter((p) => p.side === side).sort((a, b) => a.playerId - b.playerId);
   const isMine = meId !== null && sidePicks.some((p) => p.playerId === meId);
 
-  // Once final, the side that covered is a win for everyone who took it.
-  const result: PickResult | null = game.completed
+  /**
+   * The side's own styling reflects the closing line — that's a fact about the
+   * game. Individual results can differ from it, because each pick is settled
+   * at the number its owner took, so those live on the avatars instead.
+   */
+  const sideResult: PickResult | null = game.completed
     ? game.covering === "push"
       ? "push"
       : game.covering === side
@@ -174,7 +218,7 @@ function SideButton({
       className="side flex flex-col gap-2 p-2.5 text-left"
       data-picked={isMine}
       data-editable={editable}
-      data-result={result ?? undefined}
+      data-result={sideResult ?? undefined}
       style={{ ["--team" as string]: teamColor }}
     >
       <div className="flex items-start gap-2">
@@ -201,14 +245,15 @@ function SideButton({
             </span>
           </div>
           <div className="nums truncate text-[10.5px] leading-tight text-[var(--ink-faint)]">
-            {team.record && team.record !== "0-0" ? team.record : " "}
+            {/* Preseason every record is 0-0 — pure noise, so hide it. */}
+            {team.record && team.record !== "0-0" ? team.record : " "}
           </div>
         </div>
 
         {team.score !== null && (
           <span
             className={`nums text-[21px] font-semibold leading-none ${
-              liveCovering || result === "win" ? "text-[var(--ink)]" : "text-[var(--ink-dim)]"
+              liveCovering || sideResult === "win" ? "text-[var(--ink)]" : "text-[var(--ink-dim)]"
             }`}
           >
             {team.score}
@@ -245,20 +290,29 @@ function SideButton({
           {sidePicks.map((p) => {
             const player = playerById.get(p.playerId);
             if (!player) return null;
+            const theirs = spreadForSide(p.lockedAt, side);
+            const theirLine = theirs === null ? "" : ` ${formatSpread(theirs)}`;
             return (
               <motion.span
                 key={p.playerId}
                 layoutId={`pick-${game.id}-${p.playerId}`}
                 transition={{ type: "spring", stiffness: 520, damping: 34 }}
-                className="flex"
+                className="flex items-center gap-0.5"
               >
                 <Avatar
                   player={player}
                   size={21}
-                  result={result}
+                  result={p.result}
                   isMe={p.playerId === meId}
-                  title={`${player.name} · ${team.abbr}`}
+                  title={`${player.name} · ${team.abbr}${theirLine}`}
                 />
+                {/* Only shown when they're holding a different number to the
+                    one on the board, so the discrepancy is never hidden. */}
+                {p.lineMoved && theirs !== null && (
+                  <span className="nums text-[9.5px] font-bold" style={{ color: player.accent }}>
+                    {formatSpread(theirs)}
+                  </span>
+                )}
               </motion.span>
             );
           })}

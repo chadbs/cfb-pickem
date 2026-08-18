@@ -15,12 +15,29 @@ export function effectiveSpread(game: Pick<Game, "lockedSpread" | "spread">): nu
  * negative doesn't, zero is a push. Works mid-game too, which is what drives
  * the live "currently covering" state in the UI.
  */
+/**
+ * The line a specific pick is graded against.
+ *
+ * You get the number that was on screen when you picked it. Lines move — often
+ * sharply on late injury news — and grading everyone at the closing number
+ * would settle a bet nobody agreed to. Falls back to the game's line only when
+ * a pick was made before the books had posted one.
+ */
+export function spreadForPick(
+  game: Pick<Game, "lockedSpread" | "spread">,
+  spreadAtPick: number | null | undefined,
+): number | null {
+  return spreadAtPick ?? effectiveSpread(game);
+}
+
 export function coverMargin(
   game: Pick<Game, "homeScore" | "awayScore" | "lockedSpread" | "spread">,
   side: Side,
+  spreadOverride?: number | null,
 ): number | null {
   if (game.homeScore === null || game.awayScore === null) return null;
-  const spread = effectiveSpread(game);
+  // `??` and not `||` — a pick'em is 0 and must not fall through.
+  const spread = spreadOverride ?? effectiveSpread(game);
   if (spread === null) return null;
   const adj = game.homeScore - game.awayScore + spread;
   return side === "home" ? adj : -adj;
@@ -29,9 +46,10 @@ export function coverMargin(
 export function gradePick(
   game: Pick<Game, "completed" | "homeScore" | "awayScore" | "lockedSpread" | "spread">,
   side: Side,
+  spreadOverride?: number | null,
 ): PickResult | null {
   if (!game.completed) return null;
-  const margin = coverMargin(game, side);
+  const margin = coverMargin(game, side, spreadOverride);
   if (margin === null) return null;
   if (margin > 0) return "win";
   if (margin < 0) return "loss";

@@ -22,11 +22,17 @@ hours, whichever comes first. **A game that anyone has picked is never removed.*
 **Lines and scores come from ESPN's public scoreboard feed.** No API key, no
 account, no paid tier — it carries DraftKings lines right alongside the scores.
 
-**The closing line is frozen at kickoff.** This one matters: ESPN deletes the
-odds from a game the moment it goes final. If we didn't snapshot the number at
-kickoff, the week would be ungradeable a few hours later. Every pick is graded
-against the line as it stood when the ball was kicked, so nobody gets a better
-number by picking late.
+**You get the number you took.** Each pick is graded against the spread that was
+on screen when it was made, not the closing line. Lines move, sometimes sharply
+on late injury news, and settling everyone at the closing number would decide a
+bet nobody agreed to. Two people can take the same team at different numbers and
+get opposite results; when that happens the board prints each person's line next
+to their avatar so the difference is never hidden.
+
+**The closing line is still frozen at kickoff.** ESPN deletes the odds from a
+game the moment it goes final, so without that snapshot the number would simply
+vanish. It's the game's official result against the spread, and the fallback for
+a pick made before the books had posted a line at all.
 
 **Scoring.** A win is 1 point, a push is ½. The season table also tracks
 outright weekly wins and current streak.

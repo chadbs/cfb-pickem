@@ -14,8 +14,14 @@ const url = process.env.DATABASE_URL ?? "file:./data/pickem.db";
 const authToken = process.env.DATABASE_AUTH_TOKEN;
 
 if (url.startsWith("file:")) {
-  // libsql won't create the parent directory for us.
-  mkdirSync(dirname(resolve(url.slice("file:".length))), { recursive: true });
+  // libsql won't create the parent directory for us. On a read-only serverless
+  // filesystem this throws — swallowed here so the clearer check in ready()
+  // gets to explain what's actually wrong.
+  try {
+    mkdirSync(dirname(resolve(url.slice("file:".length))), { recursive: true });
+  } catch {
+    /* handled in ready() */
+  }
 }
 
 const globalForDb = globalThis as unknown as { __pickemClient?: Client; __pickemReady?: Promise<void> };
@@ -106,6 +112,20 @@ const DDL = [
 ];
 
 async function bootstrap() {
+  /**
+   * Refuse to serve a production deploy off the local-file fallback. Serverless
+   * filesystems are ephemeral, so it would appear to work and then quietly hand
+   * back an empty database — losing a season of picks — on the next deploy or
+   * cold start. Checked here rather than at import time so `next build`, which
+   * also runs with NODE_ENV=production, isn't affected.
+   */
+  if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL is not set. Production needs a Turso/libSQL database — a " +
+        "local SQLite file will not survive a deploy. See README.md > Deploying.",
+    );
+  }
+
   for (const stmt of DDL) await client.execute(stmt);
 
   // Seed the roster. ON CONFLICT DO NOTHING means renaming someone in config.ts

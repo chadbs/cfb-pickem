@@ -206,6 +206,48 @@ check("points = wins + half a push", darren.points === darren.wins + darren.push
 check("every pick was graded (nothing left pending)", standings.every((s) => s.pending === 0));
 check("exactly one outright week winner", standings.filter((s) => s.weekWins === 1).length <= 1);
 
+// ------------------------------------------------- 6. line movement, end to end
+// The whole point of storing spread_at_pick: two people can take the same team
+// at different numbers, and each has to be settled at their own.
+console.log("\n=== Line movement ===");
+{
+  const target = board[0];
+  const margin = target.home.score! - target.away.score!;
+  await db.delete(picks).where(eq(picks.gameId, target.id));
+
+  // Both on the home side; one took a number that covers, one that doesn't.
+  await db.insert(picks).values({
+    playerId: 1, gameId: target.id, side: "home",
+    spreadAtPick: -margin + 3, createdAt: now, updatedAt: now,
+  });
+  await db.insert(picks).values({
+    playerId: 2, gameId: target.id, side: "home",
+    spreadAtPick: -margin - 3, createdAt: now, updatedAt: now,
+  });
+
+  const [again] = await getBoard(SEASON, WEEK).then((b) => b.filter((x) => x.id === target.id));
+  const early = again.picks.find((p) => p.playerId === 1)!;
+  const late = again.picks.find((p) => p.playerId === 2)!;
+
+  console.log(
+    `  ${again.away.abbr} @ ${again.home.abbr} ${again.away.score}-${again.home.score} ` +
+      `(closing ${again.lockedSpread}) → P1 took ${early.lockedAt} = ${early.result}, ` +
+      `P2 took ${late.lockedAt} = ${late.result}`,
+  );
+  check("same side, better number → win", early.result === "win");
+  check("same side, worse number → loss", late.result === "loss");
+  check("each pick reports the number it was taken at", early.lockedAt !== late.lockedAt);
+  // early's number happens to equal the closing line here, so it must NOT be
+  // flagged; late's differs and must be. Checks the flag in both directions.
+  check("a pick sitting on the closing number is not flagged", !early.lineMoved);
+  check("a pick at a different number is flagged for the UI", late.lineMoved);
+
+  const { standings: s2 } = await getSeasonStandings(SEASON);
+  const p1 = s2.find((s) => s.player.id === 1)!;
+  const p2 = s2.find((s) => s.player.id === 2)!;
+  check("the leaderboard settles at each player's own number too", p1.wins !== p2.wins || p1.losses !== p2.losses);
+}
+
 await cleanup();
 console.log(`\n${failures === 0 ? "SIMULATION PASSED" : failures + " CHECK(S) FAILED"}\n`);
 process.exit(failures === 0 ? 0 : 1);

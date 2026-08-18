@@ -4,7 +4,7 @@
  */
 import { fetchCurrentWeek, fetchWeek, deriveHomeSpread } from "../lib/espn";
 import { selectWeek, isFavorite } from "../lib/selection";
-import { gradePick, coverMargin, buildLeaderboard } from "../lib/scoring";
+import { gradePick, coverMargin, buildLeaderboard, spreadForPick } from "../lib/scoring";
 import type { Game, Player } from "../lib/db/schema";
 
 let failures = 0;
@@ -57,6 +57,27 @@ check("unfinished game is ungraded", gradePick({ ...g(0, 0, -3), completed: fals
 check("cover margin is signed correctly", coverMargin(g(30, 20, -7.5), "home") === 2.5);
 check("live spread used when no locked line yet",
   gradePick({ completed: true, homeScore: 30, awayScore: 20, lockedSpread: null, spread: -7.5 } as Game, "home") === "win");
+
+// --------------------------------------------- 2b. per-pick line locking
+// Everyone is settled at the number they personally took, so two people on the
+// same side of the same game can get opposite results when the line moved.
+console.log("\n=== 2b. Per-pick line locking ===");
+const moved = g(28, 23, -10); // home won by 5; the line closed at -10
+check("closing line alone would be a loss", gradePick(moved, "home") === "loss");
+check("someone who took -3 earlier wins", gradePick(moved, "home", -3) === "win");
+check("someone who took -7 earlier loses", gradePick(moved, "home", -7) === "loss");
+check("someone who took the exact margin pushes", gradePick(moved, "home", -5) === "push");
+check("an override of 0 counts as a pick'em, not as missing",
+  gradePick(g(24, 24, -7), "home", 0) === "push");
+check("no override still falls back to the game's line", gradePick(moved, "home") === "loss");
+check("the other side mirrors at that same number", gradePick(moved, "away", -3) === "loss");
+
+check("spreadForPick prefers the number the player took",
+  spreadForPick({ lockedSpread: -10, spread: -9 } as Game, -3) === -3);
+check("spreadForPick keeps a legitimate 0",
+  spreadForPick({ lockedSpread: -10, spread: null } as Game, 0) === 0);
+check("spreadForPick falls back when the pick has no number",
+  spreadForPick({ lockedSpread: -10, spread: null } as Game, null) === -10);
 
 // ------------------------------------------------------------ 3. leaderboard
 console.log("\n=== 3. Leaderboard ===");
