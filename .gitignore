@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# local sqlite database — never commit picks/scores, they live in Turso in prod
+/data
 
 # vercel
 .vercel

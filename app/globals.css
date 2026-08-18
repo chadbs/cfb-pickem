@@ -1,26 +1,203 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ tokens */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #06070b;
+  --bg-2: #0a0c14;
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-2: rgba(255, 255, 255, 0.06);
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --ink: #eceef4;
+  --ink-dim: #9aa1b4;
+  --ink-faint: #646b80;
+
+  --win: #34d399;
+  --loss: #fb7185;
+  --push: #fbbf24;
+  --live: #f43f5e;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-ink-faint: var(--ink-faint);
+  --color-win: var(--win);
+  --color-loss: var(--loss);
+  --color-push: var(--push);
+  --color-live: var(--live);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ------------------------------------------------------------------- base */
+html {
+  background: var(--bg);
+  /* Keeps the iOS overscroll gutter dark instead of flashing white. */
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(90rem 45rem at 12% -12%, rgba(56, 189, 248, 0.11), transparent 60%),
+    radial-gradient(70rem 40rem at 92% 0%, rgba(167, 139, 250, 0.1), transparent 55%),
+    radial-gradient(60rem 40rem at 50% 105%, rgba(52, 211, 153, 0.06), transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 55%, var(--bg) 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Never let a horizontal overflow turn into a rubber-banding page on mobile. */
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.3);
+}
+
+/* Tabular figures everywhere numbers change in place, so scores and spreads
+   don't jitter as they tick over. */
+.nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* --------------------------------------------------------------- surfaces */
+.card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--line);
+  border-radius: 1.15rem;
+  backdrop-filter: blur(12px);
+}
+
+.glass {
+  background: rgba(10, 12, 20, 0.72);
+  backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--line);
+}
+
+/* ------------------------------------------------------------------ picks */
+/* Each side button carries the team's own colour via --team, set inline. */
+.side {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.025);
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.side::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  background: radial-gradient(120% 100% at 50% 0%, var(--team, #38bdf8) 0%, transparent 70%);
+  transition: opacity 220ms ease;
+}
+
+.side[data-picked="true"] {
+  border-color: color-mix(in srgb, var(--team, #38bdf8) 55%, transparent);
+  background: color-mix(in srgb, var(--team, #38bdf8) 12%, transparent);
+}
+
+.side[data-picked="true"]::before {
+  opacity: 0.22;
+}
+
+@media (hover: hover) {
+  .side:not([data-locked="true"]):hover {
+    border-color: var(--line-strong);
+    background: rgba(255, 255, 255, 0.055);
+  }
+}
+
+.side:not([data-locked="true"]):active {
+  transform: scale(0.975);
+}
+
+.side[data-locked="true"] {
+  cursor: default;
+}
+
+/* Result rings once a game is final. */
+.side[data-result="win"] {
+  border-color: color-mix(in srgb, var(--win) 60%, transparent);
+  background: color-mix(in srgb, var(--win) 11%, transparent);
+}
+/* The side that didn't cover recedes, whoever picked it. Leaving the team
+   colour on would collide with --loss for the schools whose colour is red. The
+   avatars keep their own result ring, so you can still see who was wrong. */
+.side[data-result="loss"] {
+  opacity: 0.5;
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.side[data-result="loss"]::before {
+  opacity: 0;
+}
+.side[data-result="push"] {
+  border-color: color-mix(in srgb, var(--push) 55%, transparent);
+  background: color-mix(in srgb, var(--push) 10%, transparent);
+}
+
+/* ------------------------------------------------------------------ misc */
+.live-dot {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.07) 45%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 2.2s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
