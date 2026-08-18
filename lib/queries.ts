@@ -146,7 +146,11 @@ export async function getSeasonStandings(season: number): Promise<SeasonStanding
     player: toPlayerView(s.player),
   }));
 
-  const weeks = [...new Set(graded.map((g) => g.week))].sort((a, b) => a - b);
+  // Only weeks with something decided. A week where everyone's picks are still
+  // pending would otherwise render as a row of meaningless 0-0s.
+  const weeks = [...new Set(graded.filter((g) => g.result !== null).map((g) => g.week))].sort(
+    (a, b) => a - b,
+  );
   const weekly: WeeklyLine[] = weeks.map((week) => {
     const byPlayer: WeeklyLine["byPlayer"] = {};
     for (const g of graded) {

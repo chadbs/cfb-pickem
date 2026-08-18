@@ -13,6 +13,7 @@ export function RefreshButton({ season, week }: { season: number; week: number }
   return (
     <button
       type="button"
+      title="Refresh scores and lines"
       aria-label="Refresh scores and lines"
       disabled={pending}
       onClick={() =>
@@ -23,15 +24,16 @@ export function RefreshButton({ season, week }: { season: number; week: number }
           router.refresh();
         })
       }
-      className="grid h-[26px] w-[26px] place-items-center rounded-lg bg-white/[0.07] text-[var(--ink-dim)] transition-colors hover:text-[var(--ink)] disabled:opacity-60"
+      className="ctl grid h-8 w-8 place-items-center disabled:opacity-60"
     >
       <svg
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2.2"
+        strokeWidth="2.1"
         strokeLinecap="round"
-        className={`h-[13px] w-[13px] ${pending ? "animate-spin" : ""}`}
+        strokeLinejoin="round"
+        className={`h-[14px] w-[14px] ${pending ? "animate-spin" : ""}`}
         style={{ color: failed ? "var(--loss)" : undefined }}
       >
         <path d="M21 12a9 9 0 1 1-2.64-6.36" />

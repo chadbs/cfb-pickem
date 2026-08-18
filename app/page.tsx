@@ -2,12 +2,12 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { GameCard } from "@/components/GameCard";
 import { LiveRefresh } from "@/components/LiveRefresh";
-import { PlayerSwitcher } from "@/components/PlayerSwitcher";
+import { PlayerMenu } from "@/components/PlayerMenu";
 import { RefreshButton } from "@/components/RefreshButton";
-import { StandingsStrip } from "@/components/StandingsStrip";
+import { StandingsPanel } from "@/components/StandingsPanel";
 import { WeekNav } from "@/components/WeekNav";
-import { Avatar } from "@/components/Avatar";
-import { LEAGUE_NAME, GAMES_PER_WEEK } from "@/lib/config";
+import { WeekProgress } from "@/components/WeekProgress";
+import { LEAGUE_NAME } from "@/lib/config";
 import { getBoard, getPlayerBySlug, getPlayers, getSeasonStandings } from "@/lib/queries";
 import { getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
 
@@ -26,7 +26,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   // Refreshes scores/lines if stale. Cheap and throttled; safe on every load.
   await maybeSyncWeek(season, week);
 
-  const [board, players, season_] = await Promise.all([
+  const [board, players, standings] = await Promise.all([
     getBoard(season, week),
     getPlayers(),
     getSeasonStandings(season),
@@ -36,103 +36,93 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const me = slug ? await getPlayerBySlug(slug) : null;
   const meId = me?.id ?? null;
 
-  const myPicks = meId === null ? 0 : board.filter((g) => g.picks.some((p) => p.playerId === meId)).length;
+  const made = meId === null ? 0 : board.filter((g) => g.picks.some((p) => p.playerId === meId)).length;
   const openGames = board.filter((g) => !g.locked).length;
   const anyLive = board.some((g) => g.status === "in" || (!g.completed && g.locked));
-
-  const weekNumbers = current.weeks.map((w) => w.week);
 
   return (
     <>
       <LiveRefresh active={anyLive} />
 
-      <header className="glass sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto w-full max-w-xl px-3 pb-2 pt-2.5">
-          <div className="mb-2 flex items-center gap-2">
-            <h1 className="text-[15px] font-bold tracking-tight">{LEAGUE_NAME}</h1>
-            <span className="nums rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--ink-dim)]">
-              Week {week}
-            </span>
-            {week !== current.week && (
-              <Link
-                href="/"
-                className="text-[11px] font-medium text-[var(--live)] hover:underline"
+      <header className="glass sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto w-full max-w-[1240px] px-4 py-2.5 lg:px-6">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div className="order-1 flex min-w-0 items-center gap-2">
+              <span
+                aria-hidden
+                className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-[6px] text-[12px]"
+                style={{ background: "color-mix(in srgb, var(--brand) 22%, transparent)" }}
               >
-                jump to now
-              </Link>
-            )}
-            <div className="ml-auto flex items-center gap-2">
-              {me && <Avatar player={me} size={22} isMe />}
-              <RefreshButton season={season} week={week} />
-              <Link
-                href="/standings"
-                className="rounded-lg bg-white/[0.07] px-2 py-1 text-[11.5px] font-medium text-[var(--ink-dim)] transition-colors hover:text-[var(--ink)]"
-              >
-                Standings
-              </Link>
-            </div>
-          </div>
-
-          <WeekNav weeks={weekNumbers} week={week} currentWeek={current.week} />
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-xl flex-1 px-3 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-3">
-        <div className="mb-3 space-y-3">
-          <StandingsStrip standings={season_.standings} meId={meId} />
-
-          <div className="card p-2.5">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-faint)]">
-                Picking as
+                🏈
               </span>
-              {meId !== null && board.length > 0 && (
-                <span className="nums text-[11.5px] text-[var(--ink-dim)]">
-                  {myPicks}/{board.length} picked
-                  {openGames > 0 && myPicks < board.length && (
-                    <span className="text-[var(--ink-faint)]"> · {openGames} still open</span>
-                  )}
-                </span>
+              <h1 className="truncate text-[14px] font-semibold tracking-[-0.011em]">
+                {LEAGUE_NAME}
+              </h1>
+              <span className="nums hidden rounded-md border border-[var(--line)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--ink-dim)] sm:inline lg:hidden xl:inline">
+                Week {week}
+              </span>
+              {week !== current.week && (
+                <Link
+                  href="/"
+                  className="shrink-0 text-[11.5px] font-medium text-[var(--brand)] hover:underline"
+                >
+                  Today
+                </Link>
               )}
             </div>
 
-            <PlayerSwitcher players={players} meId={meId} />
+            <div className="order-2 ml-auto flex shrink-0 items-center gap-2 lg:order-3 lg:ml-0">
+              <RefreshButton season={season} week={week} />
+              <PlayerMenu players={players} meId={meId} />
+            </div>
 
-            {meId === null && (
-              <p className="mt-2 px-1 text-[12px] text-[var(--ink-faint)]">
-                Tap your name to start picking.
-              </p>
-            )}
-
-            {meId !== null && board.length > 0 && (
-              <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-white/[0.07]">
-                <div
-                  className="h-full rounded-full transition-[width] duration-500"
-                  style={{
-                    width: `${(myPicks / board.length) * 100}%`,
-                    background: me?.accent ?? "var(--ink-dim)",
-                  }}
-                />
-              </div>
-            )}
+            {/* Wraps to its own row on phones, sits inline between the brand and
+                the controls from lg up. */}
+            <div className="order-3 w-full min-w-0 lg:order-2 lg:ml-3 lg:w-auto lg:flex-1">
+              <WeekNav weeks={current.weeks.map((w) => w.week)} week={week} currentWeek={current.week} />
+            </div>
           </div>
         </div>
+      </header>
 
-        {board.length === 0 ? (
-          <EmptyWeek week={week} />
-        ) : (
-          <div className="space-y-2.5">
-            {board.map((game) => (
-              <GameCard key={game.id} game={game} players={players} meId={meId} />
-            ))}
+      <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-5">
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_290px] lg:gap-6">
+          <div className="order-2 min-w-0 lg:order-1">
+            {board.length === 0 ? (
+              <EmptyWeek week={week} />
+            ) : (
+              <>
+                {meId === null && (
+                  <div
+                    className="mb-3 rounded-[var(--r-card)] border px-3 py-2.5 text-[12.5px] leading-relaxed"
+                    style={{
+                      borderColor: "color-mix(in srgb, var(--brand) 32%, transparent)",
+                      background: "color-mix(in srgb, var(--brand) 8%, transparent)",
+                    }}
+                  >
+                    Pick who you are in the top right to start making picks. You can
+                    browse everyone else&apos;s in the meantime.
+                  </div>
+                )}
+                <div className="grid gap-2.5 xl:grid-cols-2">
+                  {board.map((game) => (
+                    <GameCard key={game.id} game={game} players={players} meId={meId} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            <p className="mt-6 text-[11.5px] leading-relaxed text-[var(--ink-faint)]">
+              Lines from DraftKings via ESPN. Picks lock at each game&apos;s kickoff and are
+              graded against the spread as it stood at that moment.
+            </p>
           </div>
-        )}
 
-        <p className="mt-6 text-center text-[11px] leading-relaxed text-[var(--ink-faint)]">
-          {GAMES_PER_WEEK} games a week · lines from DraftKings via ESPN
-          <br />
-          Picks lock at each game&apos;s kickoff. Spread is frozen at kickoff.
-        </p>
+          <aside className="order-1 flex flex-col gap-3 lg:sticky lg:top-[calc(var(--header-h)+1.25rem)] lg:order-2">
+            <StandingsPanel standings={standings.standings} meId={meId} />
+            <WeekProgress me={me} made={made} total={board.length} open={openGames} />
+          </aside>
+        </div>
       </main>
     </>
   );
@@ -140,12 +130,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
 function EmptyWeek({ week }: { week: number }) {
   return (
-    <div className="card flex flex-col items-center gap-2 px-4 py-12 text-center">
+    <div className="card flex flex-col items-center gap-2 px-6 py-16 text-center">
       <span className="text-2xl">🏈</span>
       <p className="text-[14px] font-semibold">No slate for week {week} yet</p>
-      <p className="max-w-[16rem] text-[12px] leading-relaxed text-[var(--ink-faint)]">
-        Games get picked automatically once ESPN posts the schedule. Check back
-        closer to the weekend.
+      <p className="max-w-[20rem] text-[12.5px] leading-relaxed text-[var(--ink-faint)]">
+        Games are chosen automatically once ESPN posts the schedule and the books
+        put up lines. Check back closer to the weekend.
       </p>
     </div>
   );
