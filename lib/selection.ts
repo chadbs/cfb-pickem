@@ -73,15 +73,20 @@ export function scoreGame(g: EspnGame): ScoredGame {
   return { game: g, score, reason: reasons.slice(0, 2).join(" · ") || "Best of the week" };
 }
 
+/** Every game in the week, best first. Drives the admin picker. */
+export function rankGames(games: EspnGame[]): ScoredGame[] {
+  return games
+    .filter((g) => g.home.teamId && g.away.teamId)
+    .map(scoreGame)
+    .sort((a, b) => b.score - a.score || a.game.kickoff - b.game.kickoff);
+}
+
 /**
  * The week's slate: all favorite-team games, then the highest-scoring rest,
  * up to GAMES_PER_WEEK. Returned in kickoff order.
  */
 export function selectWeek(games: EspnGame[], limit = GAMES_PER_WEEK): ScoredGame[] {
-  const scored = games
-    .filter((g) => g.home.teamId && g.away.teamId)
-    .map(scoreGame)
-    .sort((a, b) => b.score - a.score || a.game.kickoff - b.game.kickoff);
-
-  return scored.slice(0, limit).sort((a, b) => a.game.kickoff - b.game.kickoff);
+  return rankGames(games)
+    .slice(0, limit)
+    .sort((a, b) => a.game.kickoff - b.game.kickoff);
 }

@@ -74,6 +74,33 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             </div>
 
             <div className="order-2 ml-auto flex shrink-0 items-center gap-2 lg:order-3 lg:ml-0">
+              <Link
+                href="/insights"
+                className="ctl hidden h-8 items-center px-2.5 text-[12.5px] font-medium sm:flex"
+              >
+                Insights
+              </Link>
+              <Link
+                href={`/admin?week=${week}`}
+                title="Edit this week's games"
+                aria-label="Edit this week's games"
+                className="ctl grid h-8 w-8 place-items-center"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-[14px] w-[14px]"
+                >
+                  <path d="M3 6h18M3 12h18M3 18h18" />
+                  <circle cx="9" cy="6" r="2" fill="currentColor" stroke="none" />
+                  <circle cx="15" cy="12" r="2" fill="currentColor" stroke="none" />
+                  <circle cx="7" cy="18" r="2" fill="currentColor" stroke="none" />
+                </svg>
+              </Link>
               <RefreshButton season={season} week={week} />
               <PlayerMenu players={players} meId={meId} />
             </div>

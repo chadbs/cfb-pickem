@@ -60,6 +60,33 @@ export interface GameView {
   picks: GamePick[];
 }
 
+/** A game offered to the admin when hand-editing a week's slate. */
+export interface CandidateView {
+  espnId: string;
+  kickoff: number;
+  awayAbbr: string;
+  homeAbbr: string;
+  awayName: string;
+  homeName: string;
+  awayLogo: string | null;
+  homeLogo: string | null;
+  awayRank: number | null;
+  homeRank: number | null;
+  neutralSite: boolean;
+  spread: number | null;
+  broadcast: string | null;
+  /** Auto-picker score, for showing why a game ranks where it does. */
+  score: number;
+  reason: string;
+  favorite: string | null;
+  selected: boolean;
+  /** Would have been chosen automatically. */
+  recommended: boolean;
+  pickCount: number;
+  /** Can't be deselected — someone has picked it, or it has kicked off. */
+  locked: boolean;
+}
+
 export interface PlayerView {
   id: number;
   slug: string;

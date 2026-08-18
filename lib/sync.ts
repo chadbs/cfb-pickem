@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, ready, schema } from "./db";
 import { fetchCurrentWeek, fetchWeek, type CurrentWeek, type EspnGame } from "./espn";
-import { selectWeek } from "./selection";
+import { rankGames, selectWeek } from "./selection";
 import { GAMES_PER_WEEK, SYNC_TTL_IDLE_MS, SYNC_TTL_LIVE_MS } from "./config";
 
 const { games, picks, meta } = schema;
@@ -48,7 +48,7 @@ export async function getCurrentWeek(): Promise<CurrentWeek> {
   }
 }
 
-function rowFromEspn(g: EspnGame) {
+export function rowFromEspn(g: EspnGame) {
   return {
     espnId: g.espnId,
     season: g.season,
@@ -86,6 +86,37 @@ function rowFromEspn(g: EspnGame) {
     completed: g.completed,
     updatedAt: Date.now(),
   };
+}
+
+/**
+ * Top the week up to GAMES_PER_WEEK with the best candidates not already on the
+ * slate. Used after an admin reset, where deleting the auto-picked games leaves
+ * a short week that needs refilling deterministically.
+ */
+export async function fillSlate(season: number, week: number): Promise<number> {
+  await ready();
+
+  const existing = await db
+    .select()
+    .from(games)
+    .where(and(eq(games.season, season), eq(games.week, week)));
+
+  const room = GAMES_PER_WEEK - existing.length;
+  if (room <= 0) return 0;
+
+  const espnGames = await fetchWeek(season, week);
+  const taken = new Set(existing.map((g) => g.espnId));
+  const candidates = rankGames(espnGames.filter((g) => !taken.has(g.espnId))).slice(0, room);
+
+  for (const c of candidates) {
+    await db.insert(games).values({
+      ...rowFromEspn(c.game),
+      isSelected: true,
+      selectionScore: c.score,
+      selectionReason: c.reason,
+    });
+  }
+  return candidates.length;
 }
 
 export interface SyncResult {

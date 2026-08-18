@@ -48,6 +48,37 @@ so scores keep updating even with nobody watching.
 
 ---
 
+## Picking the games yourself
+
+`/admin` lists the top 20 games for a week, ranked by the auto-picker, with the
+ten it would choose already ticked. Untick one, tick another, hit **Save slate**.
+**Auto** puts it back to the automatic ten.
+
+Saving pins the week, so the automatic picker stops revising it. Two things can
+never be removed: a game somebody has already picked, and a game that has
+kicked off. Those rows show why they're locked and refuse to deselect — the
+server enforces it too, not just the UI.
+
+Set `ADMIN_KEY` in the environment to lock the page behind `?key=…`. Leave it
+unset and the page is simply open, which is fine for four people.
+
+## Insights
+
+`/insights` is about the four of us rather than the sport:
+
+- **Head to head** — only games where two of you took opposite sides.
+- **Favourites vs underdogs** and **home vs road** splits, by the number each
+  pick was actually taken at.
+- **Going it alone** — your record when nobody joined you on that side.
+- **Best and worst week**, and how unanimous picks have done.
+- **Teams against the spread**, restricted to teams that have appeared on our
+  slate at least three times. Without that floor the list is just every team
+  that covered once, all sitting at 100%.
+
+That last one is a small sample on purpose: the database only holds the ten
+games we pick each week, not the whole league, so there's no honest way to build
+league-wide team or conference tables from it.
+
 ## Running it locally
 
 ```bash
