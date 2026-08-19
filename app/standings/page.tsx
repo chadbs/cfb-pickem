@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
+import { SiteTabs } from "@/components/SiteNav";
 import { LEAGUE_NAME } from "@/lib/config";
 import { formatRecord, recordLine } from "@/lib/format";
 import { getSeasonStandings } from "@/lib/queries";
@@ -16,22 +17,20 @@ export default async function Standings() {
   return (
     <>
       <header className="glass sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex w-full max-w-[1080px] items-center gap-3 px-4 py-2.5 lg:px-6">
-          <Link href="/" className="ctl flex h-8 items-center gap-1.5 px-2.5 text-[12.5px] font-medium">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-3 w-3"
+        <div className="mx-auto flex w-full max-w-[1080px] items-center gap-2 px-4 py-2.5 lg:px-6">
+          <Link href="/" className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-[6px] text-[12px]"
+              style={{ background: "color-mix(in srgb, var(--brand) 22%, transparent)" }}
             >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-            Picks
+              🏈
+            </span>
+            <h1 className="text-[14px] font-semibold tracking-[-0.011em]">{LEAGUE_NAME}</h1>
           </Link>
-          <h1 className="text-[14px] font-semibold tracking-[-0.011em]">{LEAGUE_NAME}</h1>
+          <span className="ml-1">
+            <SiteTabs />
+          </span>
           <span className="nums ml-auto text-[12px] text-[var(--ink-faint)]">
             {current.season} season
           </span>

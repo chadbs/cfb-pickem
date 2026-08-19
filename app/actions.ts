@@ -112,24 +112,21 @@ export async function setSlate(
   const dropping = existing.filter((g) => g.isSelected && !keep.has(g.espnId));
 
   if (dropping.length) {
-    const pickedIds = new Set(
-      (
-        await db
-          .select({ gameId: picks.gameId })
-          .from(picks)
-          .where(inArray(picks.gameId, dropping.map((g) => g.id)))
-      ).map((r) => r.gameId),
-    );
+    /**
+     * Picks no longer block a swap. Dropping a game only clears its flag — the
+     * picks stay in the table and simply stop counting, and putting the game
+     * back restores them. A game that has kicked off is still off limits,
+     * because rewriting a week that's already being played is a different and
+     * much worse idea.
+     */
     const now = Date.now();
-    const blocked = dropping.filter(
-      (g) => pickedIds.has(g.id) || now >= g.kickoff || g.status !== "pre",
-    );
+    const blocked = dropping.filter((g) => now >= g.kickoff || g.status !== "pre");
     if (blocked.length) {
       return {
         ok: false,
         error: `Can't remove ${blocked
           .map((g) => `${g.awayAbbr} @ ${g.homeAbbr}`)
-          .join(", ")} — already picked or kicked off`,
+          .join(", ")} — already kicked off`,
       };
     }
   }

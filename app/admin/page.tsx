@@ -64,8 +64,9 @@ function buildCandidates(
       selected: Boolean(row),
       recommended: autoTen.has(s.game.espnId),
       pickCount,
-      // Locked rows can't be unchecked: removing them would delete real picks.
-      locked: Boolean(row) && (pickCount > 0 || started),
+      // Only a kicked-off game is truly immovable. Picks are shown as a warning
+      // rather than a lock, since dropping a game keeps them.
+      locked: Boolean(row) && started,
     };
   });
 }

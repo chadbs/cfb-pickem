@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { BottomNav } from "@/components/SiteNav";
 import { LEAGUE_NAME } from "@/lib/config";
 import "./globals.css";
 
@@ -23,7 +24,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* Bottom padding clears the fixed mobile tab bar. */}
+      <body className="min-h-full flex flex-col pb-[calc(3.4rem+env(safe-area-inset-bottom))] lg:pb-0">
+        {children}
+        <BottomNav />
+      </body>
     </html>
   );
 }

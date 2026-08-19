@@ -34,6 +34,13 @@ export function SlateEditor({
 
   const full = chosen.size >= GAMES_PER_WEEK;
 
+  // Games being dropped that somebody has already picked. Reversible — the
+  // picks are kept — but worth saying out loud before it happens.
+  const droppingPicked = candidates.filter(
+    (c) => c.selected && !chosen.has(c.espnId) && c.pickCount > 0,
+  );
+  const picksAffected = droppingPicked.reduce((n, c) => n + c.pickCount, 0);
+
   function toggle(c: CandidateView) {
     if (c.locked) return;
     if (!chosen.has(c.espnId) && full) {
@@ -119,6 +126,23 @@ export function SlateEditor({
         </div>
       </div>
 
+      {picksAffected > 0 && (
+        <div
+          className="mb-3 rounded-[var(--r-card)] border px-3 py-2.5 text-[12.5px] leading-relaxed"
+          style={{
+            borderColor: "color-mix(in srgb, var(--push) 40%, transparent)",
+            background: "color-mix(in srgb, var(--push) 9%, transparent)",
+          }}
+        >
+          Removing{" "}
+          <strong className="font-semibold">
+            {droppingPicked.map((c) => `${c.awayAbbr} @ ${c.homeAbbr}`).join(", ")}
+          </strong>{" "}
+          will stop {picksAffected} existing pick{picksAffected === 1 ? "" : "s"} counting.
+          Nothing is deleted — put the game back and the picks count again.
+        </div>
+      )}
+
       <ul className="flex flex-col gap-1.5">
         {candidates.map((c) => (
           <Row
@@ -133,8 +157,9 @@ export function SlateEditor({
 
       <p className="mt-4 text-[11.5px] leading-relaxed text-[var(--ink-faint)]">
         Ranked by the auto-picker: home teams first, then ranked matchups, tight
-        lines and national TV. A game someone has already picked, or one that has
-        kicked off, can&apos;t be removed.
+        lines and national TV. Only a game that has already kicked off can&apos;t be
+        changed. Swapping out a game that has picks on it keeps them — they stop
+        counting, and count again if you put the game back.
       </p>
     </>
   );
@@ -224,10 +249,17 @@ function Row({
           {when}
         </span>
 
-        <span className="w-[42px] shrink-0 text-right text-[10px]">
+        <span className="w-[46px] shrink-0 text-right text-[10px]">
           {c.locked ? (
-            <span className="text-[var(--ink-faint)]" title={c.pickCount > 0 ? `${c.pickCount} picks` : "Kicked off"}>
-              {c.pickCount > 0 ? `${c.pickCount} pick${c.pickCount === 1 ? "" : "s"}` : "started"}
+            <span className="text-[var(--ink-faint)]" title="Kicked off — can't be changed">
+              started
+            </span>
+          ) : c.pickCount > 0 ? (
+            <span
+              className="text-[var(--push)]"
+              title={`${c.pickCount} pick${c.pickCount === 1 ? "" : "s"} on this game`}
+            >
+              {c.pickCount} pick{c.pickCount === 1 ? "" : "s"}
             </span>
           ) : c.recommended ? (
             <span className="text-[var(--brand)]" title="Would be chosen automatically">

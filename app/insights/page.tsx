@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Avatar } from "@/components/Avatar";
+import { SiteTabs } from "@/components/SiteNav";
 import { LEAGUE_NAME } from "@/lib/config";
 import { recordLine } from "@/lib/format";
 import { getInsights, MIN_TEAM_GAMES, pct, total, type Rec } from "@/lib/insights";
@@ -20,19 +21,20 @@ export default async function InsightsPage() {
   return (
     <>
       <header className="glass sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex w-full max-w-[1080px] items-center gap-3 px-4 py-2.5 lg:px-6">
-          <Link href="/" className="ctl flex h-8 items-center px-2.5 text-[12.5px] font-medium">
-            ← Picks
+        <div className="mx-auto flex w-full max-w-[1080px] items-center gap-2 px-4 py-2.5 lg:px-6">
+          <Link href="/" className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-[6px] text-[12px]"
+              style={{ background: "color-mix(in srgb, var(--brand) 22%, transparent)" }}
+            >
+              🏈
+            </span>
+            <h1 className="text-[14px] font-semibold tracking-[-0.011em]">{LEAGUE_NAME}</h1>
           </Link>
-          <h1 className="text-[14px] font-semibold tracking-[-0.011em]">
-            {LEAGUE_NAME} <span className="text-[var(--ink-faint)]">· insights</span>
-          </h1>
-          <Link
-            href="/standings"
-            className="ctl ml-auto flex h-8 items-center px-2.5 text-[12.5px] font-medium"
-          >
-            Standings
-          </Link>
+          <span className="ml-1">
+            <SiteTabs />
+          </span>
         </div>
       </header>
 

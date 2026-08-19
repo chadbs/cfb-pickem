@@ -4,6 +4,7 @@ import { GameCard } from "@/components/GameCard";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { PlayerMenu } from "@/components/PlayerMenu";
 import { RefreshButton } from "@/components/RefreshButton";
+import { SiteTabs } from "@/components/SiteNav";
 import { StandingsPanel } from "@/components/StandingsPanel";
 import { WeekNav } from "@/components/WeekNav";
 import { WeekProgress } from "@/components/WeekProgress";
@@ -71,15 +72,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   Today
                 </Link>
               )}
+              <span className="ml-1 hidden lg:block">
+                <SiteTabs />
+              </span>
             </div>
 
             <div className="order-2 ml-auto flex shrink-0 items-center gap-2 lg:order-3 lg:ml-0">
-              <Link
-                href="/insights"
-                className="ctl hidden h-8 items-center px-2.5 text-[12.5px] font-medium sm:flex"
-              >
-                Insights
-              </Link>
               <Link
                 href={`/admin?week=${week}`}
                 title="Edit this week's games"

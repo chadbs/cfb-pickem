@@ -117,7 +117,9 @@ export async function getInsights(season: number): Promise<Insights> {
     initials: p.initials,
   });
 
-  const mine = pickRows.filter((p) => gameById.has(p.gameId));
+  // Player stats count only picks on games still on a slate, matching the
+  // board and the standings. Team and conference tables below use every game.
+  const mine = pickRows.filter((p) => gameById.get(p.gameId)?.isSelected);
 
   // Who else is on each side of each game — needed for the "alone" split.
   const sideCount = new Map<string, number>();

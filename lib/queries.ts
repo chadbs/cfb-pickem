@@ -141,7 +141,9 @@ export async function getSeasonStandings(season: number): Promise<SeasonStanding
     })
     .from(picks)
     .innerJoin(games, eq(picks.gameId, games.id))
-    .where(eq(games.season, season));
+    // Only games currently on a slate. A pick on a game an admin later dropped
+    // is kept but must not score, or it would count somewhere it isn't shown.
+    .where(and(eq(games.season, season), eq(games.isSelected, true)));
 
   const graded = rows.map((r) => ({
     playerId: r.playerId,
