@@ -156,6 +156,56 @@ const LIVE_UPDATE_SET = Object.fromEntries(
   LIVE_KEYS.map((k) => [k, sql.raw(`excluded."${gameColumns[k].name}"`)]),
 );
 
+/**
+ * Turn a stored row back into the shape the ranking code expects. Every FBS
+ * game is in the table, so anything that only needs to rank or list a week can
+ * work from the database and doesn't have to depend on ESPN answering.
+ */
+export function espnGameFromRow(g: typeof games.$inferSelect): EspnGame {
+  return {
+    espnId: g.espnId,
+    season: g.season,
+    week: g.week,
+    seasonType: g.seasonType,
+    kickoff: g.kickoff,
+    home: {
+      teamId: g.homeTeamId,
+      name: g.homeName,
+      short: g.homeShort,
+      abbr: g.homeAbbr,
+      logo: g.homeLogo,
+      color: g.homeColor,
+      rank: g.homeRank,
+      record: g.homeRecord,
+      score: g.homeScore,
+      conferenceId: g.homeConfId,
+    },
+    away: {
+      teamId: g.awayTeamId,
+      name: g.awayName,
+      short: g.awayShort,
+      abbr: g.awayAbbr,
+      logo: g.awayLogo,
+      color: g.awayColor,
+      rank: g.awayRank,
+      record: g.awayRecord,
+      score: g.awayScore,
+      conferenceId: g.awayConfId,
+    },
+    neutralSite: g.neutralSite,
+    venue: g.venue,
+    broadcast: g.broadcast,
+    spread: g.spread,
+    overUnder: g.overUnder,
+    oddsProvider: g.oddsProvider,
+    status: g.status as EspnGame["status"],
+    statusDetail: g.statusDetail,
+    period: g.period,
+    clock: g.clock,
+    completed: g.completed,
+  };
+}
+
 export interface SyncResult {
   season: number;
   week: number;
@@ -310,13 +360,15 @@ export async function syncWeek(
 /** Re-run the automatic slate, keeping anything already picked. */
 export async function autoSelectWeek(season: number, week: number): Promise<void> {
   await ready();
-  const espnGames = await fetchWeek(season, week);
-  if (!espnGames.length) return;
 
   const rows = await db
     .select()
     .from(games)
     .where(and(eq(games.season, season), eq(games.week, week)));
+  if (!rows.length) return;
+
+  // Ranked from what's stored, so a reset works even when ESPN is unreachable.
+  const espnGames = rows.map(espnGameFromRow);
 
   const pickedGameIds = new Set(
     (

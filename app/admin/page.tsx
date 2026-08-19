@@ -3,9 +3,9 @@ import { and, eq, inArray } from "drizzle-orm";
 import { SlateEditor } from "@/components/SlateEditor";
 import { ADMIN_KEY, GAMES_PER_WEEK, LEAGUE_NAME } from "@/lib/config";
 import { db, ready, schema } from "@/lib/db";
-import { fetchWeek } from "@/lib/espn";
+import type { EspnGame } from "@/lib/espn";
 import { isFavorite, rankGames } from "@/lib/selection";
-import { getCurrentWeek } from "@/lib/sync";
+import { espnGameFromRow, getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
 import type { CandidateView } from "@/lib/view-types";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ type GameRow = typeof schema.games.$inferSelect;
  * Kept out of the component body so the current time isn't read during render.
  */
 function buildCandidates(
-  espnGames: Awaited<ReturnType<typeof fetchWeek>>,
+  espnGames: EspnGame[],
   selectedRows: GameRow[],
   pickCounts: Map<number, number>,
 ): CandidateView[] {
@@ -99,20 +99,16 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
   const week = Number.isInteger(asked) && asked >= 1 && asked <= 20 ? asked : current.week;
   const season = current.season;
 
-  const [espnGames, selectedRows] = await Promise.all([
-    fetchWeek(season, week),
-    // Only the slate — the table also holds every other game in the week.
-    db
-      .select()
-      .from(schema.games)
-      .where(
-        and(
-          eq(schema.games.season, season),
-          eq(schema.games.week, week),
-          eq(schema.games.isSelected, true),
-        ),
-      ),
-  ]);
+  // Refresh if stale, but never fail the page on it — maybeSyncWeek swallows
+  // ESPN errors, and everything below reads from the database anyway.
+  await maybeSyncWeek(season, week);
+
+  const weekRows = await db
+    .select()
+    .from(schema.games)
+    .where(and(eq(schema.games.season, season), eq(schema.games.week, week)));
+
+  const selectedRows = weekRows.filter((g) => g.isSelected);
 
   const pickCounts = new Map<number, number>();
   if (selectedRows.length) {
@@ -123,7 +119,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
     for (const r of rows) pickCounts.set(r.gameId, (pickCounts.get(r.gameId) ?? 0) + 1);
   }
 
-  const candidates = buildCandidates(espnGames, selectedRows, pickCounts);
+  const candidates = buildCandidates(weekRows.map(espnGameFromRow), selectedRows, pickCounts);
 
   return (
     <>

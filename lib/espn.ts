@@ -13,13 +13,45 @@ import { FBS_GROUP, UNRANKED } from "./config";
  *
  * It does reject requests that don't look like a browser, hence the UA.
  */
-const BASE = "https://site.api.espn.com/apis/site/v2/sports/football/college-football";
-
 const HEADERS = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
   Accept: "application/json",
 };
+
+/**
+ * ESPN's edge decides using IP reputation *and* headers, and the two pull in
+ * opposite directions:
+ *
+ *   - From a normal connection, a request with no browser User-Agent is
+ *     refused (PowerShell's default UA gets a 403).
+ *   - From a datacenter IP — Vercel — a browser User-Agent is what gets
+ *     refused, because "Chrome" from a server range reads as a bot. The same
+ *     request with no headers at all succeeds.
+ *
+ * So there's no single set of headers that works everywhere. Try a few
+ * host/header profiles, and remember whichever one answered so the cost is paid
+ * once per process rather than on every call.
+ */
+const PROFILES: Array<{ base: string; headers: Record<string, string> }> = [
+  // Verified 200 from Vercel (iad1).
+  {
+    base: "https://site.web.api.espn.com/apis/site/v2/sports/football/college-football",
+    headers: HEADERS,
+  },
+  // Verified 200 from Vercel with no headers whatsoever.
+  {
+    base: "https://site.api.espn.com/apis/site/v2/sports/football/college-football",
+    headers: {},
+  },
+  // Verified 200 from a normal connection.
+  {
+    base: "https://site.api.espn.com/apis/site/v2/sports/football/college-football",
+    headers: HEADERS,
+  },
+];
+
+let preferredProfile = 0;
 
 export type GameStatus = "pre" | "in" | "post";
 
@@ -75,13 +107,28 @@ export interface CurrentWeek {
 }
 
 async function getJson(path: string): Promise<any> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: HEADERS,
-    cache: "no-store",
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!res.ok) throw new Error(`ESPN ${path} -> ${res.status}`);
-  return res.json();
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < PROFILES.length; attempt++) {
+    const index = (preferredProfile + attempt) % PROFILES.length;
+    const profile = PROFILES[index];
+    try {
+      const res = await fetch(`${profile.base}${path}`, {
+        headers: profile.headers,
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (res.ok) {
+        preferredProfile = index;
+        return await res.json();
+      }
+      lastError = new Error(`ESPN ${path} -> ${res.status} (profile ${index})`);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`ESPN ${path} failed`);
 }
 
 function num(v: unknown): number | null {
