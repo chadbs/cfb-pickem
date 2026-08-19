@@ -76,10 +76,11 @@ function toGameView(g: Game, gamePicks: GamePick[], now: number): GameView {
 export async function getBoard(season: number, week: number): Promise<GameView[]> {
   await ready();
 
+  // The table holds every FBS game now, so the board must ask for the slate.
   const rows = await db
     .select()
     .from(games)
-    .where(and(eq(games.season, season), eq(games.week, week)))
+    .where(and(eq(games.season, season), eq(games.week, week), eq(games.isSelected, true)))
     .orderBy(asc(games.kickoff), asc(games.id));
 
   if (rows.length === 0) return [];

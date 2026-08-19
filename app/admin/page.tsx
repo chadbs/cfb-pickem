@@ -101,7 +101,17 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
 
   const [espnGames, selectedRows] = await Promise.all([
     fetchWeek(season, week),
-    db.select().from(schema.games).where(and(eq(schema.games.season, season), eq(schema.games.week, week))),
+    // Only the slate — the table also holds every other game in the week.
+    db
+      .select()
+      .from(schema.games)
+      .where(
+        and(
+          eq(schema.games.season, season),
+          eq(schema.games.week, week),
+          eq(schema.games.isSelected, true),
+        ),
+      ),
   ]);
 
   const pickCounts = new Map<number, number>();

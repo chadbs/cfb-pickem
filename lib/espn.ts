@@ -33,6 +33,8 @@ export interface EspnTeamSide {
   rank: number | null;
   record: string | null;
   score: number | null;
+  /** ESPN conference id — 8 is the SEC, 5 the Big Ten, and so on. */
+  conferenceId: string | null;
 }
 
 export interface EspnGame {
@@ -160,6 +162,7 @@ function side(c: any): EspnTeamSide {
     rank: typeof rank === "number" && rank !== UNRANKED ? rank : null,
     record: c?.records?.find((r: any) => r.type === "total")?.summary ?? c?.records?.[0]?.summary ?? null,
     score: num(c?.score),
+    conferenceId: c?.team?.conferenceId != null ? String(c.team.conferenceId) : null,
   };
 }
 
@@ -213,6 +216,40 @@ export async function fetchWeek(
     .filter((g: EspnGame | null): g is EspnGame => g !== null)
     // ESPN occasionally returns a stray game from an adjacent week.
     .map((g: EspnGame) => ({ ...g, season, week, seasonType }));
+}
+
+/**
+ * FBS conference id → short name ("8" → "SEC").
+ *
+ * The public groups endpoint only goes down to division level, so this walks
+ * the core API's children of group 80. Eleven small requests, cached for a long
+ * time by the caller — conference membership shifts, the ids don't.
+ */
+export async function fetchConferences(season: number): Promise<Record<string, string>> {
+  const base = "https://sports.core.api.espn.com/v2/sports/football/leagues/college-football";
+  const listUrl = `${base}/seasons/${season}/types/2/groups/${FBS_GROUP}/children?limit=50`;
+
+  const res = await fetch(listUrl, { headers: HEADERS, cache: "no-store", signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`ESPN conferences -> ${res.status}`);
+  const list = await res.json();
+
+  const out: Record<string, string> = {};
+  const refs: string[] = (list.items ?? []).map((i: any) => i.$ref).filter(Boolean);
+
+  await Promise.all(
+    refs.map(async (ref) => {
+      try {
+        const r = await fetch(ref, { headers: HEADERS, cache: "no-store", signal: AbortSignal.timeout(15_000) });
+        if (!r.ok) return;
+        const g = await r.json();
+        if (g?.id) out[String(g.id)] = g.shortName ?? g.name ?? String(g.id);
+      } catch {
+        /* one missing conference shouldn't sink the batch */
+      }
+    }),
+  );
+
+  return out;
 }
 
 /** Which week is live right now, plus the full week list for the season nav. */

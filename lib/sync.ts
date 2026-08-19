@@ -1,7 +1,14 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { db, ready, schema } from "./db";
-import { fetchCurrentWeek, fetchWeek, type CurrentWeek, type EspnGame } from "./espn";
-import { rankGames, selectWeek } from "./selection";
+import type { InArgs, InStatement } from "@libsql/client";
+import { client, db, ready, schema } from "./db";
+import {
+  fetchConferences,
+  fetchCurrentWeek,
+  fetchWeek,
+  type CurrentWeek,
+  type EspnGame,
+} from "./espn";
+import { rankGames, type ScoredGame } from "./selection";
 import { GAMES_PER_WEEK, SYNC_TTL_IDLE_MS, SYNC_TTL_LIVE_MS } from "./config";
 
 const { games, picks, meta } = schema;
@@ -9,6 +16,10 @@ const { games, picks, meta } = schema;
 /** Re-picking the slate is allowed only this far ahead of the first kickoff. */
 const RESELECT_WINDOW_MS = 48 * 60 * 60 * 1000;
 const CURRENT_WEEK_TTL_MS = 30 * 60 * 1000;
+const CONFERENCES_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** libsql caps how much one batch can carry; well under it. */
+const BATCH_SIZE = 80;
 
 export async function getMeta(key: string): Promise<{ value: string; updatedAt: number } | null> {
   await ready();
@@ -24,9 +35,20 @@ export async function setMeta(key: string, value: string) {
     .onConflictDoUpdate({ target: meta.key, set: { value, updatedAt: Date.now() } });
 }
 
+/** A hand-edited slate stops the auto-picker revising that week. */
+const pinKey = (season: number, week: number) => `slate_pinned:${season}:${week}`;
+
+export async function isSlatePinned(season: number, week: number): Promise<boolean> {
+  return (await getMeta(pinKey(season, week)))?.value === "1";
+}
+
+export async function setSlatePinned(season: number, week: number, pinned: boolean) {
+  await setMeta(pinKey(season, week), pinned ? "1" : "0");
+}
+
 /**
- * Which week we're in. Cached in the DB so a page load doesn't pay for an ESPN
- * round trip just to render the week nav.
+ * Which week is live right now, plus the full week list for the season nav.
+ * Cached in the DB so a page load doesn't pay for an ESPN round trip.
  */
 export async function getCurrentWeek(): Promise<CurrentWeek> {
   const cached = await getMeta("current_week");
@@ -48,6 +70,25 @@ export async function getCurrentWeek(): Promise<CurrentWeek> {
   }
 }
 
+/** Conference id → short name, cached for a week. */
+export async function getConferences(season: number): Promise<Record<string, string>> {
+  const cached = await getMeta("conferences");
+  if (cached && Date.now() - cached.updatedAt < CONFERENCES_TTL_MS) {
+    try {
+      return JSON.parse(cached.value) as Record<string, string>;
+    } catch {
+      /* refetch */
+    }
+  }
+  try {
+    const fresh = await fetchConferences(season);
+    if (Object.keys(fresh).length) await setMeta("conferences", JSON.stringify(fresh));
+    return fresh;
+  } catch {
+    return cached ? (JSON.parse(cached.value) as Record<string, string>) : {};
+  }
+}
+
 export function rowFromEspn(g: EspnGame) {
   return {
     espnId: g.espnId,
@@ -64,6 +105,7 @@ export function rowFromEspn(g: EspnGame) {
     homeRank: g.home.rank,
     homeRecord: g.home.record,
     homeScore: g.home.score,
+    homeConfId: g.home.conferenceId,
     awayTeamId: g.away.teamId,
     awayName: g.away.name,
     awayShort: g.away.short,
@@ -73,6 +115,7 @@ export function rowFromEspn(g: EspnGame) {
     awayRank: g.away.rank,
     awayRecord: g.away.record,
     awayScore: g.away.score,
+    awayConfId: g.away.conferenceId,
     neutralSite: g.neutralSite,
     venue: g.venue,
     broadcast: g.broadcast,
@@ -88,50 +131,68 @@ export function rowFromEspn(g: EspnGame) {
   };
 }
 
-/**
- * Top the week up to GAMES_PER_WEEK with the best candidates not already on the
- * slate. Used after an admin reset, where deleting the auto-picked games leaves
- * a short week that needs refilling deterministically.
- */
-export async function fillSlate(season: number, week: number): Promise<number> {
-  await ready();
-
-  const existing = await db
-    .select()
-    .from(games)
-    .where(and(eq(games.season, season), eq(games.week, week)));
-
-  const room = GAMES_PER_WEEK - existing.length;
-  if (room <= 0) return 0;
-
-  const espnGames = await fetchWeek(season, week);
-  const taken = new Set(existing.map((g) => g.espnId));
-  const candidates = rankGames(espnGames.filter((g) => !taken.has(g.espnId))).slice(0, room);
-
-  for (const c of candidates) {
-    await db.insert(games).values({
-      ...rowFromEspn(c.game),
-      isSelected: true,
-      selectionScore: c.score,
-      selectionReason: c.reason,
-    });
+async function runBatch(statements: InStatement[]) {
+  for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+    await client.batch(statements.slice(i, i + BATCH_SIZE), "write");
   }
-  return candidates.length;
 }
 
 export interface SyncResult {
   season: number;
   week: number;
+  /** Every FBS game stored for the week, not just the slate. */
+  stored: number;
   selected: number;
-  created: number;
-  updated: number;
   locked: number;
   reselected: boolean;
 }
 
 /**
- * Pull the week from ESPN, keep the slate's scores/lines/status current, and
- * freeze each game's closing line at kickoff.
+ * Mark exactly these games as the week's slate. Nothing is deleted — a game
+ * that drops off the slate stays in the table, which is what makes league-wide
+ * stats possible and means a pick can never be orphaned by a slate change.
+ */
+async function applySelection(season: number, week: number, chosen: ScoredGame[]) {
+  const clear = db
+    .update(games)
+    .set({ isSelected: false, selectionRank: null })
+    .where(and(eq(games.season, season), eq(games.week, week)))
+    .toSQL();
+
+  const sets = chosen.map((c, i) =>
+    db
+      .update(games)
+      .set({
+        isSelected: true,
+        selectionRank: i + 1,
+        selectionScore: c.score,
+        selectionReason: c.reason,
+      })
+      .where(eq(games.espnId, c.game.espnId))
+      .toSQL(),
+  );
+
+  await runBatch(
+    [clear, ...sets].map((s) => ({ sql: s.sql, args: s.params as InArgs })),
+  );
+}
+
+/**
+ * Choose a slate automatically, keeping `forced` games in regardless of rank —
+ * that's how already-picked games survive a reset.
+ */
+function autoSelect(espnGames: EspnGame[], forced: Set<string>): ScoredGame[] {
+  const ranked = rankGames(espnGames);
+  const keep = ranked.filter((r) => forced.has(r.game.espnId));
+  const rest = ranked.filter((r) => !forced.has(r.game.espnId));
+  return [...keep, ...rest.slice(0, Math.max(0, GAMES_PER_WEEK - keep.length))].sort(
+    (a, b) => a.game.kickoff - b.game.kickoff,
+  );
+}
+
+/**
+ * Pull the week from ESPN, store every game in it, keep scores and lines
+ * current, and freeze each game's closing line at kickoff.
  */
 export async function syncWeek(
   season: number,
@@ -142,120 +203,124 @@ export async function syncWeek(
   const allowReselect = opts.allowReselect ?? true;
 
   const espnGames = await fetchWeek(season, week);
-  const byEspnId = new Map(espnGames.map((g) => [g.espnId, g]));
+  if (espnGames.length === 0) {
+    return { season, week, stored: 0, selected: 0, locked: 0, reselected: false };
+  }
 
-  let existing = await db
+  const existing = await db
     .select()
     .from(games)
     .where(and(eq(games.season, season), eq(games.week, week)));
-
-  let created = 0;
-  let reselected = false;
+  const byEspnId = new Map(existing.map((g) => [g.espnId, g]));
   const now = Date.now();
 
-  // ---- Slate construction -------------------------------------------------
-  if (existing.length === 0 && espnGames.length > 0) {
-    const chosen = selectWeek(espnGames, GAMES_PER_WEEK);
-    for (const [i, s] of chosen.entries()) {
-      await db.insert(games).values({
-        ...rowFromEspn(s.game),
-        isSelected: true,
-        selectionRank: i + 1,
-        selectionScore: s.score,
-        selectionReason: s.reason,
-      });
-      created++;
+  // ---- store every game in the week -------------------------------------
+  let locked = 0;
+  const upserts = espnGames.map((g) => {
+    const row = byEspnId.get(g.espnId);
+
+    // Don't let a null from ESPN wipe a line we already captured.
+    const spread = g.spread ?? row?.spread ?? null;
+
+    /**
+     * Freeze the closing line at kickoff. ESPN drops odds the moment a game
+     * goes final, so this is the only chance to keep the number.
+     *
+     * Slate games fall back to a pick'em when no line was ever posted, so a
+     * pick always grades. Everything else stays null and is simply left out of
+     * the league-wide ATS stats rather than being recorded as a phantom PK.
+     */
+    let lockedSpread = row?.lockedSpread ?? null;
+    if (lockedSpread === null && (now >= g.kickoff || g.status !== "pre")) {
+      lockedSpread = spread ?? (row?.isSelected ? 0 : null);
+      if (lockedSpread !== null) locked++;
     }
+
+    const values = { ...rowFromEspn(g), spread, lockedSpread };
+    // `values` deliberately carries no selection columns, so an update here
+    // can never clobber the slate.
+    const q = db
+      .insert(games)
+      .values(values)
+      .onConflictDoUpdate({ target: games.espnId, set: values })
+      .toSQL();
+    return { sql: q.sql, args: q.params as InArgs };
+  });
+
+  await runBatch(upserts);
+
+  // ---- decide the slate --------------------------------------------------
+  const rows = await db
+    .select()
+    .from(games)
+    .where(and(eq(games.season, season), eq(games.week, week)));
+  const selected = rows.filter((r) => r.isSelected);
+  const pinned = await isSlatePinned(season, week);
+
+  let reselected = false;
+
+  if (selected.length === 0) {
+    await applySelection(season, week, autoSelect(espnGames, new Set()));
     reselected = true;
-  } else if (allowReselect && espnGames.length > 0) {
-    // Early in the week the lines aren't posted yet, so the first slate we build
-    // is picked half-blind. Allow it to improve — but only while nobody has
-    // picked and the first kickoff is still comfortably away. A pick freezes
-    // the slate instantly; we never delete a game someone has picked.
-    const pickedGameIds = new Set(
+  } else if (allowReselect && !pinned) {
+    // Early in the week the books haven't posted lines, so the first slate is
+    // picked half-blind. Let it improve — but only while nobody has picked and
+    // the first kickoff is still comfortably away.
+    const pickedIds = new Set(
       (
         await db
           .select({ gameId: picks.gameId })
           .from(picks)
-          .where(
-            inArray(
-              picks.gameId,
-              existing.map((g) => g.id),
-            ),
-          )
+          .where(inArray(picks.gameId, selected.map((g) => g.id)))
       ).map((r) => r.gameId),
     );
-    const earliest = Math.min(...existing.map((g) => g.kickoff));
-    const anyStarted = existing.some((g) => g.status !== "pre" || now >= g.kickoff);
-    const frozen = pickedGameIds.size > 0 || anyStarted || earliest - now < RESELECT_WINDOW_MS;
+    const earliest = Math.min(...selected.map((g) => g.kickoff));
+    const anyStarted = selected.some((g) => g.status !== "pre" || now >= g.kickoff);
+    const frozen = pickedIds.size > 0 || anyStarted || earliest - now < RESELECT_WINDOW_MS;
 
     if (!frozen) {
-      const pinned = existing.filter((g) => g.manualPin);
-      const pinnedIds = new Set(pinned.map((g) => g.espnId));
-      const room = GAMES_PER_WEEK - pinned.length;
-      const chosen = selectWeek(
-        espnGames.filter((g) => !pinnedIds.has(g.espnId)),
-        Math.max(0, room),
-      );
-      const keep = new Set([...pinnedIds, ...chosen.map((c) => c.game.espnId)]);
-
-      const drop = existing.filter((g) => !keep.has(g.espnId)).map((g) => g.id);
-      if (drop.length) await db.delete(games).where(inArray(games.id, drop));
-
-      const have = new Set(existing.filter((g) => keep.has(g.espnId)).map((g) => g.espnId));
-      for (const s of chosen) {
-        if (have.has(s.game.espnId)) continue;
-        await db.insert(games).values({
-          ...rowFromEspn(s.game),
-          isSelected: true,
-          selectionScore: s.score,
-          selectionReason: s.reason,
-        });
-        created++;
-        reselected = true;
-      }
-
-      if (reselected || drop.length) {
-        existing = await db
-          .select()
-          .from(games)
-          .where(and(eq(games.season, season), eq(games.week, week)));
-      }
+      await applySelection(season, week, autoSelect(espnGames, new Set()));
+      reselected = true;
     }
-  }
-
-  // ---- Refresh the slate --------------------------------------------------
-  let updated = 0;
-  let locked = 0;
-
-  for (const row of existing) {
-    const live = byEspnId.get(row.espnId);
-    if (!live) continue;
-    const next = rowFromEspn(live);
-
-    // Freeze the closing line. ESPN drops odds entirely once a game ends, so if
-    // we don't capture it here the number is gone for good and the week can't
-    // be graded. Falling back to 0 treats a never-lined game as a pick'em.
-    let lockedSpread = row.lockedSpread;
-    if (lockedSpread === null && (now >= row.kickoff || live.status !== "pre")) {
-      lockedSpread = live.spread ?? row.spread ?? 0;
-      locked++;
-    }
-
-    // Don't let a null from ESPN wipe a line we already have.
-    const spread = live.spread ?? row.spread;
-
-    await db
-      .update(games)
-      .set({ ...next, spread, lockedSpread })
-      .where(eq(games.id, row.id));
-    updated++;
   }
 
   await setMeta(`sync:${season}:${week}`, String(now));
 
-  const selected = existing.length || created;
-  return { season, week, selected, created, updated, locked, reselected };
+  const selectedCount = reselected
+    ? Math.min(GAMES_PER_WEEK, espnGames.length)
+    : selected.length;
+
+  return { season, week, stored: espnGames.length, selected: selectedCount, locked, reselected };
+}
+
+/** Re-run the automatic slate, keeping anything already picked. */
+export async function autoSelectWeek(season: number, week: number): Promise<void> {
+  await ready();
+  const espnGames = await fetchWeek(season, week);
+  if (!espnGames.length) return;
+
+  const rows = await db
+    .select()
+    .from(games)
+    .where(and(eq(games.season, season), eq(games.week, week)));
+
+  const pickedGameIds = new Set(
+    (
+      await db
+        .select({ gameId: picks.gameId })
+        .from(picks)
+        .where(inArray(picks.gameId, rows.length ? rows.map((g) => g.id) : [-1]))
+    ).map((r) => r.gameId),
+  );
+  const now = Date.now();
+  const forced = new Set(
+    rows
+      .filter((g) => pickedGameIds.has(g.id) || (g.isSelected && now >= g.kickoff))
+      .map((g) => g.espnId),
+  );
+
+  await applySelection(season, week, autoSelect(espnGames, forced));
+  await setSlatePinned(season, week, false);
 }
 
 /**
@@ -270,27 +335,23 @@ export async function maybeSyncWeek(season: number, week: number): Promise<SyncR
   const age = Date.now() - lastAt;
 
   if (lastAt) {
-    const liveRow = await db
-      .select({ n: sql<number>`count(*)` })
-      .from(games)
-      .where(and(eq(games.season, season), eq(games.week, week), eq(games.status, "in")))
-      .get();
-
-    // A game past kickoff but not yet marked live also warrants a fast refresh.
-    const imminentRow = await db
+    // Only the slate drives the refresh rate — a live game nobody picked isn't
+    // worth hammering ESPN for.
+    const hotRow = await db
       .select({ n: sql<number>`count(*)` })
       .from(games)
       .where(
         and(
           eq(games.season, season),
           eq(games.week, week),
+          eq(games.isSelected, true),
           eq(games.completed, false),
           sql`${games.kickoff} <= ${Date.now()}`,
         ),
       )
       .get();
 
-    const hot = (liveRow?.n ?? 0) > 0 || (imminentRow?.n ?? 0) > 0;
+    const hot = (hotRow?.n ?? 0) > 0;
     if (age < (hot ? SYNC_TTL_LIVE_MS : SYNC_TTL_IDLE_MS)) return null;
   }
 

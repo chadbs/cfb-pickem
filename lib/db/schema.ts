@@ -31,6 +31,7 @@ export const games = sqliteTable(
     homeRank: integer("home_rank"),
     homeRecord: text("home_record"),
     homeScore: integer("home_score"),
+    homeConfId: text("home_conf_id"),
 
     awayTeamId: text("away_team_id").notNull(),
     awayName: text("away_name").notNull(),
@@ -41,6 +42,7 @@ export const games = sqliteTable(
     awayRank: integer("away_rank"),
     awayRecord: text("away_record"),
     awayScore: integer("away_score"),
+    awayConfId: text("away_conf_id"),
 
     neutralSite: integer("neutral_site", { mode: "boolean" }).notNull().default(false),
     venue: text("venue"),

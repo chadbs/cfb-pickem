@@ -4,9 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { db, ready, schema } from "@/lib/db";
-import { fillSlate, rowFromEspn, syncWeek } from "@/lib/sync";
-import { fetchWeek } from "@/lib/espn";
-import { scoreGame } from "@/lib/selection";
+import { autoSelectWeek, setSlatePinned, syncWeek } from "@/lib/sync";
 import { GAMES_PER_WEEK } from "@/lib/config";
 
 const { games, picks, players } = schema;
@@ -104,20 +102,26 @@ export async function setSlate(
     .from(games)
     .where(and(eq(games.season, season), eq(games.week, week)));
 
-  const keep = new Set(wanted);
-  const toDrop = existing.filter((g) => !keep.has(g.espnId));
+  const known = new Set(existing.map((g) => g.espnId));
+  const unknown = wanted.filter((id) => !known.has(id));
+  if (unknown.length) {
+    return { ok: false, error: "That game isn't in this week — refresh and try again" };
+  }
 
-  if (toDrop.length) {
+  const keep = new Set(wanted);
+  const dropping = existing.filter((g) => g.isSelected && !keep.has(g.espnId));
+
+  if (dropping.length) {
     const pickedIds = new Set(
       (
         await db
           .select({ gameId: picks.gameId })
           .from(picks)
-          .where(inArray(picks.gameId, toDrop.map((g) => g.id)))
+          .where(inArray(picks.gameId, dropping.map((g) => g.id)))
       ).map((r) => r.gameId),
     );
     const now = Date.now();
-    const blocked = toDrop.filter(
+    const blocked = dropping.filter(
       (g) => pickedIds.has(g.id) || now >= g.kickoff || g.status !== "pre",
     );
     if (blocked.length) {
@@ -128,33 +132,21 @@ export async function setSlate(
           .join(", ")} — already picked or kicked off`,
       };
     }
-    await db.delete(games).where(inArray(games.id, toDrop.map((g) => g.id)));
   }
 
-  const have = new Set(existing.filter((g) => keep.has(g.espnId)).map((g) => g.espnId));
-  const missing = wanted.filter((id) => !have.has(id));
-
-  if (missing.length) {
-    const espnGames = await fetchWeek(season, week);
-    const byId = new Map(espnGames.map((g) => [g.espnId, g]));
-    for (const id of missing) {
-      const live = byId.get(id);
-      if (!live) return { ok: false, error: `Game ${id} is no longer on ESPN's schedule` };
-      const scored = scoreGame(live);
-      await db.insert(games).values({
-        ...rowFromEspn(live),
-        isSelected: true,
-        selectionScore: scored.score,
-        selectionReason: scored.reason,
-        manualPin: true,
-      });
-    }
-  }
+  // Nothing is deleted: dropping a game from the slate just clears its flag, so
+  // it stays in the table feeding the league-wide stats.
+  await db
+    .update(games)
+    .set({ isSelected: false, selectionRank: null })
+    .where(and(eq(games.season, season), eq(games.week, week)));
 
   await db
     .update(games)
-    .set({ manualPin: true })
-    .where(and(eq(games.season, season), eq(games.week, week)));
+    .set({ isSelected: true, manualPin: true })
+    .where(and(eq(games.season, season), inArray(games.espnId, wanted)));
+
+  await setSlatePinned(season, week, true);
 
   revalidatePath("/");
   revalidatePath("/admin");
@@ -164,36 +156,7 @@ export async function setSlate(
 /** Drop back to the automatic slate, keeping anything already picked or started. */
 export async function resetSlate(season: number, week: number): Promise<ActionResult> {
   await ready();
-
-  const existing = await db
-    .select()
-    .from(games)
-    .where(and(eq(games.season, season), eq(games.week, week)));
-
-  if (existing.length) {
-    const pickedIds = new Set(
-      (
-        await db
-          .select({ gameId: picks.gameId })
-          .from(picks)
-          .where(inArray(picks.gameId, existing.map((g) => g.id)))
-      ).map((r) => r.gameId),
-    );
-    const now = Date.now();
-    const removable = existing.filter(
-      (g) => !pickedIds.has(g.id) && now < g.kickoff && g.status === "pre",
-    );
-    if (removable.length) {
-      await db.delete(games).where(inArray(games.id, removable.map((g) => g.id)));
-    }
-    await db
-      .update(games)
-      .set({ manualPin: false })
-      .where(and(eq(games.season, season), eq(games.week, week)));
-  }
-
-  await fillSlate(season, week);
-
+  await autoSelectWeek(season, week);
   revalidatePath("/");
   revalidatePath("/admin");
   return { ok: true };

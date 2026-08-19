@@ -36,6 +36,8 @@ const client = globalForDb.__pickemClient ?? createClient({ url, authToken });
 if (process.env.NODE_ENV !== "production") globalForDb.__pickemClient = client;
 
 export const db = drizzle(client, { schema });
+/** Raw libsql client — used for batched writes, where one round trip per row would be too slow. */
+export { client };
 export { schema };
 
 /**
@@ -69,6 +71,7 @@ const DDL = [
     home_rank INTEGER,
     home_record TEXT,
     home_score INTEGER,
+    home_conf_id TEXT,
     away_team_id TEXT NOT NULL,
     away_name TEXT NOT NULL,
     away_short TEXT NOT NULL,
@@ -78,6 +81,7 @@ const DDL = [
     away_rank INTEGER,
     away_record TEXT,
     away_score INTEGER,
+    away_conf_id TEXT,
     neutral_site INTEGER NOT NULL DEFAULT 0,
     venue TEXT,
     broadcast TEXT,
@@ -117,6 +121,30 @@ const DDL = [
   )`,
 ];
 
+/**
+ * Columns added after the first release. `CREATE TABLE IF NOT EXISTS` is a
+ * no-op on a table that already exists, so a database created before a column
+ * was introduced never gets it. Applied explicitly and idempotently instead —
+ * still no migration files to run during a deploy.
+ */
+const EXPECTED_COLUMNS: Array<[table: string, column: string, type: string]> = [
+  ["games", "home_conf_id", "TEXT"],
+  ["games", "away_conf_id", "TEXT"],
+];
+
+async function ensureColumns() {
+  const existing = new Map<string, Set<string>>();
+  for (const [table] of EXPECTED_COLUMNS) {
+    if (existing.has(table)) continue;
+    const info = await client.execute(`PRAGMA table_info(${table})`);
+    existing.set(table, new Set(info.rows.map((r) => String(r.name))));
+  }
+  for (const [table, column, type] of EXPECTED_COLUMNS) {
+    if (existing.get(table)?.has(column)) continue;
+    await client.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
+}
+
 async function bootstrap() {
   /**
    * Refuse to serve a production deploy off the local-file fallback. Serverless
@@ -133,6 +161,7 @@ async function bootstrap() {
   }
 
   for (const stmt of DDL) await client.execute(stmt);
+  await ensureColumns();
 
   // Seed the roster. ON CONFLICT DO NOTHING means renaming someone in config.ts
   // won't clobber their row (or their picks) — edit the DB for that.

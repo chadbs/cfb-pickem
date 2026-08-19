@@ -12,7 +12,10 @@ export default async function InsightsPage() {
   const current = await getCurrentWeek();
   const data = await getInsights(current.season);
 
-  const anything = data.splits.some((s) => total(s.overall) > 0);
+  // Team and conference tables stand on their own now, so the page is worth
+  // showing before anyone's picks have been graded.
+  const hasPlayerData = data.splits.some((s) => total(s.overall) > 0);
+  const anything = hasPlayerData || data.gradedGames > 0;
 
   return (
     <>
@@ -45,6 +48,8 @@ export default async function InsightsPage() {
           </div>
         ) : (
           <div className="grid items-start gap-4 lg:grid-cols-2">
+            {hasPlayerData && (
+              <>
             <Section title="Head to head" hint="Only games where you disagreed">
               <ul>
                 {data.h2h
@@ -166,15 +171,80 @@ export default async function InsightsPage() {
               </ul>
             </Section>
 
+              </>
+            )}
+
+            <Section
+              title="Conference power rankings"
+              hint="Straight-up record in non-conference games"
+            >
+              {data.conferences.length === 0 ? (
+                <p className="px-3 py-3 text-[12px] text-[var(--ink-faint)]">
+                  Nothing cross-conference has finished yet.
+                </p>
+              ) : (
+                <ul>
+                  {data.conferences.map((c) => {
+                    const n = c.wins + c.losses;
+                    return (
+                      <li
+                        key={c.id}
+                        className="flex items-center gap-2.5 border-b border-[var(--line)] px-3 py-2 last:border-b-0"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">
+                          {c.name}
+                        </span>
+                        <span className="nums text-[12.5px] font-semibold">
+                          {c.wins}-{c.losses}
+                        </span>
+                        <span className="nums w-[46px] text-right text-[11.5px] text-[var(--ink-faint)]">
+                          {n ? `${Math.round((c.wins / n) * 100)}%` : "—"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Section>
+
+            <Section title="Conference matchups" hint="Head to head, non-conference games">
+              {data.conferenceMatchups.length === 0 ? (
+                <p className="px-3 py-3 text-[12px] text-[var(--ink-faint)]">
+                  Nothing to compare yet.
+                </p>
+              ) : (
+                <ul>
+                  {data.conferenceMatchups.map((m) => (
+                    <li
+                      key={`${m.a}-${m.b}`}
+                      className="flex items-center gap-2 border-b border-[var(--line)] px-3 py-2 last:border-b-0"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">{m.a}</span>
+                      <span className="nums shrink-0 text-[13px] font-semibold">
+                        <span className={m.aWins > m.bWins ? "text-[var(--win)]" : undefined}>
+                          {m.aWins}
+                        </span>
+                        <span className="mx-1 text-[var(--ink-faint)]">–</span>
+                        <span className={m.bWins > m.aWins ? "text-[var(--win)]" : undefined}>
+                          {m.bWins}
+                        </span>
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-right text-[12.5px] font-medium">
+                        {m.b}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+
             <Section
               title="Teams against the spread"
-              hint={`Our ${data.gradedGames} played games, minimum ${MIN_TEAM_GAMES} appearances`}
+              hint={`All ${data.gradedGames} completed FBS games, minimum ${MIN_TEAM_GAMES} played`}
             >
               {data.teams.length === 0 ? (
                 <p className="px-3 py-3 text-[12px] leading-relaxed text-[var(--ink-faint)]">
-                  No team has been on our slate {MIN_TEAM_GAMES} times yet. Colorado,
-                  Colorado State, Nebraska and Michigan will get here first — they&apos;re
-                  in nearly every week.
+                  No team has played {MIN_TEAM_GAMES} games with a line on record yet.
                 </p>
               ) : (
                 <ul>
@@ -230,9 +300,10 @@ export default async function InsightsPage() {
         )}
 
         <p className="mt-6 text-[11.5px] leading-relaxed text-[var(--ink-faint)]">
-          Everything here comes from our own slate — the ten games we pick each
-          week — so team records are a deliberately small sample, not a
-          league-wide table.
+          Team and conference tables cover every FBS game, {data.gradedGames} of them
+          played so far. Player stats cover the {data.gradedSlateGames} of those that
+          were on our slate. Records against the spread skip any game where no line
+          was ever posted.
         </p>
       </main>
     </>

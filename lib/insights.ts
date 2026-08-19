@@ -2,12 +2,16 @@ import { asc, eq } from "drizzle-orm";
 import { db, ready, schema } from "./db";
 import { coveringSide, gradePick, spreadForPick, type PickResult, type Side } from "./scoring";
 import { spreadForSide } from "./format";
+import { getConferences } from "./sync";
 import type { PlayerView } from "./view-types";
 
 const { games, picks, players } = schema;
 
-/** A team needs this many games on our slate before its ATS record means anything. */
-export const MIN_TEAM_GAMES = 3;
+/**
+ * Every FBS game is stored now, not just our ten, so a team's ATS record is a
+ * real season-long sample. Four is the same floor the old app used.
+ */
+export const MIN_TEAM_GAMES = 4;
 
 export interface Rec {
   wins: number;
@@ -62,12 +66,32 @@ export interface TeamAts {
   rec: Rec;
 }
 
+/** A conference's straight-up record against every other conference. */
+export interface ConferenceRec {
+  id: string;
+  name: string;
+  wins: number;
+  losses: number;
+}
+
+export interface ConferenceMatchup {
+  a: string;
+  b: string;
+  aWins: number;
+  bWins: number;
+}
+
 export interface Insights {
   season: number;
+  /** Completed FBS games in the database. */
   gradedGames: number;
+  /** Completed games that were on our slate. */
+  gradedSlateGames: number;
   splits: PlayerSplits[];
   h2h: HeadToHead[];
   teams: TeamAts[];
+  conferences: ConferenceRec[];
+  conferenceMatchups: ConferenceMatchup[];
   /** All four took the same side, and how those turned out. */
   consensus: Rec;
 }
@@ -82,6 +106,7 @@ export async function getInsights(season: number): Promise<Insights> {
   const roster = await db.select().from(players).orderBy(asc(players.sort), asc(players.id));
   const gameRows = await db.select().from(games).where(eq(games.season, season));
   const pickRows = await db.select().from(picks);
+  const confNames = await getConferences(season);
 
   const gameById = new Map(gameRows.map((g) => [g.id, g]));
   const toView = (p: (typeof roster)[number]): PlayerView => ({
@@ -190,10 +215,12 @@ export async function getInsights(season: number): Promise<Insights> {
     }
   }
 
-  // ---- how the teams in our slate have done against the number ------------
+  // ---- league-wide: every team's record against the number ---------------
   const teamMap = new Map<string, TeamAts>();
   for (const g of gameRows) {
     if (!g.completed) continue;
+    // Needs a line we actually captured; games that never had one are left out
+    // rather than counted as pick'ems.
     const cover = coveringSide(g);
     if (cover === null) continue;
     for (const side of ["home", "away"] as const) {
@@ -212,13 +239,58 @@ export async function getInsights(season: number): Promise<Insights> {
     }
   }
 
-  // Without a floor this list is just every team that happened to cover once,
-  // all sitting at 100%. In practice the teams that clear it are the four we
-  // pick every week, which is the interesting cut anyway.
+  // Without a floor this is just every team that happened to cover once, all
+  // sitting at 100%.
   const teams = [...teamMap.values()]
     .filter((t) => total(t.rec) >= MIN_TEAM_GAMES)
     .sort((a, b) => pct(b.rec) - pct(a.rec) || total(b.rec) - total(a.rec))
     .slice(0, 12);
+
+  // ---- conference strength, from non-conference games only ---------------
+  // A conference's record against itself is 0.500 by construction, so only
+  // cross-conference games say anything.
+  const confRec = new Map<string, ConferenceRec>();
+  const matchups = new Map<string, ConferenceMatchup>();
+
+  for (const g of gameRows) {
+    if (!g.completed || g.homeScore === null || g.awayScore === null) continue;
+    if (g.homeScore === g.awayScore) continue;
+    const hc = g.homeConfId;
+    const ac = g.awayConfId;
+    if (!hc || !ac || hc === ac) continue;
+    if (!confNames[hc] || !confNames[ac]) continue; // skip FCS and unknowns
+
+    const homeWon = g.homeScore > g.awayScore;
+    const winner = homeWon ? hc : ac;
+    const loser = homeWon ? ac : hc;
+
+    for (const [id, isWin] of [
+      [winner, true],
+      [loser, false],
+    ] as const) {
+      const e = confRec.get(id) ?? { id, name: confNames[id], wins: 0, losses: 0 };
+      if (isWin) e.wins++;
+      else e.losses++;
+      confRec.set(id, e);
+    }
+
+    const [x, y] = [hc, ac].sort();
+    const key = `${x}:${y}`;
+    const m = matchups.get(key) ?? { a: confNames[x], b: confNames[y], aWins: 0, bWins: 0 };
+    if (winner === x) m.aWins++;
+    else m.bWins++;
+    matchups.set(key, m);
+  }
+
+  const conferences = [...confRec.values()].sort(
+    (a, b) =>
+      b.wins / Math.max(1, b.wins + b.losses) - a.wins / Math.max(1, a.wins + a.losses) ||
+      b.wins - a.wins,
+  );
+
+  const conferenceMatchups = [...matchups.values()]
+    .sort((a, b) => b.aWins + b.bWins - (a.aWins + a.bWins))
+    .slice(0, 10);
 
   // ---- when everyone agreed ----------------------------------------------
   const consensus = empty();
@@ -234,9 +306,12 @@ export async function getInsights(season: number): Promise<Insights> {
   return {
     season,
     gradedGames,
+    gradedSlateGames: gameRows.filter((g) => g.completed && g.isSelected).length,
     splits: [...splits.values()].sort((a, b) => pct(b.overall) - pct(a.overall)),
     h2h,
     teams,
+    conferences,
+    conferenceMatchups,
     consensus,
   };
 }

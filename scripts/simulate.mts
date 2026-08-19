@@ -145,8 +145,13 @@ console.log(`Inserted ${stored.length * 4} picks.\n`);
 // --------------------------------------------- 3. the games play out (sync)
 const result = await syncWeek(SEASON, WEEK);
 console.log("sync:", result, "\n");
-check("sync locked a line for every game", result.locked === stored.length, `locked=${result.locked}`);
-check("sync did not reshuffle a slate that has picks", result.created === 0);
+check("sync locked a line for every slate game", result.locked === stored.length, `locked=${result.locked}`);
+check("sync did not reshuffle a slate that has picks", result.reselected === false);
+check(
+  "sync stored the whole week, not just the slate",
+  result.stored > stored.length,
+  `stored=${result.stored} slate=${stored.length}`,
+);
 
 const board = await getBoard(SEASON, WEEK);
 

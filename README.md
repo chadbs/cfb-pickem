@@ -22,6 +22,12 @@ hours, whichever comes first. **A game that anyone has picked is never removed.*
 **Lines and scores come from ESPN's public scoreboard feed.** No API key, no
 account, no paid tier — it carries DraftKings lines right alongside the scores.
 
+**Every FBS game is stored, not just our ten.** The slate is a flag on a row
+rather than a separate table, which is what makes the league-wide team and
+conference stats on `/insights` possible. It's roughly 100 games a week, written
+in batches; nothing is ever deleted, so dropping a game from the slate can't
+orphan a pick.
+
 **You get the number you took.** Each pick is graded against the spread that was
 on screen when it was made, not the closing line. Lines move, sometimes sharply
 on late injury news, and settling everyone at the closing number would decide a
@@ -71,13 +77,14 @@ unset and the page is simply open, which is fine for four people.
   pick was actually taken at.
 - **Going it alone** — your record when nobody joined you on that side.
 - **Best and worst week**, and how unanimous picks have done.
-- **Teams against the spread**, restricted to teams that have appeared on our
-  slate at least three times. Without that floor the list is just every team
-  that covered once, all sitting at 100%.
+- **Conference power rankings** and **conference head-to-head**, from
+  non-conference games only — a conference's record against itself is .500 by
+  construction and says nothing.
+- **Teams against the spread**, minimum four games played.
 
-That last one is a small sample on purpose: the database only holds the ten
-games we pick each week, not the whole league, so there's no honest way to build
-league-wide team or conference tables from it.
+The last three are league-wide: every FBS game gets stored each week, not just
+our ten, so these are full-season samples. Games that never had a line posted
+are left out of anything against the spread rather than counted as pick'ems.
 
 ## Running it locally
 
