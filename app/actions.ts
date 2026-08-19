@@ -28,18 +28,18 @@ export async function setPick(
 
   if (side !== "home" && side !== "away") return { ok: false, error: "Invalid pick" };
 
-  const game = await db.select().from(games).where(eq(games.id, gameId)).get();
+  const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
   if (!game) return { ok: false, error: "Game not found" };
 
   if (Date.now() >= game.kickoff || game.status !== "pre") {
     return { ok: false, error: "This game has already kicked off" };
   }
 
-  const player = await db.select().from(players).where(eq(players.id, playerId)).get();
+  const [player] = await db.select().from(players).where(eq(players.id, playerId)).limit(1);
   if (!player) return { ok: false, error: "Player not found" };
 
   const now = Date.now();
-  const existing = await db.select().from(picks).where(eq(picks.gameId, gameId)).all();
+  const existing = await db.select().from(picks).where(eq(picks.gameId, gameId));
   const mine = existing.find((p) => p.playerId === playerId);
 
   if (mine) {

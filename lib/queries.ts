@@ -183,6 +183,6 @@ export async function getSeasonStandings(season: number): Promise<SeasonStanding
 
 export async function getPlayerBySlug(slug: string): Promise<PlayerView | null> {
   await ready();
-  const row = await db.select().from(players).where(eq(players.slug, slug)).get();
+  const [row] = await db.select().from(players).where(eq(players.slug, slug)).limit(1);
   return row ? toPlayerView(row) : null;
 }

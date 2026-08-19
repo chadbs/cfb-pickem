@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
     // Team logos come straight from ESPN's CDN.
     remotePatterns: [{ protocol: "https", hostname: "a.espncdn.com" }],
   },
-  // The libsql client is a native/node module — keep it out of the bundle.
-  serverExternalPackages: ["@libsql/client"],
+  // Keep the Postgres driver out of the bundle; it's a server-only dependency.
+  serverExternalPackages: ["postgres"],
 };
 
 export default nextConfig;

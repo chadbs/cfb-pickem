@@ -93,8 +93,21 @@ npm install
 npm run dev
 ```
 
-No configuration needed — it creates a SQLite file at `./data/pickem.db` and
-seeds the four players on first run.
+You need the database connection string first:
+
+```bash
+vercel link          # once, to attach this folder to the Vercel project
+vercel env pull .env.local
+```
+
+That writes `DATABASE_URL` into `.env.local` (gitignored). The schema creates
+itself and the four players are seeded on first run.
+
+Local development shares the production database. For a four-person pool that's
+usually what you want — you can see real picks while working — but it does mean
+a stray `npm run sync` writes to the live data. Use a
+[Neon branch](https://neon.tech/docs/introduction/branching) if you'd rather it
+didn't.
 
 Useful commands:
 
@@ -123,21 +136,26 @@ npm run sync 2026 3    # or a specific one
 
 ## Deploying
 
-### Vercel + Turso (recommended, free)
+### Vercel + Neon (free)
 
-1. **Database.** Create a free Turso database at
-   [turso.tech](https://turso.tech) (or `turso db create pickem` with their
-   CLI). Grab the database URL and an auth token.
-
-2. **Push to GitHub**, then import the repo at
+1. **Push to GitHub**, then import the repo at
    [vercel.com/new](https://vercel.com/new).
 
-3. **Environment variables** in Vercel:
+2. **Database.** In the project, go to **Storage → Create Database → Neon**,
+   pick the Free plan and a region matching your functions (`iad1` here). When
+   it asks to connect the project, set the **custom prefix to `DATABASE`** so
+   the injected variable is `DATABASE_URL` — the default `STORAGE` prefix
+   produces `STORAGE_URL`, which the app doesn't read. Tick **Development** too
+   if you want `vercel env pull` to work locally.
 
-   | Name | Value |
+   Vercel writes the connection string itself; there's no token to copy.
+
+3. **Environment variables** — only one is required, and Neon sets it:
+
+   | Name | Set by |
    | --- | --- |
-   | `DATABASE_URL` | `libsql://your-db.turso.io` |
-   | `DATABASE_AUTH_TOKEN` | the Turso token |
+   | `DATABASE_URL` | the Neon integration |
+   | `CRON_SECRET` | you, optionally |
    | `CRON_SECRET` | any random string (optional) |
 
 4. **Deploy.** The schema creates itself on first boot — there is no migration
@@ -168,14 +186,15 @@ a Vite SPA in the same project:
 
 ### Anywhere else
 
-Any Node host works. Set `DATABASE_URL` to a `file:` path on a persistent volume
-(this is the Fly.io setup) or to a Turso URL, then `npm run build && npm start`.
+Any Node host and any Postgres works. Point `DATABASE_URL` at it and run
+`npm run build && npm start`. Nothing is Neon-specific — `prepare: false` in the
+client is there for Neon's transaction-mode pooler and is harmless elsewhere.
 
 ---
 
 ## Not losing a season of picks
 
-- Turso is a managed, replicated database — it's the durable copy.
+- Neon is a managed Postgres with its own backups — it's the durable copy.
 - `GET /api/export` returns every player, game, pick and line as a JSON file.
   Download it whenever you want an off-site backup.
 - Picks are never deleted by any automatic process. The slate re-picker

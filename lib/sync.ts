@@ -1,6 +1,5 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
-import type { InArgs, InStatement } from "@libsql/client";
-import { client, db, ready, schema } from "./db";
+import { and, eq, getTableColumns, inArray, sql } from "drizzle-orm";
+import { db, ready, schema } from "./db";
 import {
   fetchConferences,
   fetchCurrentWeek,
@@ -18,12 +17,15 @@ const RESELECT_WINDOW_MS = 48 * 60 * 60 * 1000;
 const CURRENT_WEEK_TTL_MS = 30 * 60 * 1000;
 const CONFERENCES_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** libsql caps how much one batch can carry; well under it. */
-const BATCH_SIZE = 80;
+/**
+ * Postgres allows 65535 bound parameters per statement. At ~37 columns a game,
+ * 500 rows is ~18k — comfortably clear, and a week is only ~100 anyway.
+ */
+const UPSERT_CHUNK = 500;
 
 export async function getMeta(key: string): Promise<{ value: string; updatedAt: number } | null> {
   await ready();
-  const row = await db.select().from(meta).where(eq(meta.key, key)).get();
+  const [row] = await db.select().from(meta).where(eq(meta.key, key)).limit(1);
   return row ? { value: row.value, updatedAt: row.updatedAt } : null;
 }
 
@@ -131,11 +133,28 @@ export function rowFromEspn(g: EspnGame) {
   };
 }
 
-async function runBatch(statements: InStatement[]) {
-  for (let i = 0; i < statements.length; i += BATCH_SIZE) {
-    await client.batch(statements.slice(i, i + BATCH_SIZE), "write");
-  }
-}
+/**
+ * Columns refreshed on every sync. Deliberately excludes is_selected,
+ * selection_rank/score/reason and manual_pin — a routine score refresh must
+ * never be able to clobber the slate.
+ */
+const LIVE_KEYS = [
+  "season", "week", "seasonType", "kickoff",
+  "homeTeamId", "homeName", "homeShort", "homeAbbr", "homeLogo", "homeColor",
+  "homeRank", "homeRecord", "homeScore", "homeConfId",
+  "awayTeamId", "awayName", "awayShort", "awayAbbr", "awayLogo", "awayColor",
+  "awayRank", "awayRecord", "awayScore", "awayConfId",
+  "neutralSite", "venue", "broadcast",
+  "spread", "lockedSpread", "overUnder", "oddsProvider",
+  "status", "statusDetail", "period", "clock", "completed", "updatedAt",
+] as const;
+
+const gameColumns = getTableColumns(games);
+
+/** `SET col = excluded.col` for every live column, built once. */
+const LIVE_UPDATE_SET = Object.fromEntries(
+  LIVE_KEYS.map((k) => [k, sql.raw(`excluded."${gameColumns[k].name}"`)]),
+);
 
 export interface SyncResult {
   season: number;
@@ -153,28 +172,24 @@ export interface SyncResult {
  * stats possible and means a pick can never be orphaned by a slate change.
  */
 async function applySelection(season: number, week: number, chosen: ScoredGame[]) {
-  const clear = db
-    .update(games)
-    .set({ isSelected: false, selectionRank: null })
-    .where(and(eq(games.season, season), eq(games.week, week)))
-    .toSQL();
-
-  const sets = chosen.map((c, i) =>
-    db
+  await db.transaction(async (tx) => {
+    await tx
       .update(games)
-      .set({
-        isSelected: true,
-        selectionRank: i + 1,
-        selectionScore: c.score,
-        selectionReason: c.reason,
-      })
-      .where(eq(games.espnId, c.game.espnId))
-      .toSQL(),
-  );
+      .set({ isSelected: false, selectionRank: null })
+      .where(and(eq(games.season, season), eq(games.week, week)));
 
-  await runBatch(
-    [clear, ...sets].map((s) => ({ sql: s.sql, args: s.params as InArgs })),
-  );
+    for (const [i, c] of chosen.entries()) {
+      await tx
+        .update(games)
+        .set({
+          isSelected: true,
+          selectionRank: i + 1,
+          selectionScore: c.score,
+          selectionReason: c.reason,
+        })
+        .where(eq(games.espnId, c.game.espnId));
+    }
+  });
 }
 
 /**
@@ -236,18 +251,17 @@ export async function syncWeek(
       if (lockedSpread !== null) locked++;
     }
 
-    const values = { ...rowFromEspn(g), spread, lockedSpread };
-    // `values` deliberately carries no selection columns, so an update here
-    // can never clobber the slate.
-    const q = db
-      .insert(games)
-      .values(values)
-      .onConflictDoUpdate({ target: games.espnId, set: values })
-      .toSQL();
-    return { sql: q.sql, args: q.params as InArgs };
+    return { ...rowFromEspn(g), spread, lockedSpread };
   });
 
-  await runBatch(upserts);
+  // One statement for the whole week rather than a round trip per game, which
+  // matters now that the database is across a network rather than on disk.
+  for (let i = 0; i < upserts.length; i += UPSERT_CHUNK) {
+    await db
+      .insert(games)
+      .values(upserts.slice(i, i + UPSERT_CHUNK))
+      .onConflictDoUpdate({ target: games.espnId, set: LIVE_UPDATE_SET });
+  }
 
   // ---- decide the slate --------------------------------------------------
   const rows = await db
@@ -337,8 +351,8 @@ export async function maybeSyncWeek(season: number, week: number): Promise<SyncR
   if (lastAt) {
     // Only the slate drives the refresh rate — a live game nobody picked isn't
     // worth hammering ESPN for.
-    const hotRow = await db
-      .select({ n: sql<number>`count(*)` })
+    const [hotRow] = await db
+      .select({ n: sql<number>`count(*)::int` })
       .from(games)
       .where(
         and(
@@ -348,8 +362,7 @@ export async function maybeSyncWeek(season: number, week: number): Promise<SyncR
           eq(games.completed, false),
           sql`${games.kickoff} <= ${Date.now()}`,
         ),
-      )
-      .get();
+      );
 
     const hot = (hotRow?.n ?? 0) > 0;
     if (age < (hot ? SYNC_TTL_LIVE_MS : SYNC_TTL_IDLE_MS)) return null;

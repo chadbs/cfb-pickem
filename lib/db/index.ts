@@ -1,43 +1,44 @@
-import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { createClient, type Client } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 import { PLAYERS } from "@/lib/config";
 
 /**
- * One code path for both environments: a plain SQLite file locally, Turso in
- * production. Set DATABASE_URL to a libsql:// URL plus DATABASE_AUTH_TOKEN and
- * nothing else changes.
+ * Neon Postgres, provisioned through the Vercel marketplace, which injects
+ * DATABASE_URL itself. `vercel env pull` puts the same value in .env.local for
+ * local work, so there is one connection string and one code path.
  */
-const authToken = process.env.DATABASE_AUTH_TOKEN;
+const url = process.env.DATABASE_URL;
+
+const globalForDb = globalThis as unknown as {
+  __pickemSql?: ReturnType<typeof postgres>;
+  __pickemReady?: Promise<void>;
+};
 
 /**
- * createClient opens a `file:` database immediately, at import time. On a
- * read-only serverless filesystem that throws a bare ConnectionFailed before
- * any request-time code can run, burying the actual problem (no DATABASE_URL).
- *
- * So in production without one, point at an in-memory database instead: nothing
- * touches the disk, `next build` still imports this module happily, and the
- * check in bootstrap() gets to explain what's really wrong on the first request.
+ * `max: 1` because each serverless invocation is its own process — a larger
+ * pool per instance just burns Neon connections. `prepare: false` is required
+ * by Neon's pooled endpoint, which runs in transaction mode and can't hold
+ * prepared statements across checkouts.
  */
-const url =
-  process.env.DATABASE_URL ??
-  (process.env.NODE_ENV === "production" ? ":memory:" : "file:./data/pickem.db");
+const sql =
+  globalForDb.__pickemSql ??
+  postgres(url ?? "postgres://invalid", {
+    max: 1,
+    prepare: false,
+    idle_timeout: 20,
+    connect_timeout: 15,
+    // The idempotent bootstrap deliberately re-runs CREATE/ALTER ... IF NOT
+    // EXISTS on every cold start, so Postgres' "already exists, skipping"
+    // notices are expected rather than interesting.
+    onnotice: () => {},
+  });
 
-if (url.startsWith("file:")) {
-  // libsql won't create the parent directory for us.
-  mkdirSync(dirname(resolve(url.slice("file:".length))), { recursive: true });
-}
+if (process.env.NODE_ENV !== "production") globalForDb.__pickemSql = sql;
 
-const globalForDb = globalThis as unknown as { __pickemClient?: Client; __pickemReady?: Promise<void> };
-
-const client = globalForDb.__pickemClient ?? createClient({ url, authToken });
-if (process.env.NODE_ENV !== "production") globalForDb.__pickemClient = client;
-
-export const db = drizzle(client, { schema });
-/** Raw libsql client — used for batched writes, where one round trip per row would be too slow. */
-export { client };
+export const db = drizzle(sql, { schema });
+/** Raw postgres client — used where drizzle's builder doesn't reach. */
+export { sql };
 export { schema };
 
 /**
@@ -47,21 +48,21 @@ export { schema };
  */
 const DDL = [
   `CREATE TABLE IF NOT EXISTS players (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     accent TEXT NOT NULL,
     initials TEXT NOT NULL,
     sort INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL
+    created_at BIGINT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS games (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     espn_id TEXT NOT NULL UNIQUE,
     season INTEGER NOT NULL,
     week INTEGER NOT NULL,
     season_type INTEGER NOT NULL DEFAULT 2,
-    kickoff INTEGER NOT NULL,
+    kickoff BIGINT NOT NULL,
     home_team_id TEXT NOT NULL,
     home_name TEXT NOT NULL,
     home_short TEXT NOT NULL,
@@ -82,96 +83,78 @@ const DDL = [
     away_record TEXT,
     away_score INTEGER,
     away_conf_id TEXT,
-    neutral_site INTEGER NOT NULL DEFAULT 0,
+    neutral_site BOOLEAN NOT NULL DEFAULT FALSE,
     venue TEXT,
     broadcast TEXT,
-    spread REAL,
-    locked_spread REAL,
-    over_under REAL,
+    spread DOUBLE PRECISION,
+    locked_spread DOUBLE PRECISION,
+    over_under DOUBLE PRECISION,
     odds_provider TEXT,
     status TEXT NOT NULL DEFAULT 'pre',
     status_detail TEXT,
     period INTEGER,
     clock TEXT,
-    completed INTEGER NOT NULL DEFAULT 0,
-    is_selected INTEGER NOT NULL DEFAULT 0,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    is_selected BOOLEAN NOT NULL DEFAULT FALSE,
     selection_rank INTEGER,
-    selection_score REAL,
+    selection_score DOUBLE PRECISION,
     selection_reason TEXT,
-    manual_pin INTEGER NOT NULL DEFAULT 0,
-    updated_at INTEGER NOT NULL
+    manual_pin BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at BIGINT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS games_week_idx ON games (season, week)`,
   `CREATE INDEX IF NOT EXISTS games_selected_idx ON games (season, week, is_selected)`,
   `CREATE TABLE IF NOT EXISTS picks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     player_id INTEGER NOT NULL REFERENCES players(id),
     game_id INTEGER NOT NULL REFERENCES games(id),
     side TEXT NOT NULL,
-    spread_at_pick REAL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    spread_at_pick DOUBLE PRECISION,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS picks_player_game_idx ON picks (player_id, game_id)`,
   `CREATE INDEX IF NOT EXISTS picks_game_idx ON picks (game_id)`,
   `CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at BIGINT NOT NULL
   )`,
 ];
 
 /**
- * Columns added after the first release. `CREATE TABLE IF NOT EXISTS` is a
- * no-op on a table that already exists, so a database created before a column
- * was introduced never gets it. Applied explicitly and idempotently instead —
- * still no migration files to run during a deploy.
+ * Columns added after a table already existed. `CREATE TABLE IF NOT EXISTS` is
+ * a no-op on an existing table, so those columns would never appear. Postgres
+ * supports `ADD COLUMN IF NOT EXISTS`, which makes this a one-liner.
  */
 const EXPECTED_COLUMNS: Array<[table: string, column: string, type: string]> = [
   ["games", "home_conf_id", "TEXT"],
   ["games", "away_conf_id", "TEXT"],
 ];
 
-async function ensureColumns() {
-  const existing = new Map<string, Set<string>>();
-  for (const [table] of EXPECTED_COLUMNS) {
-    if (existing.has(table)) continue;
-    const info = await client.execute(`PRAGMA table_info(${table})`);
-    existing.set(table, new Set(info.rows.map((r) => String(r.name))));
-  }
-  for (const [table, column, type] of EXPECTED_COLUMNS) {
-    if (existing.get(table)?.has(column)) continue;
-    await client.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
-  }
-}
-
 async function bootstrap() {
-  /**
-   * Refuse to serve a production deploy off the local-file fallback. Serverless
-   * filesystems are ephemeral, so it would appear to work and then quietly hand
-   * back an empty database — losing a season of picks — on the next deploy or
-   * cold start. Checked here rather than at import time so `next build`, which
-   * also runs with NODE_ENV=production, isn't affected.
-   */
-  if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
+  if (!url) {
     throw new Error(
-      "DATABASE_URL is not set. Production needs a Turso/libSQL database — a " +
-        "local SQLite file will not survive a deploy. See README.md > Deploying.",
+      "DATABASE_URL is not set. Provision the Neon database in Vercel " +
+        "(Storage → Create Database) and run `vercel env pull .env.local` for " +
+        "local development. See README.md > Deploying.",
     );
   }
 
-  for (const stmt of DDL) await client.execute(stmt);
-  await ensureColumns();
+  for (const stmt of DDL) await sql.unsafe(stmt);
+  for (const [table, column, type] of EXPECTED_COLUMNS) {
+    await sql.unsafe(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${column} ${type}`);
+  }
 
   // Seed the roster. ON CONFLICT DO NOTHING means renaming someone in config.ts
-  // won't clobber their row (or their picks) — edit the DB for that.
+  // won't clobber their row (or their picks) — edit the database for that.
   const now = Date.now();
   for (const [i, p] of PLAYERS.entries()) {
-    await client.execute({
-      sql: `INSERT INTO players (slug, name, accent, initials, sort, created_at)
-            VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(slug) DO NOTHING`,
-      args: [p.slug, p.name, p.accent, p.initials, i, now],
-    });
+    await sql`
+      INSERT INTO players (slug, name, accent, initials, sort, created_at)
+      VALUES (${p.slug}, ${p.name}, ${p.accent}, ${p.initials}, ${i}, ${now})
+      ON CONFLICT (slug) DO NOTHING
+    `;
   }
 }
 
