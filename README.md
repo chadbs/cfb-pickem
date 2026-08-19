@@ -147,6 +147,18 @@ want them moving with nobody watching, point a free scheduler like
 `https://your-app.vercel.app/api/cron/sync?key=YOUR_CRON_SECRET` every 5
 minutes.
 
+### Reusing an existing Vercel project
+
+If you point an old project at this repo rather than creating a new one, check
+three settings — each of these failed the build outright when this app replaced
+a Vite SPA in the same project:
+
+| Setting | Must be |
+| --- | --- |
+| Root Directory | empty (the app is at the repo root, not in `client/`) |
+| Framework Preset | Next.js |
+| Cron schedule | daily — Hobby rejects anything more frequent |
+
 ### Anywhere else
 
 Any Node host works. Set `DATABASE_URL` to a `file:` path on a persistent volume
