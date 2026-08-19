@@ -10,18 +10,24 @@ import { PLAYERS } from "@/lib/config";
  * production. Set DATABASE_URL to a libsql:// URL plus DATABASE_AUTH_TOKEN and
  * nothing else changes.
  */
-const url = process.env.DATABASE_URL ?? "file:./data/pickem.db";
 const authToken = process.env.DATABASE_AUTH_TOKEN;
 
+/**
+ * createClient opens a `file:` database immediately, at import time. On a
+ * read-only serverless filesystem that throws a bare ConnectionFailed before
+ * any request-time code can run, burying the actual problem (no DATABASE_URL).
+ *
+ * So in production without one, point at an in-memory database instead: nothing
+ * touches the disk, `next build` still imports this module happily, and the
+ * check in bootstrap() gets to explain what's really wrong on the first request.
+ */
+const url =
+  process.env.DATABASE_URL ??
+  (process.env.NODE_ENV === "production" ? ":memory:" : "file:./data/pickem.db");
+
 if (url.startsWith("file:")) {
-  // libsql won't create the parent directory for us. On a read-only serverless
-  // filesystem this throws — swallowed here so the clearer check in ready()
-  // gets to explain what's actually wrong.
-  try {
-    mkdirSync(dirname(resolve(url.slice("file:".length))), { recursive: true });
-  } catch {
-    /* handled in ready() */
-  }
+  // libsql won't create the parent directory for us.
+  mkdirSync(dirname(resolve(url.slice("file:".length))), { recursive: true });
 }
 
 const globalForDb = globalThis as unknown as { __pickemClient?: Client; __pickemReady?: Promise<void> };
