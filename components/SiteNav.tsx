@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 
 const TABS = [
   { href: "/" as const, label: "Picks", icon: BallIcon },
   { href: "/standings" as const, label: "Standings", icon: TrophyIcon },
   { href: "/insights" as const, label: "Insights", icon: ChartIcon },
 ];
+
+const SPRING = { type: "spring" as const, stiffness: 480, damping: 38 };
 
 function useActive() {
   const pathname = usePathname();
@@ -26,13 +29,20 @@ export function SiteTabs() {
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-[7px] px-2.5 py-1.5 text-[13px] font-medium transition-colors ${
-              active
-                ? "bg-white/[0.09] text-[var(--ink)]"
-                : "text-[var(--ink-faint)] hover:bg-white/[0.045] hover:text-[var(--ink-dim)]"
+            className={`relative rounded-[7px] px-2.5 py-1.5 text-[13px] font-medium transition-colors ${
+              active ? "text-[var(--ink)]" : "text-[var(--ink-faint)] hover:text-[var(--ink-dim)]"
             }`}
           >
-            {t.label}
+            {active && (
+              // Shared id: the highlight travels between tabs instead of
+              // disappearing here and reappearing there.
+              <motion.span
+                layoutId="tab-pill"
+                transition={SPRING}
+                className="absolute inset-0 rounded-[7px] bg-white/[0.09]"
+              />
+            )}
+            <span className="relative">{t.label}</span>
           </Link>
         );
       })}
@@ -57,10 +67,23 @@ export function BottomNav() {
               key={t.href}
               href={t.href}
               aria-current={active ? "page" : undefined}
-              className="flex flex-1 flex-col items-center gap-0.5 py-2 transition-colors"
+              className="relative flex flex-1 flex-col items-center gap-0.5 py-2 transition-colors"
               style={{ color: active ? "var(--ink)" : "var(--ink-faint)" }}
             >
-              <Icon active={active} />
+              {active && (
+                <motion.span
+                  layoutId="bottom-nav-bar"
+                  transition={SPRING}
+                  className="absolute inset-x-5 top-0 h-[2px] rounded-full"
+                  style={{ background: "var(--brand)" }}
+                />
+              )}
+              <motion.span
+                animate={{ scale: active ? 1.06 : 1, y: active ? -1 : 0 }}
+                transition={SPRING}
+              >
+                <Icon active={active} />
+              </motion.span>
               <span className="text-[10.5px] font-medium">{t.label}</span>
             </Link>
           );
@@ -74,7 +97,6 @@ const svgProps = {
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 1.9,
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
   className: "h-[18px] w-[18px]",
@@ -83,7 +105,6 @@ const svgProps = {
 function BallIcon({ active }: { active: boolean }) {
   return (
     <svg {...svgProps} strokeWidth={active ? 2.3 : 1.9}>
-      <path d="M3.5 20.5c-1-4.5.5-11 5-15.5s11-6 15.5-5" transform="translate(-1.5,0)" />
       <ellipse cx="12" cy="12" rx="9" ry="5.5" transform="rotate(-45 12 12)" />
       <path d="M9.5 14.5 14.5 9.5M10.5 11.5l2 2M13 9l2 2" />
     </svg>

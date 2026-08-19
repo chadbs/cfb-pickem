@@ -39,13 +39,30 @@ export default async function Standings() {
 
       <main className="mx-auto w-full max-w-[1080px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-5">
         {!played ? (
-          <div className="card flex flex-col items-center gap-2 px-6 py-16 text-center">
-            <span className="text-2xl">📊</span>
-            <p className="text-[14px] font-semibold">Nothing graded yet</p>
-            <p className="max-w-[21rem] text-[12.5px] leading-relaxed text-[var(--ink-faint)]">
-              Standings fill in as games go final. Make your picks and check back
-              Saturday night.
-            </p>
+          <div className="card mx-auto max-w-md overflow-hidden">
+            <div className="border-b border-[var(--line)] px-4 py-3 text-center">
+              <p className="text-[14px] font-semibold">Nothing graded yet</p>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--ink-faint)]">
+                Standings fill in as games go final. Make your picks and check back
+                Saturday night.
+              </p>
+            </div>
+            {/* An empty page is a dead end; showing the roster at least says
+                who is playing and keeps the four identities present. */}
+            <ul>
+              {standings.map((s) => (
+                <li
+                  key={s.player.id}
+                  className="flex items-center gap-2.5 border-b border-[var(--line)] px-4 py-2.5 last:border-b-0"
+                >
+                  <Avatar player={s.player} size={24} />
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+                    {s.player.name}
+                  </span>
+                  <span className="nums text-[12.5px] text-[var(--ink-faint)]">—</span>
+                </li>
+              ))}
+            </ul>
           </div>
         ) : (
           <div className="grid items-start gap-4 lg:grid-cols-2">

@@ -9,6 +9,7 @@ import { StandingsPanel } from "@/components/StandingsPanel";
 import { WeekNav } from "@/components/WeekNav";
 import { WeekProgress } from "@/components/WeekProgress";
 import { LEAGUE_NAME } from "@/lib/config";
+import { Countdown } from "@/components/Countdown";
 import { dayKey, dayLabel } from "@/lib/format";
 import type { GameView } from "@/lib/view-types";
 import { getBoard, getPlayerBySlug, getPlayers, getSeasonStandings } from "@/lib/queries";
@@ -42,6 +43,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const made = meId === null ? 0 : board.filter((g) => g.picks.some((p) => p.playerId === meId)).length;
   const openGames = board.filter((g) => !g.locked).length;
   const anyLive = board.some((g) => g.status === "in" || (!g.completed && g.locked));
+
+  // The next game that hasn't kicked off, for the countdown.
+  const upcoming = board.filter((g) => !g.locked).sort((a, b) => a.kickoff - b.kickoff)[0];
+  const nextKickoff = upcoming
+    ? { kickoff: upcoming.kickoff, label: `${upcoming.away.abbr} @ ${upcoming.home.abbr}` }
+    : null;
 
   return (
     <>
@@ -114,22 +121,18 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
       <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-5">
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_290px] lg:gap-6">
-          <div className="order-2 min-w-0 lg:order-1">
+          <div className="min-w-0">
             {board.length === 0 ? (
               <EmptyWeek week={week} />
             ) : (
               <>
                 {meId === null && (
-                  <div
-                    className="mb-3 rounded-[var(--r-card)] border px-3 py-2.5 text-[12.5px] leading-relaxed"
-                    style={{
-                      borderColor: "color-mix(in srgb, var(--brand) 32%, transparent)",
-                      background: "color-mix(in srgb, var(--brand) 8%, transparent)",
-                    }}
-                  >
-                    Pick who you are in the top right to start making picks. You can
-                    browse everyone else&apos;s in the meantime.
-                  </div>
+                  <p className="mb-3 px-0.5 text-[12px] text-[var(--ink-faint)]">
+                    Browsing as a guest — choose your name, top right, to pick.
+                  </p>
+                )}
+                {nextKickoff && (
+                  <Countdown kickoff={nextKickoff.kickoff} label={nextKickoff.label} />
                 )}
                 <div className="space-y-5">
                   {groupByDay(board).map((group) => (
@@ -144,8 +147,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                         <span className="h-px flex-1 bg-[var(--line)]" />
                       </div>
                       <div className="grid gap-3 xl:grid-cols-2">
-                        {group.games.map((game) => (
-                          <GameCard key={game.id} game={game} players={players} meId={meId} />
+                        {group.games.map((game, i) => (
+                          <GameCard
+                            key={game.id}
+                            game={game}
+                            players={players}
+                            meId={meId}
+                            index={group.offset + i}
+                          />
                         ))}
                       </div>
                     </section>
@@ -160,7 +169,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             </p>
           </div>
 
-          <aside className="order-1 flex flex-col gap-3 lg:sticky lg:top-[calc(var(--header-h)+1.25rem)] lg:order-2">
+          <aside className="flex flex-col gap-3 lg:sticky lg:top-[calc(var(--header-h)+1.25rem)]">
             <StandingsPanel standings={standings.standings} meId={meId} />
             <WeekProgress me={me} made={made} total={board.length} open={openGames} />
           </aside>
@@ -172,12 +181,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
 /** Ten games spread across Thursday to Sunday read as one pile without this. */
 function groupByDay(games: GameView[]) {
-  const groups: Array<{ key: string; label: string; games: GameView[] }> = [];
-  for (const game of games) {
+  const groups: Array<{ key: string; label: string; offset: number; games: GameView[] }> = [];
+  for (const [i, game] of games.entries()) {
     const key = dayKey(game.kickoff);
     const last = groups.at(-1);
     if (last?.key === key) last.games.push(game);
-    else groups.push({ key, label: dayLabel(game.kickoff), games: [game] });
+    // offset is the game's position across the whole slate, so the entrance
+    // stagger keeps running across day headings instead of restarting.
+    else groups.push({ key, label: dayLabel(game.kickoff), offset: i, games: [game] });
   }
   return groups;
 }

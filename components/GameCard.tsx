@@ -15,10 +15,13 @@ export function GameCard({
   game,
   players,
   meId,
+  index = 0,
 }: {
   game: GameView;
   players: PlayerView[];
   meId: number | null;
+  /** Position in the slate, used to stagger the entrance. */
+  index?: number;
 }) {
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -71,10 +74,15 @@ export function GameCard({
   return (
     <motion.article
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.26, ease: [0.2, 0.8, 0.2, 1] }}
-      className="card flex flex-col overflow-hidden"
+      // Capped so a ten-game slate still finishes arriving quickly.
+      transition={{
+        duration: 0.32,
+        ease: [0.2, 0.8, 0.2, 1],
+        delay: Math.min(index * 0.035, 0.28),
+      }}
+      className="card flex flex-col overflow-hidden transition-colors hover:border-[var(--line-strong)]"
     >
       <GameHeader game={game} saved={savedAt !== 0} />
 
@@ -251,13 +259,18 @@ function SideButton({
         </div>
 
         {team.score !== null && (
-          <span
+          <motion.span
+            // Re-keying on the value makes a score tick over rather than snap.
+            key={team.score}
+            initial={{ y: -5, opacity: 0.4 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
             className={`nums text-[21px] font-semibold leading-none ${
               liveCovering || sideResult === "win" ? "text-[var(--ink)]" : "text-[var(--ink-dim)]"
             }`}
           >
             {team.score}
-          </span>
+          </motion.span>
         )}
       </div>
 

@@ -12,6 +12,31 @@ export function StandingsPanel({
 }) {
   const played = standings.some((s) => s.wins + s.losses + s.pushes > 0);
 
+  // Before anything is graded a full table is four rows of em-dashes taking up
+  // the top of a phone screen. A single row of faces says the same thing.
+  if (!played) {
+    return (
+      <section className="card flex items-center gap-3 px-3 py-2.5">
+        <div className="flex -space-x-1.5">
+          {standings.map((s) => (
+            <span key={s.player.id} className="ring-2 ring-[var(--card-bg)] rounded-full">
+              <Avatar player={s.player} size={24} isMe={s.player.id === meId} />
+            </span>
+          ))}
+        </div>
+        <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--ink-faint)]">
+          Four players · nothing graded yet
+        </span>
+        <Link
+          href="/standings"
+          className="shrink-0 text-[11.5px] text-[var(--ink-faint)] transition-colors hover:text-[var(--ink-dim)]"
+        >
+          Table
+        </Link>
+      </section>
+    );
+  }
+
   return (
     <section className="card overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--line)] px-3 py-2">
@@ -39,14 +64,12 @@ export function StandingsPanel({
                   : undefined
               }
             >
-              <span className="nums w-3 shrink-0 text-[11px] text-[var(--ink-faint)]">
-                {played ? i + 1 : "–"}
-              </span>
+              <span className="nums w-3 shrink-0 text-[11px] text-[var(--ink-faint)]">{i + 1}</span>
               <Avatar player={s.player} size={22} isMe={isMe} />
               <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--ink)]">
                 {s.player.name}
               </span>
-              {s.streak !== 0 && played && (
+              {s.streak !== 0 && (
                 <span
                   className="nums text-[10.5px] font-medium"
                   style={{ color: s.streak > 0 ? "var(--win)" : "var(--loss)" }}
@@ -55,7 +78,7 @@ export function StandingsPanel({
                 </span>
               )}
               <span className="nums w-[46px] shrink-0 text-right text-[12.5px] font-semibold text-[var(--ink)]">
-                {played ? recordLine(s.wins, s.losses, s.pushes) : "—"}
+                {recordLine(s.wins, s.losses, s.pushes)}
               </span>
             </li>
           );
