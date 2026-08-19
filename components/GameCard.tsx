@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { setPick } from "@/app/actions";
 import { Avatar } from "./Avatar";
 import { readableTeamColor } from "@/lib/color";
-import { formatSpread, formatTime, spreadForSide } from "@/lib/format";
+import { formatSpread, formatTime, formatWeekday, spreadForSide } from "@/lib/format";
 import { useIsClient } from "@/lib/use-is-client";
 import type { PickResult, Side } from "@/lib/scoring";
 import type { GamePick, GameView, PlayerView, TeamView } from "@/lib/view-types";
@@ -122,9 +122,11 @@ export function GameCard({
 function GameHeader({ game, saved }: { game: GameView; saved: boolean }) {
   // The day is carried by the group heading, so the card only needs a time.
   const isClient = useIsClient();
+  const zone = isClient ? undefined : "America/New_York";
   const when = isClient
     ? formatTime(game.kickoff)
-    : `${formatTime(game.kickoff, "America/New_York")} ET`;
+    : `${formatTime(game.kickoff, zone)} ET`;
+  const day = formatWeekday(game.kickoff, zone);
 
   return (
     <div className="flex items-center gap-2 px-3 pb-2 pt-2.5 text-[11px]">
@@ -141,7 +143,10 @@ function GameHeader({ game, saved }: { game: GameView; saved: boolean }) {
           Final
         </span>
       ) : (
-        <span className="nums font-medium text-[var(--ink-dim)]">{when}</span>
+        <span className="nums font-medium text-[var(--ink-dim)]">
+          <span className="hidden lg:inline">{day} · </span>
+          {when}
+        </span>
       )}
 
       <span className="ml-auto flex min-w-0 items-center gap-2 text-[var(--ink-faint)]">
@@ -249,10 +254,12 @@ function SideButton({
               <span className="nums text-[10px] font-bold text-[var(--push)]">{team.rank}</span>
             )}
             <span className="truncate text-[14px] font-semibold leading-tight tracking-[-0.01em]">
-              {/* Abbreviation on a phone, where a tile is ~160px; the real name
-                  once the card is full width and has somewhere to put it. */}
-              <span className="sm:hidden">{team.abbr}</span>
-              <span className="hidden sm:inline">{team.short}</span>
+              {/* Tile width doesn't rise monotonically with the viewport: one
+                  column below lg gives wide tiles, lg..xl splits into two inside
+                  a capped shell and squeezes them to ~140px, then xl gets the
+                  room back. Names follow the tile, not the screen. */}
+              <span className="sm:hidden lg:inline xl:hidden">{team.abbr}</span>
+              <span className="hidden sm:inline lg:hidden xl:inline">{team.short}</span>
             </span>
           </div>
           <div className="nums truncate text-[10.5px] leading-tight text-[var(--ink-faint)]">

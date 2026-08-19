@@ -72,3 +72,8 @@ export function formatRecord(pct: number): string {
 export function recordLine(wins: number, losses: number, pushes: number): string {
   return pushes > 0 ? `${wins}-${losses}-${pushes}` : `${wins}-${losses}`;
 }
+
+/** "Thu" — used on desktop where cards carry their own day. */
+export function formatWeekday(ts: number, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone }).format(new Date(ts));
+}
