@@ -136,13 +136,16 @@ npm run sync 2026 3    # or a specific one
 4. **Deploy.** The schema creates itself on first boot — there is no migration
    step to run or forget.
 
-`vercel.json` registers an hourly cron against `/api/cron/sync`. Cron frequency
-on Vercel's free tier is limited, and I haven't verified the current cap — if
-hourly doesn't stick, point a free scheduler like
+`vercel.json` registers a **daily** cron against `/api/cron/sync`. Daily is not a
+preference — Vercel's Hobby plan rejects anything more frequent, and a build
+with an hourly schedule fails outright.
+
+Daily is only a backstop. Scores refresh whenever anyone loads the page
+(throttled to ~25s while games are live), which on a Saturday covers it. If you
+want them moving with nobody watching, point a free scheduler like
 [cron-job.org](https://cron-job.org) at
-`https://your-app.vercel.app/api/cron/sync?key=YOUR_CRON_SECRET` every 5 minutes
-instead. Either way scores still update whenever someone has the page open,
-which on a Saturday is most of the time.
+`https://your-app.vercel.app/api/cron/sync?key=YOUR_CRON_SECRET` every 5
+minutes.
 
 ### Anywhere else
 
