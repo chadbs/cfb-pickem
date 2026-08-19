@@ -21,7 +21,7 @@ export default async function InsightsPage() {
   return (
     <>
       <header className="glass sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex w-full max-w-[1080px] items-center gap-2 px-4 py-2.5 lg:px-6">
+        <div className="mx-auto flex w-full max-w-[940px] items-center gap-2 px-4 py-2.5 lg:px-6">
           <Link href="/" className="flex items-center gap-2">
             <span
               aria-hidden
@@ -38,7 +38,7 @@ export default async function InsightsPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1080px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-5">
+      <main className="mx-auto w-full max-w-[940px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-5">
         {!anything ? (
           <div className="card flex flex-col items-center gap-2 px-6 py-16 text-center">
             <span className="text-2xl">📈</span>

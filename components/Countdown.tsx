@@ -57,14 +57,16 @@ export function Countdown({ kickoff, label }: { kickoff: number; label: string }
           <path d="M12 9v4l2.5 2M9 2h6" />
         </svg>
       </span>
+      {/* Stacked rather than side by side: the same block has to sit in a
+          248px sidebar and across the full width of a phone. */}
       <div className="min-w-0">
-        <div className="flex items-baseline gap-2">
-          <span className="nums text-[15px] font-semibold tracking-[-0.012em]">{value}</span>
-          <span className="text-[11px] font-medium uppercase tracking-[0.055em] text-[var(--ink-faint)]">
-            to first kickoff
-          </span>
+        <div className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[var(--ink-faint)]">
+          To first kickoff
         </div>
-        <div className="truncate text-[11.5px] text-[var(--ink-faint)]">
+        <div className="nums text-[16px] font-semibold leading-tight tracking-[-0.012em]">
+          {value}
+        </div>
+        <div className="truncate text-[11px] text-[var(--ink-faint)]">
           {label} · {formatKickoffLong(kickoff, "America/New_York")} ET
         </div>
       </div>

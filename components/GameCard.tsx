@@ -249,7 +249,10 @@ function SideButton({
               <span className="nums text-[10px] font-bold text-[var(--push)]">{team.rank}</span>
             )}
             <span className="truncate text-[14px] font-semibold leading-tight tracking-[-0.01em]">
-              {team.abbr}
+              {/* Abbreviation on a phone, where a tile is ~160px; the real name
+                  once the card is full width and has somewhere to put it. */}
+              <span className="sm:hidden">{team.abbr}</span>
+              <span className="hidden sm:inline">{team.short}</span>
             </span>
           </div>
           <div className="nums truncate text-[10.5px] leading-tight text-[var(--ink-faint)]">

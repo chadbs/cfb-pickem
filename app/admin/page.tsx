@@ -125,7 +125,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
   return (
     <>
       <header className="glass sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex w-full max-w-[900px] items-center gap-3 px-4 py-2.5 lg:px-6">
+        <div className="mx-auto flex w-full max-w-[940px] items-center gap-3 px-4 py-2.5 lg:px-6">
           <Link href="/" className="ctl flex h-8 items-center px-2.5 text-[12.5px] font-medium">
             ← Picks
           </Link>
@@ -136,7 +136,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[900px] flex-1 px-4 pb-16 pt-4 lg:px-6">
+      <main className="mx-auto w-full max-w-[940px] flex-1 px-4 pb-16 pt-4 lg:px-6">
         <div className="no-scrollbar mb-3 flex gap-1 overflow-x-auto">
           {current.weeks.map((w) => (
             <Link

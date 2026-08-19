@@ -55,7 +55,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       <LiveRefresh active={anyLive} />
 
       <header className="glass sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto w-full max-w-[1240px] px-4 py-2.5 lg:px-6">
+        <div className="mx-auto w-full max-w-[940px] px-4 py-2.5 lg:px-6">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <div className="order-1 flex min-w-0 items-center gap-2">
               <span
@@ -119,8 +119,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-5">
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_290px] lg:gap-6">
+      <main className="mx-auto w-full max-w-[940px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-5">
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_248px] lg:gap-6">
           <div className="min-w-0">
             {board.length === 0 ? (
               <EmptyWeek week={week} />
@@ -132,7 +132,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   </p>
                 )}
                 {nextKickoff && (
-                  <Countdown kickoff={nextKickoff.kickoff} label={nextKickoff.label} />
+                  <div className="lg:hidden">
+                    <Countdown kickoff={nextKickoff.kickoff} label={nextKickoff.label} />
+                  </div>
                 )}
                 <div className="space-y-5">
                   {groupByDay(board).map((group) => (
@@ -146,7 +148,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                         </span>
                         <span className="h-px flex-1 bg-[var(--line)]" />
                       </div>
-                      <div className="grid gap-3 xl:grid-cols-2">
+                      <div className="grid gap-2.5">
                         {group.games.map((game, i) => (
                           <GameCard
                             key={game.id}
@@ -170,6 +172,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           </div>
 
           <aside className="flex flex-col gap-3 lg:sticky lg:top-[calc(var(--header-h)+1.25rem)]">
+            {nextKickoff && (
+              <div className="hidden lg:block [&>div]:mb-0">
+                <Countdown kickoff={nextKickoff.kickoff} label={nextKickoff.label} />
+              </div>
+            )}
             <StandingsPanel standings={standings.standings} meId={meId} />
             <WeekProgress me={me} made={made} total={board.length} open={openGames} />
           </aside>
