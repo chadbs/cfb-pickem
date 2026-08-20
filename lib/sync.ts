@@ -248,7 +248,10 @@ async function applySelection(season: number, week: number, chosen: ScoredGame[]
  */
 function autoSelect(espnGames: EspnGame[], forced: Set<string>): ScoredGame[] {
   const ranked = rankGames(espnGames);
-  const keep = ranked.filter((r) => forced.has(r.game.espnId));
+  // A hand-edited week can end up with more picked games than there are slots.
+  // Keep the best-ranked of them rather than returning an oversized slate: the
+  // counter, the admin guard and the whole pool assume GAMES_PER_WEEK.
+  const keep = ranked.filter((r) => forced.has(r.game.espnId)).slice(0, GAMES_PER_WEEK);
   const rest = ranked.filter((r) => !forced.has(r.game.espnId));
   return [...keep, ...rest.slice(0, Math.max(0, GAMES_PER_WEEK - keep.length))].sort(
     (a, b) => a.game.kickoff - b.game.kickoff,

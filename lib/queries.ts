@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, ready, schema } from "./db";
 import {
   buildLeaderboard,
@@ -187,4 +187,57 @@ export async function getPlayerBySlug(slug: string): Promise<PlayerView | null> 
   await ready();
   const [row] = await db.select().from(players).where(eq(players.slug, slug)).limit(1);
   return row ? toPlayerView(row) : null;
+}
+
+export interface SlateChange {
+  /** This player's picks on games that are no longer on the slate. */
+  dropped: string[];
+  /** Slate games they haven't picked and still can. */
+  needsPick: number;
+}
+
+/**
+ * Whether the slate moved under a player after they'd picked.
+ *
+ * A pick on a game that has since been swapped out stops counting, silently —
+ * the game simply isn't on the board any more. Only a dropped pick proves the
+ * slate changed; someone who merely hasn't finished picking has no dropped
+ * ones, and the progress meter already covers that case.
+ */
+export async function getSlateChange(
+  season: number,
+  week: number,
+  playerId: number,
+): Promise<SlateChange> {
+  await ready();
+
+  const weekGames = await db
+    .select()
+    .from(games)
+    .where(and(eq(games.season, season), eq(games.week, week)));
+  if (weekGames.length === 0) return { dropped: [], needsPick: 0 };
+
+  const mine = await db
+    .select()
+    .from(picks)
+    .where(
+      and(
+        eq(picks.playerId, playerId),
+        inArray(picks.gameId, weekGames.map((g) => g.id)),
+      ),
+    );
+
+  const byId = new Map(weekGames.map((g) => [g.id, g]));
+  const dropped = mine
+    .map((p) => byId.get(p.gameId))
+    .filter((g): g is NonNullable<typeof g> => Boolean(g) && !g!.isSelected)
+    .map((g) => `${g.awayAbbr} @ ${g.homeAbbr}`);
+
+  const picked = new Set(mine.map((p) => p.gameId));
+  const now = Date.now();
+  const needsPick = weekGames.filter(
+    (g) => g.isSelected && !picked.has(g.id) && now < g.kickoff && g.status === "pre",
+  ).length;
+
+  return { dropped, needsPick };
 }

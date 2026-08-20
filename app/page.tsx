@@ -13,7 +13,7 @@ import { LEAGUE_NAME } from "@/lib/config";
 import { Countdown } from "@/components/Countdown";
 import { dayKey, dayLabel } from "@/lib/format";
 import type { GameView } from "@/lib/view-types";
-import { getBoard, getPlayerBySlug, getPlayers, getSeasonStandings } from "@/lib/queries";
+import { getBoard, getPlayerBySlug, getPlayers, getSeasonStandings, getSlateChange } from "@/lib/queries";
 import { getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
 
 // Live scores and kickoff locks make every render time-sensitive.
@@ -40,6 +40,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const slug = (await cookies()).get("pickem_player")?.value;
   const me = slug ? await getPlayerBySlug(slug) : null;
   const meId = me?.id ?? null;
+
+  // If the slate moved after they picked, say so rather than letting a pick
+  // quietly stop counting.
+  const slateChange = meId === null ? null : await getSlateChange(season, week, meId);
 
   const made = meId === null ? 0 : board.filter((g) => g.picks.some((p) => p.playerId === meId)).length;
   const openGames = board.filter((g) => !g.locked).length;
@@ -131,6 +135,35 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   <p className="mb-3 px-0.5 text-[12px] text-[var(--ink-faint)]">
                     Browsing as a guest — choose your name, top right, to pick.
                   </p>
+                )}
+
+                {slateChange && slateChange.dropped.length > 0 && (
+                  <div
+                    role="status"
+                    className="mb-3 rounded-[var(--r-card)] border px-3 py-2.5 text-[12.5px] leading-relaxed"
+                    style={{
+                      borderColor: "color-mix(in srgb, var(--push) 45%, transparent)",
+                      background: "color-mix(in srgb, var(--push) 10%, transparent)",
+                    }}
+                  >
+                    <strong className="font-semibold">The slate changed.</strong>{" "}
+                    {slateChange.dropped.join(", ")}{" "}
+                    {slateChange.dropped.length === 1 ? "is" : "are"} no longer in this
+                    week, so your pick{slateChange.dropped.length === 1 ? "" : "s"} there
+                    {slateChange.dropped.length === 1 ? " doesn’t" : " don’t"} count.
+                    {slateChange.needsPick > 0 ? (
+                      <>
+                        {" "}
+                        You have{" "}
+                        <strong className="font-semibold">
+                          {slateChange.needsPick} game{slateChange.needsPick === 1 ? "" : "s"}
+                        </strong>{" "}
+                        left to pick.
+                      </>
+                    ) : (
+                      " Everything else is picked."
+                    )}
+                  </div>
                 )}
                 {nextKickoff && (
                   <div className="lg:hidden">
