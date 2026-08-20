@@ -51,6 +51,8 @@ function buildCandidates(
       homeAbbr: s.game.home.abbr,
       awayName: s.game.away.name,
       homeName: s.game.home.name,
+      awayShort: s.game.away.short,
+      homeShort: s.game.home.short,
       awayLogo: s.game.away.logo,
       homeLogo: s.game.home.logo,
       awayRank: s.game.away.rank,

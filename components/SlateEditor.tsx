@@ -281,13 +281,16 @@ function Row({
           <Logo src={c.awayLogo} />
           <span className="truncate text-[13px] font-semibold">
             {c.awayRank && <span className="nums mr-0.5 text-[9.5px] text-[var(--push)]">{c.awayRank}</span>}
-            {c.awayAbbr}
+            {/* Codes only where the row is genuinely tight. */}
+            <span className="sm:hidden">{c.awayAbbr}</span>
+            <span className="hidden sm:inline">{c.awayShort}</span>
           </span>
-          <span className="text-[10.5px] text-[var(--ink-faint)]">{c.neutralSite ? "vs" : "@"}</span>
+          <span className="shrink-0 text-[10.5px] text-[var(--ink-faint)]">{c.neutralSite ? "vs" : "@"}</span>
           <Logo src={c.homeLogo} />
           <span className="truncate text-[13px] font-semibold">
             {c.homeRank && <span className="nums mr-0.5 text-[9.5px] text-[var(--push)]">{c.homeRank}</span>}
-            {c.homeAbbr}
+            <span className="sm:hidden">{c.homeAbbr}</span>
+            <span className="hidden sm:inline">{c.homeShort}</span>
           </span>
         </span>
 

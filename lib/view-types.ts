@@ -68,6 +68,8 @@ export interface CandidateView {
   homeAbbr: string;
   awayName: string;
   homeName: string;
+  awayShort: string;
+  homeShort: string;
   awayLogo: string | null;
   homeLogo: string | null;
   awayRank: number | null;
