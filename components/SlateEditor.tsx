@@ -215,12 +215,13 @@ export function SlateEditor({
       </ul>
 
       <p className="mt-4 text-[11.5px] leading-relaxed text-[var(--ink-faint)]">
-        Every game from the Mountain West, Pac-12, ACC, Big Ten, SEC and Big 12,
-        ranked by the auto-picker: home teams first, then ranked matchups, tight
-        lines and national TV. &ldquo;All FBS&rdquo; adds independents — Notre Dame —
-        plus the MAC, Sun Belt, CUSA and the American. Only a game that has already
-        kicked off can&apos;t be changed. Swapping out a game that has picks on it
-        keeps them: they stop counting, and count again if you put the game back.
+        Every game from the Big Ten, SEC, Big 12, Pac-12, ACC, Mountain West and
+        the independents — which is where Notre Dame lives. Ordered by our four
+        teams first, then any top-25 game best ranks first, then conference, with
+        lopsided lines pushed toward the bottom. &ldquo;All FBS&rdquo; adds the MAC,
+        Sun Belt, CUSA and the American. Only a game that has already kicked off
+        can&apos;t be changed. Swapping out a game that has picks on it keeps them:
+        they stop counting, and count again if you put the game back.
       </p>
     </>
   );

@@ -2,8 +2,9 @@
  * Engine smoke test. Run with: npx tsx scripts/verify.ts
  * Exercises spread derivation, slate selection, ATS grading and a real sync.
  */
-import { fetchCurrentWeek, fetchWeek, deriveHomeSpread } from "../lib/espn";
-import { selectWeek, isFavorite } from "../lib/selection";
+import { fetchCurrentWeek, fetchWeek, deriveHomeSpread, type EspnGame } from "../lib/espn";
+import { selectWeek, isFavorite, scoreGame } from "../lib/selection";
+import { CANDIDATE_CONFERENCE_IDS } from "../lib/config";
 import { gradePick, coverMargin, buildLeaderboard, spreadForPick } from "../lib/scoring";
 import type { Game, Player } from "../lib/db/schema";
 
@@ -98,6 +99,55 @@ check("pending picks counted", lb[1].pending === 1, `-> ${lb[1].pending}`);
 check("outright week win credited", lb[0].weekWins === 1, `-> ${lb[0].weekWins}`);
 check("no week win for runner-up", lb[1].weekWins === 0);
 check("win streak tracked", lb[0].streak === 2, `-> ${lb[0].streak}`);
+
+// ------------------------------------------------- 3b. candidate ordering
+console.log("\n=== 3b. Ordering the candidate list ===");
+
+type GameOpts = {
+  homeId?: string; awayId?: string;
+  homeRank?: number | null; awayRank?: number | null;
+  homeConf?: string; awayConf?: string;
+  spread?: number | null;
+};
+const mk = (o: GameOpts = {}): EspnGame => ({
+  espnId: "x", season: 2026, week: 1, seasonType: 2,
+  // Fixed midday ET kickoff so the primetime tiebreaker never varies.
+  kickoff: Date.parse("2026-09-05T17:00:00Z"),
+  home: { teamId: o.homeId ?? "h", name: "H", short: "H", abbr: "H", logo: null, color: null,
+          rank: o.homeRank ?? null, record: null, score: null, conferenceId: o.homeConf ?? "1" },
+  away: { teamId: o.awayId ?? "a", name: "A", short: "A", abbr: "A", logo: null, color: null,
+          rank: o.awayRank ?? null, record: null, score: null, conferenceId: o.awayConf ?? "1" },
+  neutralSite: false, venue: null, broadcast: null,
+  spread: o.spread === undefined ? -3 : o.spread,
+  overUnder: null, oddsProvider: null,
+  status: "pre", statusDetail: null, period: null, clock: null, completed: false,
+});
+const sc = (o: GameOpts = {}) => scoreGame(mk(o)).score;
+
+check("a home-team game outranks a #1 vs #2", sc({ homeId: "38" }) > sc({ homeRank: 1, awayRank: 2 }));
+check("both ranked beats one ranked", sc({ homeRank: 12, awayRank: 15 }) > sc({ homeRank: 12 }));
+check("one ranked beats unranked", sc({ homeRank: 25 }) > sc({}));
+check("a better rank sorts higher", sc({ homeRank: 2 }) > sc({ homeRank: 24 }));
+check(
+  "any top-25 game outranks the best unranked one",
+  sc({ homeRank: 25, homeConf: "15", awayConf: "15" }) > sc({ homeConf: "5", awayConf: "5", spread: 0 }),
+);
+check("Big Ten outranks ACC", sc({ homeConf: "5", awayConf: "5" }) > sc({ homeConf: "1", awayConf: "1" }));
+check("SEC outranks Big 12", sc({ homeConf: "8", awayConf: "8" }) > sc({ homeConf: "4", awayConf: "4" }));
+check("Big 12 outranks Pac-12", sc({ homeConf: "4", awayConf: "4" }) > sc({ homeConf: "9", awayConf: "9" }));
+check("Pac-12 outranks ACC", sc({ homeConf: "9", awayConf: "9" }) > sc({ homeConf: "1", awayConf: "1" }));
+check("power beats group of five", sc({ homeConf: "1", awayConf: "1" }) > sc({ homeConf: "15", awayConf: "15" }));
+check("a close line beats a comfortable one", sc({ spread: -1.5 }) > sc({ spread: -13 }));
+check(
+  "a 40-point mismatch sinks below an even unranked game",
+  sc({ homeRank: 8, spread: -40.5 }) < sc({ spread: -2.5 }),
+);
+check(
+  "a ranked team in a genuinely close game still ranks high",
+  sc({ homeRank: 8, spread: -2.5 }) > sc({ spread: -2.5 }),
+);
+check("no posted line ranks below one that has a close number", sc({ spread: null }) < sc({ spread: -3 }));
+check("Notre Dame's conference is offered by default", CANDIDATE_CONFERENCE_IDS.includes("18"));
 
 // -------------------------------------------------------- 4. live ESPN data
 console.log("\n=== 4. Live ESPN fetch ===");

@@ -32,14 +32,33 @@ export const FAVORITE_TEAM_IDS: Record<string, string> = {
 
 /**
  * Conferences offered by default in the slate editor, by ESPN conference id:
- * Mountain West, Pac-12, ACC, Big Ten, SEC, Big 12.
+ * Big Ten, SEC, Big 12, Pac-12, ACC, Mountain West, and FBS Independents —
+ * which is how Notre Dame gets in.
  *
- * No Big East — it doesn't sponsor FBS football, so ESPN lists no such
- * conference. Notre Dame is an FBS Independent ("18") and so isn't in this set
- * either; the editor's "All FBS" toggle reaches independents, the MAC, Sun Belt,
- * CUSA and the American.
+ * No Big East: it doesn't sponsor FBS football, so ESPN lists no such
+ * conference. The editor's "All FBS" toggle reaches the MAC, Sun Belt, CUSA
+ * and the American.
  */
-export const CANDIDATE_CONFERENCE_IDS = ["17", "9", "1", "5", "8", "4"];
+export const CANDIDATE_CONFERENCE_IDS = ["5", "8", "4", "9", "1", "17", "18"];
+
+/**
+ * How much a conference pulls a game up the list, by ESPN conference id. Both
+ * teams' weights are added, so two power-conference sides outrank a power side
+ * playing a group-of-five one.
+ */
+export const CONFERENCE_WEIGHT: Record<string, number> = {
+  "5": 1000, // Big Ten
+  "8": 950, // SEC
+  "4": 900, // Big 12
+  "9": 850, // Pac-12
+  "1": 800, // ACC
+  "18": 780, // FBS Independents — Notre Dame
+  "151": 400, // American
+  "17": 350, // Mountain West
+  "37": 300, // Sun Belt
+  "12": 250, // CUSA
+  "15": 200, // MAC
+};
 
 /** ESPN group 80 = FBS (I-A). */
 export const FBS_GROUP = "80";
