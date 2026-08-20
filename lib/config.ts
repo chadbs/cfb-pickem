@@ -30,6 +30,17 @@ export const FAVORITE_TEAM_IDS: Record<string, string> = {
   "130": "Michigan",
 };
 
+/**
+ * Conferences offered by default in the slate editor, by ESPN conference id:
+ * Mountain West, Pac-12, ACC, Big Ten, SEC, Big 12.
+ *
+ * No Big East — it doesn't sponsor FBS football, so ESPN lists no such
+ * conference. Notre Dame is an FBS Independent ("18") and so isn't in this set
+ * either; the editor's "All FBS" toggle reaches independents, the MAC, Sun Belt,
+ * CUSA and the American.
+ */
+export const CANDIDATE_CONFERENCE_IDS = ["17", "9", "1", "5", "8", "4"];
+
 /** ESPN group 80 = FBS (I-A). */
 export const FBS_GROUP = "80";
 

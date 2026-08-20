@@ -24,6 +24,29 @@ export function SlateEditor({
     () => new Set(candidates.filter((c) => c.selected).map((c) => c.espnId)),
   );
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
+
+  /**
+   * The default view is the conferences we care about; "All FBS" opens it up to
+   * independents (Notre Dame), the MAC, Sun Belt, CUSA and the American. A game
+   * already on the slate always shows, whatever the filter, so a hand-picked
+   * one can never quietly vanish.
+   */
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return candidates.filter((c) => {
+      if (!showAll && !c.preferred && !c.selected) return false;
+      if (!q) return true;
+      return (
+        c.awayAbbr.toLowerCase().includes(q) ||
+        c.homeAbbr.toLowerCase().includes(q) ||
+        c.awayName.toLowerCase().includes(q) ||
+        c.homeName.toLowerCase().includes(q) ||
+        c.confLabel.toLowerCase().includes(q)
+      );
+    });
+  }, [candidates, query, showAll]);
 
   const initial = useMemo(
     () => new Set(candidates.filter((c) => c.selected).map((c) => c.espnId)),
@@ -143,8 +166,44 @@ export function SlateEditor({
         </div>
       )}
 
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <label className="relative min-w-0 flex-1">
+          <span className="sr-only">Filter games</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Filter by team or conference…"
+            className="ctl h-8 w-full px-2.5 text-[12.5px] text-[var(--ink)] placeholder:text-[var(--ink-faint)]"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          aria-pressed={showAll}
+          className="ctl h-8 shrink-0 px-2.5 text-[12.5px] font-medium"
+          style={
+            showAll
+              ? {
+                  borderColor: "color-mix(in srgb, var(--brand) 55%, transparent)",
+                  color: "var(--ink)",
+                }
+              : undefined
+          }
+        >
+          All FBS
+        </button>
+        <span className="nums shrink-0 text-[11.5px] text-[var(--ink-faint)]">
+          {visible.length} of {candidates.length}
+        </span>
+      </div>
+
       <ul className="flex flex-col gap-1.5">
-        {candidates.map((c) => (
+        {visible.length === 0 && (
+          <li className="card px-3 py-6 text-center text-[12.5px] text-[var(--ink-faint)]">
+            Nothing matches “{query}”.
+          </li>
+        )}
+        {visible.map((c) => (
           <Row
             key={c.espnId}
             c={c}
@@ -156,10 +215,12 @@ export function SlateEditor({
       </ul>
 
       <p className="mt-4 text-[11.5px] leading-relaxed text-[var(--ink-faint)]">
-        Ranked by the auto-picker: home teams first, then ranked matchups, tight
-        lines and national TV. Only a game that has already kicked off can&apos;t be
-        changed. Swapping out a game that has picks on it keeps them — they stop
-        counting, and count again if you put the game back.
+        Every game from the Mountain West, Pac-12, ACC, Big Ten, SEC and Big 12,
+        ranked by the auto-picker: home teams first, then ranked matchups, tight
+        lines and national TV. &ldquo;All FBS&rdquo; adds independents — Notre Dame —
+        plus the MAC, Sun Belt, CUSA and the American. Only a game that has already
+        kicked off can&apos;t be changed. Swapping out a game that has picks on it
+        keeps them: they stop counting, and count again if you put the game back.
       </p>
     </>
   );
@@ -238,6 +299,7 @@ function Row({
               {c.favorite}
             </span>
           )}
+          {c.confLabel && <span className="truncate">{c.confLabel}</span>}
           {c.broadcast && <span>{c.broadcast}</span>}
         </span>
 

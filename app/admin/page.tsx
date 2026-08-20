@@ -1,17 +1,24 @@
 import Link from "next/link";
 import { and, eq, inArray } from "drizzle-orm";
 import { SlateEditor } from "@/components/SlateEditor";
-import { ADMIN_KEY, GAMES_PER_WEEK, LEAGUE_NAME } from "@/lib/config";
+import { ADMIN_KEY, CANDIDATE_CONFERENCE_IDS, GAMES_PER_WEEK, LEAGUE_NAME } from "@/lib/config";
 import { db, ready, schema } from "@/lib/db";
 import type { EspnGame } from "@/lib/espn";
 import { isFavorite, rankGames } from "@/lib/selection";
-import { espnGameFromRow, getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
+import { espnGameFromRow, getConferences, getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
 import type { CandidateView } from "@/lib/view-types";
 
 export const dynamic = "force-dynamic";
 
-/** How many games to offer beyond the ten that get chosen automatically. */
-const CANDIDATE_COUNT = 20;
+const PREFERRED = new Set(CANDIDATE_CONFERENCE_IDS);
+
+/** "Big Ten · ACC", or one name when both teams share a conference. */
+function confLabelFor(g: EspnGame, names: Record<string, string>): string {
+  const a = g.away.conferenceId ? names[g.away.conferenceId] : null;
+  const h = g.home.conferenceId ? names[g.home.conferenceId] : null;
+  if (a && h) return a === h ? a : `${a} · ${h}`;
+  return a ?? h ?? "";
+}
 
 type GameRow = typeof schema.games.$inferSelect;
 
@@ -22,23 +29,16 @@ function buildCandidates(
   espnGames: EspnGame[],
   selectedRows: GameRow[],
   pickCounts: Map<number, number>,
+  confNames: Record<string, string>,
 ): CandidateView[] {
   const now = Date.now();
   const selectedByEspnId = new Map(selectedRows.map((g) => [g.espnId, g]));
-  const ranked = rankGames(espnGames);
 
-  // The top N, plus anything already on the slate that ranked below them — a
-  // hand-picked game must never quietly vanish from the list.
-  const shortlist = ranked.slice(0, CANDIDATE_COUNT);
-  const shown = new Set(shortlist.map((s) => s.game.espnId));
-  for (const s of ranked) {
-    if (selectedByEspnId.has(s.game.espnId) && !shown.has(s.game.espnId)) {
-      shortlist.push(s);
-      shown.add(s.game.espnId);
-    }
-  }
-
-  const autoTen = new Set(ranked.slice(0, GAMES_PER_WEEK).map((s) => s.game.espnId));
+  // Every FBS game in the week is a candidate now; the editor filters down to
+  // the preferred conferences by default and can show the rest on demand.
+  // Ranked so the games the auto-picker likes float to the top of the list.
+  const shortlist = rankGames(espnGames);
+  const autoTen = new Set(shortlist.slice(0, GAMES_PER_WEEK).map((s) => s.game.espnId));
 
   return shortlist.map((s) => {
     const row = selectedByEspnId.get(s.game.espnId);
@@ -61,6 +61,10 @@ function buildCandidates(
       score: Math.round(s.score),
       reason: s.reason,
       favorite: isFavorite(s.game),
+      preferred:
+        PREFERRED.has(s.game.home.conferenceId ?? "") ||
+        PREFERRED.has(s.game.away.conferenceId ?? ""),
+      confLabel: confLabelFor(s.game, confNames),
       selected: Boolean(row),
       recommended: autoTen.has(s.game.espnId),
       pickCount,
@@ -120,7 +124,13 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
     for (const r of rows) pickCounts.set(r.gameId, (pickCounts.get(r.gameId) ?? 0) + 1);
   }
 
-  const candidates = buildCandidates(weekRows.map(espnGameFromRow), selectedRows, pickCounts);
+  const confNames = await getConferences(season);
+  const candidates = buildCandidates(
+    weekRows.map(espnGameFromRow),
+    selectedRows,
+    pickCounts,
+    confNames,
+  );
 
   return (
     <>

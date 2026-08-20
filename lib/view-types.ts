@@ -79,6 +79,10 @@ export interface CandidateView {
   score: number;
   reason: string;
   favorite: string | null;
+  /** Involves one of the conferences the editor shows by default. */
+  preferred: boolean;
+  /** "Big Ten · ACC", or a single name when both sides share one. */
+  confLabel: string;
   selected: boolean;
   /** Would have been chosen automatically. */
   recommended: boolean;
