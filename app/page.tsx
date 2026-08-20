@@ -137,7 +137,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   </p>
                 )}
 
-                {slateChange && slateChange.dropped.length > 0 && (
+                {/* Only while there is something to do about it. The orphaned pick
+                    itself is kept for good, so keying the notice off that alone
+                    would nag forever. */}
+                {slateChange && slateChange.dropped.length > 0 && slateChange.needsPick > 0 && (
                   <div
                     role="status"
                     className="mb-3 rounded-[var(--r-card)] border px-3 py-2.5 text-[12.5px] leading-relaxed"
@@ -151,18 +154,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                     {slateChange.dropped.length === 1 ? "is" : "are"} no longer in this
                     week, so your pick{slateChange.dropped.length === 1 ? "" : "s"} there
                     {slateChange.dropped.length === 1 ? " doesn’t" : " don’t"} count.
-                    {slateChange.needsPick > 0 ? (
-                      <>
-                        {" "}
-                        You have{" "}
-                        <strong className="font-semibold">
-                          {slateChange.needsPick} game{slateChange.needsPick === 1 ? "" : "s"}
-                        </strong>{" "}
-                        left to pick.
-                      </>
-                    ) : (
-                      " Everything else is picked."
-                    )}
+                    {" "}
+                    You have{" "}
+                    <strong className="font-semibold">
+                      {slateChange.needsPick} game{slateChange.needsPick === 1 ? "" : "s"}
+                    </strong>{" "}
+                    left to pick.
                   </div>
                 )}
                 {nextKickoff && (

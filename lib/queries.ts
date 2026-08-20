@@ -203,6 +203,10 @@ export interface SlateChange {
  * the game simply isn't on the board any more. Only a dropped pick proves the
  * slate changed; someone who merely hasn't finished picking has no dropped
  * ones, and the progress meter already covers that case.
+ *
+ * Callers should require needsPick > 0 before saying anything. The dropped pick
+ * is kept indefinitely, so it is not on its own a reason to keep nagging once
+ * the replacement has been picked.
  */
 export async function getSlateChange(
   season: number,
