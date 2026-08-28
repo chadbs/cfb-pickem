@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { SiteTabs } from "@/components/SiteNav";
-import { LEAGUE_NAME } from "@/lib/config";
+import { SeasonPredictions } from "@/components/SeasonPredictions";
+import { FAVORITE_TEAM_IDS, LEAGUE_NAME } from "@/lib/config";
 import { formatRecord, recordLine } from "@/lib/format";
-import { getSeasonStandings } from "@/lib/queries";
+import { getSeasonStandings, getTeamRecords } from "@/lib/queries";
 import { getCurrentWeek } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
 
 export default async function Standings() {
   const current = await getCurrentWeek();
-  const { standings, weekly } = await getSeasonStandings(current.season);
+  const { standings, weekly, roster } = await getSeasonStandings(current.season);
+  const teamRecords = await getTeamRecords(current.season, Object.keys(FAVORITE_TEAM_IDS));
 
   const played = standings.some((s) => s.wins + s.losses + s.pushes > 0);
 
@@ -38,6 +40,10 @@ export default async function Standings() {
       </header>
 
       <main className="mx-auto w-full max-w-[940px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-5">
+        <div className="mb-4">
+          <SeasonPredictions roster={roster} teams={teamRecords} />
+        </div>
+
         {!played ? (
           <div className="card mx-auto max-w-md overflow-hidden">
             <div className="border-b border-[var(--line)] px-4 py-3 text-center">

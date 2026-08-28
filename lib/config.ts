@@ -84,3 +84,20 @@ export const CRON_SECRET = process.env.CRON_SECRET ?? "";
 
 /** Set to lock the admin tools behind a passphrase. Empty = open. */
 export const ADMIN_KEY = process.env.ADMIN_KEY ?? "";
+
+/**
+ * Preseason calls on our four teams, made before week 1, keyed by player slug
+ * then ESPN team id. Static on purpose — they were made once and shouldn't be
+ * editable after the fact.
+ *
+ * 36 Colorado State · 38 Colorado · 158 Nebraska · 130 Michigan
+ */
+export const SEASON_PREDICTIONS: Record<string, Record<string, [wins: number, losses: number]>> = {
+  darren: { "36": [6, 6], "38": [7, 5], "158": [6, 6], "130": [8, 4] },
+  eric: { "36": [7, 5], "38": [8, 4], "158": [7, 5], "130": [8, 4] },
+  jake: { "36": [6, 6], "38": [4, 8], "158": [6, 6], "130": [8, 4] },
+  chad: { "36": [8, 4], "38": [3, 9], "158": [5, 7], "130": [9, 3] },
+};
+
+/** A regular season is twelve games; accuracy is only scored once one is done. */
+export const REGULAR_SEASON_GAMES = 12;

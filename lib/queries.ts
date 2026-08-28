@@ -269,3 +269,75 @@ export async function getSlateChange(
 
   return { dropped, needsPick };
 }
+
+export interface TeamRecord {
+  teamId: string;
+  name: string;
+  abbr: string;
+  logo: string | null;
+  wins: number;
+  losses: number;
+  /** Completed games we hold for this team. */
+  played: number;
+}
+
+/**
+ * A team's record so far, counted from the completed games in our own table.
+ *
+ * Every game involving an FBS team shows up in the FBS scoreboard, so this
+ * covers their whole schedule — including FCS opponents — provided each week
+ * has been synced. Ties don't exist in college football, so wins + losses is
+ * the whole story.
+ */
+export async function getTeamRecords(
+  season: number,
+  teamIds: string[],
+): Promise<TeamRecord[]> {
+  await ready();
+  if (teamIds.length === 0) return [];
+
+  const rows = await db
+    .select()
+    .from(games)
+    .where(and(eq(games.season, season), eq(games.completed, true)))
+    .orderBy(asc(games.kickoff));
+
+  const wanted = new Set(teamIds);
+  const acc = new Map<string, TeamRecord>();
+
+  const seed = (id: string, name: string, abbr: string, logo: string | null) =>
+    acc.get(id) ??
+    acc.set(id, { teamId: id, name, abbr, logo, wins: 0, losses: 0, played: 0 }).get(id)!;
+
+  for (const g of rows) {
+    if (g.homeScore === null || g.awayScore === null) continue;
+    const homeWon = g.homeScore > g.awayScore;
+
+    if (wanted.has(g.homeTeamId)) {
+      const t = seed(g.homeTeamId, g.homeShort, g.homeAbbr, g.homeLogo);
+      t.played++;
+      if (homeWon) t.wins++;
+      else t.losses++;
+    }
+    if (wanted.has(g.awayTeamId)) {
+      const t = seed(g.awayTeamId, g.awayShort, g.awayAbbr, g.awayLogo);
+      t.played++;
+      if (homeWon) t.losses++;
+      else t.wins++;
+    }
+  }
+
+  // Keep the caller's order, and include teams that haven't played yet.
+  return teamIds.map(
+    (id) =>
+      acc.get(id) ?? {
+        teamId: id,
+        name: "",
+        abbr: "",
+        logo: null,
+        wins: 0,
+        losses: 0,
+        played: 0,
+      },
+  );
+}
