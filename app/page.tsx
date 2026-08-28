@@ -13,7 +13,14 @@ import { LEAGUE_NAME } from "@/lib/config";
 import { Countdown } from "@/components/Countdown";
 import { dayKey, dayLabel } from "@/lib/format";
 import type { GameView } from "@/lib/view-types";
-import { getBoard, getPlayerBySlug, getPlayers, getSeasonStandings, getSlateChange } from "@/lib/queries";
+import {
+  countAutoPicks,
+  getBoard,
+  getPlayerBySlug,
+  getPlayers,
+  getSeasonStandings,
+  getSlateChange,
+} from "@/lib/queries";
 import { getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
 
 // Live scores and kickoff locks make every render time-sensitive.
@@ -44,6 +51,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   // If the slate moved after they picked, say so rather than letting a pick
   // quietly stop counting.
   const slateChange = meId === null ? null : await getSlateChange(season, week, meId);
+  const autoPicked = meId === null ? 0 : await countAutoPicks(season, week, meId);
 
   const made = meId === null ? 0 : board.filter((g) => g.picks.some((p) => p.playerId === meId)).length;
   const openGames = board.filter((g) => !g.locked).length;
@@ -135,6 +143,35 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   <p className="mb-3 px-0.5 text-[12px] text-[var(--ink-faint)]">
                     Browsing as a guest — choose your name, top right, to pick.
                   </p>
+                )}
+
+                {autoPicked > 0 && (
+                  <div
+                    role="status"
+                    className="mb-3 flex items-center gap-2 rounded-[var(--r-card)] border px-3 py-2 text-[12.5px]"
+                    style={{
+                      borderColor: "color-mix(in srgb, var(--brand) 32%, transparent)",
+                      background: "color-mix(in srgb, var(--brand) 7%, transparent)",
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold"
+                      style={{
+                        border: "1.5px dashed var(--brand)",
+                        color: "var(--brand)",
+                      }}
+                    >
+                      A
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="font-semibold">
+                        {autoPicked} pick{autoPicked === 1 ? " was" : "s were"} auto-filled
+                      </strong>{" "}
+                      at kickoff because {autoPicked === 1 ? "it" : "they"} hadn&apos;t been made.
+                      Dashed avatars mark them.
+                    </span>
+                  </div>
                 )}
 
                 {/* Only while there is something to do about it. The orphaned pick

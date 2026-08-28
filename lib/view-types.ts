@@ -29,6 +29,8 @@ export interface GamePick {
   lockedAt: number | null;
   /** True when this pick's number differs from the game's current/closing line. */
   lineMoved: boolean;
+  /** Filled in automatically at kickoff because they never picked. */
+  auto: boolean;
 }
 
 export interface GameView {

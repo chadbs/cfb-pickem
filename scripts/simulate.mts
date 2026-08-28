@@ -12,6 +12,7 @@ import { db, ready, schema } from "../lib/db";
 import { fetchWeek } from "../lib/espn";
 import { syncWeek } from "../lib/sync";
 import { getBoard, getSeasonStandings } from "../lib/queries";
+import { autoPickSide } from "../lib/autopick";
 
 const SEASON = 2025;
 const WEEK = 5;
@@ -251,6 +252,55 @@ console.log("\n=== Line movement ===");
   const p1 = s2.find((s) => s.player.id === 1)!;
   const p2 = s2.find((s) => s.player.id === 2)!;
   check("the leaderboard settles at each player's own number too", p1.wins !== p2.wins || p1.losses !== p2.losses);
+}
+
+// ------------------------------------------ 7. nobody is left without a pick
+// The rule the pool depends on: once a game kicks off, every player has a
+// pick on it, whether or not they made one.
+console.log("\n=== Auto-pick coverage ===");
+{
+  const target = board[board.length - 1];
+  await db.delete(picks).where(eq(picks.gameId, target.id));
+  const before = await db.select().from(picks).where(eq(picks.gameId, target.id));
+  check("cleared the game to simulate nobody picking", before.length === 0);
+
+  const after = await syncWeek(SEASON, WEEK);
+  check("sync reports what it filled", after.autoPicked >= 4, `autoPicked=${after.autoPicked}`);
+
+  const filled = await db.select().from(picks).where(eq(picks.gameId, target.id));
+  const roster = await db.select().from(schema.players);
+  check(
+    "every player now has a pick on it",
+    filled.length === roster.length,
+    `${filled.length} of ${roster.length}`,
+  );
+  check("all of them are flagged auto", filled.every((p) => p.auto));
+
+  const expectedSide = autoPickSide(target.lockedSpread ?? target.spread ?? null);
+  check(
+    "all took the side the rule dictates",
+    filled.every((p) => p.side === expectedSide),
+    `expected ${expectedSide}`,
+  );
+  check(
+    "graded at the closing line, like a late human pick",
+    filled.every((p) => p.spreadAtPick === (target.lockedSpread ?? target.spread)),
+  );
+
+  // Running again must not double up — the unique index plus the existence
+  // check should make this a no-op.
+  const again = await syncWeek(SEASON, WEEK);
+  const twice = await db.select().from(picks).where(eq(picks.gameId, target.id));
+  check(
+    "a second sync adds nothing",
+    twice.length === roster.length && again.autoPicked === 0,
+    `${twice.length} rows, autoPicked=${again.autoPicked}`,
+  );
+
+  const reboard = await getBoard(SEASON, WEEK);
+  const rg = reboard.find((x) => x.id === target.id)!;
+  check("the board marks them auto", rg.picks.every((p) => p.auto));
+  check("and they grade like any other pick", rg.picks.every((p) => p.result !== null));
 }
 
 await cleanup();

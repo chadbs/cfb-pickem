@@ -12,12 +12,15 @@ export function Avatar({
   size = 24,
   result = null,
   isMe = false,
+  auto = false,
   title,
 }: {
   player: PlayerView;
   size?: number;
   result?: PickResult | null;
   isMe?: boolean;
+  /** Auto-filled at kickoff — drawn dashed so it reads as not-chosen. */
+  auto?: boolean;
   title?: string;
 }) {
   const ring = result ? RESULT_RING[result] : player.accent;
@@ -32,7 +35,7 @@ export function Avatar({
         fontSize: size * 0.44,
         color: player.accent,
         background: `color-mix(in srgb, ${player.accent} 18%, transparent)`,
-        border: `1.5px solid ${ring}`,
+        border: `1.5px ${auto ? "dashed" : "solid"} ${ring}`,
         boxShadow: isMe ? `0 0 0 2px color-mix(in srgb, ${player.accent} 30%, transparent)` : undefined,
       }}
     >

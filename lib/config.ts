@@ -60,6 +60,12 @@ export const CONFERENCE_WEIGHT: Record<string, number> = {
   "15": 200, // MAC
 };
 
+/**
+ * A favourite laying this many points or more is treated as inflated, and the
+ * auto-pick takes the underdog instead. Below it the home side is taken.
+ */
+export const AUTO_PICK_BIG_FAVORITE = 14;
+
 /** ESPN group 80 = FBS (I-A). */
 export const FBS_GROUP = "80";
 

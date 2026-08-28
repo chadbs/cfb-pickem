@@ -40,6 +40,19 @@ game the moment it goes final, so without that snapshot the number would simply
 vanish. It's the game's official result against the spread, and the fallback for
 a pick made before the books had posted a line at all.
 
+**Nobody misses a week.** When a game kicks off, anyone who still hasn't picked
+it gets one filled in automatically, flagged as auto and graded at the same
+closing line a late human pick would have had. Auto-picks are drawn with a
+dashed ring on the board and counted in a note at the top of the page, so they
+are never mistaken for something you chose.
+
+The rule claims no edge — a spread exists to split the action, so anything lands
+near 50%. It is deterministic instead, so everyone who misses the same game gets
+the same side and an auto-pick can never quietly advantage one player: take the
+underdog off a number of 14 or more, otherwise take the home side. The threshold
+is `AUTO_PICK_BIG_FAVORITE` in [`lib/config.ts`](lib/config.ts) and the rule
+itself is [`lib/autopick.ts`](lib/autopick.ts).
+
 **Scoring.** A win is 1 point, a push is ½. The season table also tracks
 outright weekly wins and current streak.
 
@@ -56,14 +69,17 @@ so scores keep updating even with nobody watching.
 
 ## Picking the games yourself
 
-`/admin` lists the top 20 games for a week, ranked by the auto-picker, with the
-ten it would choose already ticked. Untick one, tick another, hit **Save slate**.
-**Auto** puts it back to the automatic ten.
+`/admin` lists every game in the week from the Big Ten, SEC, Big 12, Pac-12,
+ACC, Mountain West and the independents, ranked by the auto-picker, with the ten
+it would choose already ticked. **All FBS** widens it to the MAC, Sun Belt, CUSA
+and the American; the filter box searches team and conference. Untick one, tick
+another, hit **Save slate**. **Auto** puts it back to the automatic ten.
 
-Saving pins the week, so the automatic picker stops revising it. Two things can
-never be removed: a game somebody has already picked, and a game that has
-kicked off. Those rows show why they're locked and refuse to deselect — the
-server enforces it too, not just the UI.
+Saving pins the week, so the automatic picker stops revising it. Only a game
+that has already kicked off can't be changed — the server enforces that, not
+just the UI. Swapping out a game that has picks on it keeps them: they stop
+counting, and count again if you put the game back, and anyone affected is told
+on the picks page.
 
 Set `ADMIN_KEY` in the environment to lock the page behind `?key=…`. Leave it
 unset and the page is simply open, which is fine for four people.
@@ -156,7 +172,6 @@ npm run sync 2026 3    # or a specific one
    | --- | --- |
    | `DATABASE_URL` | the Neon integration |
    | `CRON_SECRET` | you, optionally |
-   | `CRON_SECRET` | any random string (optional) |
 
 4. **Deploy.** The schema creates itself on first boot — there is no migration
    step to run or forget.

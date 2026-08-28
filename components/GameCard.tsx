@@ -44,6 +44,7 @@ export function GameCard({
           // You take the number that's on screen right now.
           lockedAt: game.gradingSpread,
           lineMoved: false,
+          auto: false,
         },
       ];
     },

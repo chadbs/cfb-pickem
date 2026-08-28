@@ -4,7 +4,8 @@
  */
 import { fetchCurrentWeek, fetchWeek, deriveHomeSpread, type EspnGame } from "../lib/espn";
 import { selectWeek, isFavorite, scoreGame } from "../lib/selection";
-import { CANDIDATE_CONFERENCE_IDS } from "../lib/config";
+import { CANDIDATE_CONFERENCE_IDS, AUTO_PICK_BIG_FAVORITE } from "../lib/config";
+import { autoPickSide } from "../lib/autopick";
 import { gradePick, coverMargin, buildLeaderboard, spreadForPick } from "../lib/scoring";
 import type { Game, Player } from "../lib/db/schema";
 
@@ -99,6 +100,25 @@ check("pending picks counted", lb[1].pending === 1, `-> ${lb[1].pending}`);
 check("outright week win credited", lb[0].weekWins === 1, `-> ${lb[0].weekWins}`);
 check("no week win for runner-up", lb[1].weekWins === 0);
 check("win streak tracked", lb[0].streak === 2, `-> ${lb[0].streak}`);
+
+// --------------------------------------------------- 3a. the auto-pick rule
+console.log("\n=== 3a. Auto-pick rule ===");
+// Home-relative: negative means the home team is favoured.
+check("home underdog -> home", autoPickSide(6.5) === "home");
+check("small home favourite -> home", autoPickSide(-6.5) === "home");
+check("pick'em -> home", autoPickSide(0) === "home");
+check("no line -> home", autoPickSide(null) === "home");
+check("big home favourite -> the away dog", autoPickSide(-21) === "away");
+check("big away favourite -> the home dog", autoPickSide(21) === "home");
+check(
+  "the threshold is inclusive",
+  autoPickSide(-AUTO_PICK_BIG_FAVORITE) === "away" &&
+    autoPickSide(-(AUTO_PICK_BIG_FAVORITE - 0.5)) === "home",
+);
+check(
+  "deterministic: the same line always gives the same side",
+  [null, 0, -3, -14, 14, -27.5].every((n) => autoPickSide(n) === autoPickSide(n)),
+);
 
 // ------------------------------------------------- 3b. candidate ordering
 console.log("\n=== 3b. Ordering the candidate list ===");

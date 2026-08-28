@@ -110,6 +110,7 @@ const DDL = [
     game_id INTEGER NOT NULL REFERENCES games(id),
     side TEXT NOT NULL,
     spread_at_pick DOUBLE PRECISION,
+    auto BOOLEAN NOT NULL DEFAULT FALSE,
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL
   )`,
@@ -130,6 +131,7 @@ const DDL = [
 const EXPECTED_COLUMNS: Array<[table: string, column: string, type: string]> = [
   ["games", "home_conf_id", "TEXT"],
   ["games", "away_conf_id", "TEXT"],
+  ["picks", "auto", "BOOLEAN NOT NULL DEFAULT FALSE"],
 ];
 
 async function bootstrap() {

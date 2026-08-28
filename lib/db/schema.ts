@@ -116,6 +116,8 @@ export const picks = pgTable(
     side: text("side").notNull(), // home | away
     /** The line showing when they picked — what this pick is graded against. */
     spreadAtPick: doublePrecision("spread_at_pick"),
+    /** Filled in at kickoff because nobody picked. Graded the same as any other. */
+    auto: boolean("auto").notNull().default(false),
     createdAt: epochMs("created_at").notNull(),
     updatedAt: epochMs("updated_at").notNull(),
   },

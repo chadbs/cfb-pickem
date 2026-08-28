@@ -8,9 +8,10 @@ import {
   type EspnGame,
 } from "./espn";
 import { rankGames, type ScoredGame } from "./selection";
+import { autoPickSide } from "./autopick";
 import { GAMES_PER_WEEK, SYNC_TTL_IDLE_MS, SYNC_TTL_LIVE_MS } from "./config";
 
-const { games, picks, meta } = schema;
+const { games, picks, meta, players } = schema;
 
 /** Re-picking the slate is allowed only this far ahead of the first kickoff. */
 const RESELECT_WINDOW_MS = 48 * 60 * 60 * 1000;
@@ -206,6 +207,58 @@ export function espnGameFromRow(g: typeof games.$inferSelect): EspnGame {
   };
 }
 
+/**
+ * Nobody goes without a pick. Once a slate game kicks off it can no longer be
+ * picked by hand, so anyone still missing gets one filled in, flagged as auto
+ * and graded at the same closing line a late human pick would have had.
+ *
+ * Runs on every sync, which is what makes it reliable: a cron tick or anyone
+ * opening the page after kickoff closes the gap. onConflictDoNothing guards
+ * the unique (player, game) index against two syncs racing.
+ */
+async function fillMissingPicks(season: number, week: number): Promise<number> {
+  const now = Date.now();
+
+  const slate = await db
+    .select()
+    .from(games)
+    .where(and(eq(games.season, season), eq(games.week, week), eq(games.isSelected, true)));
+
+  const locked = slate.filter((g) => now >= g.kickoff || g.status !== "pre");
+  if (locked.length === 0) return 0;
+
+  const roster = await db.select().from(players);
+  if (roster.length === 0) return 0;
+
+  const existing = await db
+    .select({ playerId: picks.playerId, gameId: picks.gameId })
+    .from(picks)
+    .where(inArray(picks.gameId, locked.map((g) => g.id)));
+  const have = new Set(existing.map((p) => p.playerId + ":" + p.gameId));
+
+  const rows = [];
+  for (const g of locked) {
+    // The number that was on the board at kickoff, same as a late human pick.
+    const line = g.lockedSpread ?? g.spread ?? null;
+    for (const p of roster) {
+      if (have.has(p.id + ":" + g.id)) continue;
+      rows.push({
+        playerId: p.id,
+        gameId: g.id,
+        side: autoPickSide(line),
+        spreadAtPick: line,
+        auto: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }
+
+  if (rows.length === 0) return 0;
+  await db.insert(picks).values(rows).onConflictDoNothing();
+  return rows.length;
+}
+
 export interface SyncResult {
   season: number;
   week: number;
@@ -214,6 +267,8 @@ export interface SyncResult {
   selected: number;
   locked: number;
   reselected: boolean;
+  /** Picks filled in for players who missed a kickoff. */
+  autoPicked: number;
 }
 
 /**
@@ -272,7 +327,7 @@ export async function syncWeek(
 
   const espnGames = await fetchWeek(season, week);
   if (espnGames.length === 0) {
-    return { season, week, stored: 0, selected: 0, locked: 0, reselected: false };
+    return { season, week, stored: 0, selected: 0, locked: 0, reselected: false, autoPicked: 0 };
   }
 
   const existing = await db
@@ -351,13 +406,25 @@ export async function syncWeek(
     }
   }
 
+  // After the slate is settled, so a game added moments before kickoff still
+  // gets everyone a pick.
+  const autoPicked = await fillMissingPicks(season, week);
+
   await setMeta(`sync:${season}:${week}`, String(now));
 
   const selectedCount = reselected
     ? Math.min(GAMES_PER_WEEK, espnGames.length)
     : selected.length;
 
-  return { season, week, stored: espnGames.length, selected: selectedCount, locked, reselected };
+  return {
+    season,
+    week,
+    stored: espnGames.length,
+    selected: selectedCount,
+    locked,
+    reselected,
+    autoPicked,
+  };
 }
 
 /** Re-run the automatic slate, keeping anything already picked. */

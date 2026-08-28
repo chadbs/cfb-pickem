@@ -103,6 +103,7 @@ export async function getBoard(season: number, week: number): Promise<GameView[]
         game.status === "in" && (coverMargin(game, side, lockedAt) ?? 0) > 0,
       lockedAt,
       lineMoved: lockedAt !== null && lockedAt !== effectiveSpread(game),
+      auto: p.auto,
     });
     byGame.set(p.gameId, list);
   }
@@ -187,6 +188,29 @@ export async function getPlayerBySlug(slug: string): Promise<PlayerView | null> 
   await ready();
   const [row] = await db.select().from(players).where(eq(players.slug, slug)).limit(1);
   return row ? toPlayerView(row) : null;
+}
+
+/** How many of this player's picks this week were filled in for them. */
+export async function countAutoPicks(
+  season: number,
+  week: number,
+  playerId: number,
+): Promise<number> {
+  await ready();
+  const rows = await db
+    .select({ id: picks.id })
+    .from(picks)
+    .innerJoin(games, eq(picks.gameId, games.id))
+    .where(
+      and(
+        eq(picks.playerId, playerId),
+        eq(picks.auto, true),
+        eq(games.season, season),
+        eq(games.week, week),
+        eq(games.isSelected, true),
+      ),
+    );
+  return rows.length;
 }
 
 export interface SlateChange {
