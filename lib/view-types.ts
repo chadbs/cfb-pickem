@@ -22,13 +22,6 @@ export interface GamePick {
   result: PickResult | null;
   /** In-progress game where this side is currently covering. */
   liveCovering: boolean;
-  /**
-   * The home-relative line this pick is graded at — the number that was showing
-   * when it was made. Two people on the same side can hold different numbers.
-   */
-  lockedAt: number | null;
-  /** True when this pick's number differs from the game's current/closing line. */
-  lineMoved: boolean;
   /** Filled in automatically at kickoff because they never picked. */
   auto: boolean;
 }

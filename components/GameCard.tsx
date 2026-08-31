@@ -41,9 +41,6 @@ export function GameCard({
           side: next.side,
           result: null,
           liveCovering: false,
-          // You take the number that's on screen right now.
-          lockedAt: game.gradingSpread,
-          lineMoved: false,
           auto: false,
         },
       ];
@@ -314,8 +311,6 @@ function SideButton({
           {sidePicks.map((p) => {
             const player = playerById.get(p.playerId);
             if (!player) return null;
-            const theirs = spreadForSide(p.lockedAt, side);
-            const theirLine = theirs === null ? "" : ` ${formatSpread(theirs)}`;
             return (
               <motion.span
                 key={p.playerId}
@@ -328,15 +323,8 @@ function SideButton({
                   size={21}
                   result={p.result}
                   isMe={p.playerId === meId}
-                  title={`${player.name} · ${team.abbr}${theirLine}`}
+                  title={`${player.name} · ${team.abbr}${p.auto ? " · auto-picked" : ""}`}
                 />
-                {/* Only shown when they're holding a different number to the
-                    one on the board, so the discrepancy is never hidden. */}
-                {p.lineMoved && theirs !== null && (
-                  <span className="nums text-[9.5px] font-bold" style={{ color: player.accent }}>
-                    {formatSpread(theirs)}
-                  </span>
-                )}
               </motion.span>
             );
           })}

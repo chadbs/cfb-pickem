@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import { db, ready, schema } from "./db";
-import { coveringSide, gradePick, spreadForPick, type PickResult, type Side } from "./scoring";
+import { coveringSide, effectiveSpread, gradePick, type PickResult, type Side } from "./scoring";
 import { spreadForSide } from "./format";
 import { getConferences } from "./sync";
 import type { PlayerView } from "./view-types";
@@ -148,8 +148,8 @@ export async function getInsights(season: number): Promise<Insights> {
   for (const p of mine) {
     const g = gameById.get(p.gameId)!;
     const side = p.side as Side;
-    const line = spreadForPick(g, p.spreadAtPick);
-    const result = gradePick(g, side, line);
+    const line = effectiveSpread(g);
+    const result = gradePick(g, side);
     if (!result) continue;
 
     const s = splits.get(p.playerId);
@@ -202,8 +202,8 @@ export async function getInsights(season: number): Promise<Insights> {
         const pb = list.find((p) => p.playerId === b.id);
         if (!pa || !pb || pa.side === pb.side) continue;
         const g = gameById.get(gameId)!;
-        const ra = gradePick(g, pa.side as Side, spreadForPick(g, pa.spreadAtPick));
-        const rb = gradePick(g, pb.side as Side, spreadForPick(g, pb.spreadAtPick));
+        const ra = gradePick(g, pa.side as Side);
+        const rb = gradePick(g, pb.side as Side);
         if (!ra || !rb) continue;
         if (ra === "win" && rb !== "win") {
           aWins++;
@@ -301,7 +301,7 @@ export async function getInsights(season: number): Promise<Insights> {
     const side = list[0].side;
     if (!list.every((p) => p.side === side)) continue;
     const g = gameById.get(gameId)!;
-    const r = gradePick(g, side as Side, spreadForPick(g, list[0].spreadAtPick));
+    const r = gradePick(g, side as Side);
     if (r) add(consensus, r);
   }
 

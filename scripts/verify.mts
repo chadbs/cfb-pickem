@@ -6,7 +6,7 @@ import { fetchCurrentWeek, fetchWeek, deriveHomeSpread, type EspnGame } from "..
 import { selectWeek, isFavorite, scoreGame } from "../lib/selection";
 import { CANDIDATE_CONFERENCE_IDS, AUTO_PICK_BIG_FAVORITE } from "../lib/config";
 import { autoPickSide } from "../lib/autopick";
-import { gradePick, coverMargin, buildLeaderboard, spreadForPick } from "../lib/scoring";
+import { gradePick, coverMargin, buildLeaderboard } from "../lib/scoring";
 import type { Game, Player } from "../lib/db/schema";
 
 let failures = 0;
@@ -60,27 +60,32 @@ check("cover margin is signed correctly", coverMargin(g(30, 20, -7.5), "home") =
 check("live spread used when no locked line yet",
   gradePick({ completed: true, homeScore: 30, awayScore: 20, lockedSpread: null, spread: -7.5 } as Game, "home") === "win");
 
-// --------------------------------------------- 2b. per-pick line locking
-// Everyone is settled at the number they personally took, so two people on the
-// same side of the same game can get opposite results when the line moved.
-console.log("\n=== 2b. Per-pick line locking ===");
-const moved = g(28, 23, -10); // home won by 5; the line closed at -10
-check("closing line alone would be a loss", gradePick(moved, "home") === "loss");
-check("someone who took -3 earlier wins", gradePick(moved, "home", -3) === "win");
-check("someone who took -7 earlier loses", gradePick(moved, "home", -7) === "loss");
-check("someone who took the exact margin pushes", gradePick(moved, "home", -5) === "push");
-check("an override of 0 counts as a pick'em, not as missing",
-  gradePick(g(24, 24, -7), "home", 0) === "push");
-check("no override still falls back to the game's line", gradePick(moved, "home") === "loss");
-check("the other side mirrors at that same number", gradePick(moved, "away", -3) === "loss");
-
-check("spreadForPick prefers the number the player took",
-  spreadForPick({ lockedSpread: -10, spread: -9 } as Game, -3) === -3);
-check("spreadForPick keeps a legitimate 0",
-  spreadForPick({ lockedSpread: -10, spread: null } as Game, 0) === 0);
-check("spreadForPick falls back when the pick has no number",
-  spreadForPick({ lockedSpread: -10, spread: null } as Game, null) === -10);
-
+// ------------------------------------------- 2b. one line settles everyone
+// Two people on the same side of the same game must always get the same
+// result, whatever number either of them happened to see when picking.
+console.log("\n=== 2b. One line settles everyone ===");
+const closed = g(28, 23, -10); // home won by 5; the line closed at -10
+check("home laying 10 and winning by 5 does not cover", gradePick(closed, "home") === "loss");
+check("the away side of that same game covers", gradePick(closed, "away") === "win");
+check(
+  "the result depends only on the game, not on who is asking",
+  gradePick(closed, "home") === gradePick(closed, "home") &&
+    gradePick(closed, "away") === gradePick(closed, "away"),
+);
+check(
+  "the closing line is used even when a live number is also present",
+  gradePick(
+    { completed: true, homeScore: 28, awayScore: 23, lockedSpread: -10, spread: -3 } as Game,
+    "home",
+  ) === "loss",
+);
+check(
+  "before a line is frozen the live one stands in",
+  gradePick(
+    { completed: true, homeScore: 30, awayScore: 20, lockedSpread: null, spread: -7.5 } as Game,
+    "home",
+  ) === "win",
+);
 // ------------------------------------------------------------ 3. leaderboard
 console.log("\n=== 3. Leaderboard ===");
 const mkPlayer = (id: number, name: string): Player =>

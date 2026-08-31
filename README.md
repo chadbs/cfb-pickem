@@ -28,12 +28,20 @@ conference stats on `/insights` possible. It's roughly 100 games a week, written
 in batches; nothing is ever deleted, so dropping a game from the slate can't
 orphan a pick.
 
-**You get the number you took.** Each pick is graded against the spread that was
-on screen when it was made, not the closing line. Lines move, sometimes sharply
-on late injury news, and settling everyone at the closing number would decide a
-bet nobody agreed to. Two people can take the same team at different numbers and
-get opposite results; when that happens the board prints each person's line next
-to their avatar so the difference is never hidden.
+**One line settles everyone.** Every pick on a game is graded against that
+game's closing line, frozen at kickoff — not the number each player happened to
+see when they picked.
+
+This was per-pick for a while, so that a late line move could not decide a bet
+you never saw. The cost turned out to be worse than the cure: a quarter of the
+picked games had people holding different numbers, and twice that straddled a
+key number, where half a point is the difference between a push and a loss on
+the same side of the same game. One number per game is easier to argue about and
+impossible to feel cheated by.
+
+Picks still record the number that was showing when they were made. Nothing
+reads it now, but it costs nothing to keep and it is the only record of what
+each person actually saw.
 
 **The closing line is still frozen at kickoff.** ESPN deletes the odds from a
 game the moment it goes final, so without that snapshot the number would simply
