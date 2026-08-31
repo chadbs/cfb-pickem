@@ -97,8 +97,7 @@ unset and the page is simply open, which is fine for four people.
 `/insights` is about the four of us rather than the sport:
 
 - **Head to head** — only games where two of you took opposite sides.
-- **Favourites vs underdogs** and **home vs road** splits, by the number each
-  pick was actually taken at.
+- **Favourites vs underdogs** and **home vs road** splits, by the game's line.
 - **Going it alone** — your record when nobody joined you on that side.
 - **Best and worst week**, and how unanimous picks have done.
 - **Conference power rankings** and **conference head-to-head**, from
