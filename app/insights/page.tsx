@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Avatar } from "@/components/Avatar";
 import { SiteTabs } from "@/components/SiteNav";
+import { ConferenceBreakdown } from "@/components/ConferenceBreakdown";
 import { LEAGUE_NAME } from "@/lib/config";
 import { recordLine } from "@/lib/format";
 import { getInsights, MIN_TEAM_GAMES, pct, total, type Rec } from "@/lib/insights";
@@ -176,9 +177,12 @@ export default async function InsightsPage() {
               </>
             )}
 
+            {/* Full width: the detail behind the power rankings below it. */}
+            <ConferenceBreakdown breakdowns={data.conferenceBreakdowns} />
+
             <Section
               title="Conference power rankings"
-              hint="Straight-up record in non-conference games"
+              hint="Straight-up record against other FBS conferences"
             >
               {data.conferences.length === 0 ? (
                 <p className="px-3 py-3 text-[12px] text-[var(--ink-faint)]">
@@ -205,37 +209,6 @@ export default async function InsightsPage() {
                       </li>
                     );
                   })}
-                </ul>
-              )}
-            </Section>
-
-            <Section title="Conference matchups" hint="Head to head, non-conference games">
-              {data.conferenceMatchups.length === 0 ? (
-                <p className="px-3 py-3 text-[12px] text-[var(--ink-faint)]">
-                  Nothing to compare yet.
-                </p>
-              ) : (
-                <ul>
-                  {data.conferenceMatchups.map((m) => (
-                    <li
-                      key={`${m.a}-${m.b}`}
-                      className="flex items-center gap-2 border-b border-[var(--line)] px-3 py-2 last:border-b-0"
-                    >
-                      <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">{m.a}</span>
-                      <span className="nums shrink-0 text-[13px] font-semibold">
-                        <span className={m.aWins > m.bWins ? "text-[var(--win)]" : undefined}>
-                          {m.aWins}
-                        </span>
-                        <span className="mx-1 text-[var(--ink-faint)]">–</span>
-                        <span className={m.bWins > m.aWins ? "text-[var(--win)]" : undefined}>
-                          {m.bWins}
-                        </span>
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-right text-[12.5px] font-medium">
-                        {m.b}
-                      </span>
-                    </li>
-                  ))}
                 </ul>
               )}
             </Section>

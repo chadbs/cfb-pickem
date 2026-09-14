@@ -6,6 +6,7 @@ import { fetchCurrentWeek, fetchWeek, deriveHomeSpread, type EspnGame } from "..
 import { selectWeek, isFavorite, scoreGame } from "../lib/selection";
 import { CANDIDATE_CONFERENCE_IDS, AUTO_PICK_BIG_FAVORITE } from "../lib/config";
 import { autoPickSide } from "../lib/autopick";
+import { buildConferenceBreakdowns, FCS } from "../lib/conferences";
 import { gradePick, coverMargin, buildLeaderboard } from "../lib/scoring";
 import type { Game, Player } from "../lib/db/schema";
 
@@ -173,6 +174,43 @@ check(
 );
 check("no posted line ranks below one that has a close number", sc({ spread: null }) < sc({ spread: -3 }));
 check("Notre Dame's conference is offered by default", CANDIDATE_CONFERENCE_IDS.includes("18"));
+
+// ------------------------------------------ 3c. conference vs conference
+console.log("");
+console.log("=== 3c. Conference vs conference ===");
+{
+  const names = { "4": "Big 12", "9": "Pac-12", "8": "SEC", "5": "Big Ten", "15": "MAC" };
+  const G = (hc: string | null, ac: string | null, hs: number, as: number, line: number | null) => ({
+    completed: true, homeScore: hs, awayScore: as, homeConfId: hc, awayConfId: ac,
+    lockedSpread: line, spread: null,
+  });
+  const out = buildConferenceBreakdowns(
+    [
+      G("4", "8", 30, 20, -3),   // Big 12 beats SEC at home, covers -3
+      G("8", "4", 28, 27, -7),   // SEC beats Big 12, Big 12 covers +7
+      G("4", "4", 40, 10, -20),  // Big 12 vs itself: ignored
+      G("4", "48", 52, 3, -35),  // Big 12 over an FCS side (id not in names)
+      G("9", "5", 17, 24, null), // Pac-12 loses to Big Ten, no line: SU only
+    ],
+    names,
+  );
+  const b12 = out.find((b) => b.id === "4")!;
+  const vs = (id: string) => b12.lines.find((l) => l.opp === id)!;
+
+  check(
+    "every conference lists every other FBS conference plus FCS",
+    out.every((b) => b.lines.length === Object.keys(names).length),
+  );
+  check("a pairing that never happened still has a row", vs("15").su.wins + vs("15").su.losses === 0);
+  check("both games against the SEC counted, one each way", vs("8").su.wins === 1 && vs("8").su.losses === 1);
+  check("covered both against the SEC", vs("8").ats.wins === 2 && vs("8").ats.losses === 0);
+  check("the SEC side mirrors it", out.find((b) => b.id === "8")!.lines.find((l) => l.opp === "4")!.ats.losses === 2);
+  check("a league against itself is ignored", b12.vsFbs.su.wins + b12.vsFbs.su.losses === 2);
+  check("an FCS opponent lands in the FCS row", vs(FCS).su.wins === 1);
+  check("FCS is kept out of the vs-FBS total", b12.vsFcs.su.wins === 1 && b12.vsFbs.su.wins === 1);
+  const pac = out.find((b) => b.id === "9")!.lines.find((l) => l.opp === "5")!;
+  check("a game with no line counts straight up but not ATS", pac.su.losses === 1 && pac.ats.wins + pac.ats.losses + pac.ats.pushes === 0);
+}
 
 // -------------------------------------------------------- 4. live ESPN data
 console.log("\n=== 4. Live ESPN fetch ===");

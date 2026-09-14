@@ -66,6 +66,12 @@ export const CONFERENCE_WEIGHT: Record<string, number> = {
  */
 export const AUTO_PICK_BIG_FAVORITE = 14;
 
+/**
+ * Order of the conference tabs on /insights: the four asked about by name, then
+ * the ACC. Everything else follows by CONFERENCE_WEIGHT.
+ */
+export const CONFERENCE_SPOTLIGHT = ["4", "9", "8", "5", "1"]; // Big 12, Pac-12, SEC, Big Ten, ACC
+
 /** ESPN group 80 = FBS (I-A). */
 export const FBS_GROUP = "80";
 

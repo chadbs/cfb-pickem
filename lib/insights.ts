@@ -3,6 +3,7 @@ import { db, ready, schema } from "./db";
 import { coveringSide, effectiveSpread, gradePick, type PickResult, type Side } from "./scoring";
 import { spreadForSide } from "./format";
 import { getConferences } from "./sync";
+import { buildConferenceBreakdowns, type ConferenceBreakdown } from "./conferences";
 import type { PlayerView } from "./view-types";
 
 const { games, picks, players } = schema;
@@ -74,12 +75,6 @@ export interface ConferenceRec {
   losses: number;
 }
 
-export interface ConferenceMatchup {
-  a: string;
-  b: string;
-  aWins: number;
-  bWins: number;
-}
 
 export interface Insights {
   season: number;
@@ -91,7 +86,8 @@ export interface Insights {
   h2h: HeadToHead[];
   teams: TeamAts[];
   conferences: ConferenceRec[];
-  conferenceMatchups: ConferenceMatchup[];
+  /** Every FBS conference against every other one, FCS included. */
+  conferenceBreakdowns: ConferenceBreakdown[];
   /** All four took the same side, and how those turned out. */
   consensus: Rec;
 }
@@ -249,50 +245,18 @@ export async function getInsights(season: number): Promise<Insights> {
     .slice(0, 12);
 
   // ---- conference strength, from non-conference games only ---------------
-  // A conference's record against itself is 0.500 by construction, so only
-  // cross-conference games say anything.
-  const confRec = new Map<string, ConferenceRec>();
-  const matchups = new Map<string, ConferenceMatchup>();
-
-  for (const g of gameRows) {
-    if (!g.completed || g.homeScore === null || g.awayScore === null) continue;
-    if (g.homeScore === g.awayScore) continue;
-    const hc = g.homeConfId;
-    const ac = g.awayConfId;
-    if (!hc || !ac || hc === ac) continue;
-    if (!confNames[hc] || !confNames[ac]) continue; // skip FCS and unknowns
-
-    const homeWon = g.homeScore > g.awayScore;
-    const winner = homeWon ? hc : ac;
-    const loser = homeWon ? ac : hc;
-
-    for (const [id, isWin] of [
-      [winner, true],
-      [loser, false],
-    ] as const) {
-      const e = confRec.get(id) ?? { id, name: confNames[id], wins: 0, losses: 0 };
-      if (isWin) e.wins++;
-      else e.losses++;
-      confRec.set(id, e);
-    }
-
-    const [x, y] = [hc, ac].sort();
-    const key = `${x}:${y}`;
-    const m = matchups.get(key) ?? { a: confNames[x], b: confNames[y], aWins: 0, bWins: 0 };
-    if (winner === x) m.aWins++;
-    else m.bWins++;
-    matchups.set(key, m);
-  }
-
-  const conferences = [...confRec.values()].sort(
-    (a, b) =>
-      b.wins / Math.max(1, b.wins + b.losses) - a.wins / Math.max(1, a.wins + a.losses) ||
-      b.wins - a.wins,
-  );
-
-  const conferenceMatchups = [...matchups.values()]
-    .sort((a, b) => b.aWins + b.bWins - (a.aWins + a.bWins))
-    .slice(0, 10);
+  // One grid feeds both tables, so the power rankings and the per-conference
+  // breakdown can never disagree. Rankings are against FBS opponents only:
+  // beating an FCS side says little about where a league stands.
+  const conferenceBreakdowns = buildConferenceBreakdowns(gameRows, confNames);
+  const conferences: ConferenceRec[] = conferenceBreakdowns
+    .map((b) => ({ id: b.id, name: b.name, wins: b.vsFbs.su.wins, losses: b.vsFbs.su.losses }))
+    .filter((c) => c.wins + c.losses > 0)
+    .sort(
+      (a, b) =>
+        b.wins / Math.max(1, b.wins + b.losses) - a.wins / Math.max(1, a.wins + a.losses) ||
+        b.wins - a.wins,
+    );
 
   // ---- when everyone agreed ----------------------------------------------
   const consensus = empty();
@@ -313,7 +277,7 @@ export async function getInsights(season: number): Promise<Insights> {
     h2h,
     teams,
     conferences,
-    conferenceMatchups,
+    conferenceBreakdowns,
     consensus,
   };
 }

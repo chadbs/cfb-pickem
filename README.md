@@ -100,9 +100,15 @@ unset and the page is simply open, which is fine for four people.
 - **Favourites vs underdogs** and **home vs road** splits, by the game's line.
 - **Going it alone** — your record when nobody joined you on that side.
 - **Best and worst week**, and how unanimous picks have done.
-- **Conference power rankings** and **conference head-to-head**, from
-  non-conference games only — a conference's record against itself is .500 by
-  construction and says nothing.
+- **Conference vs conference** — pick a conference (Big 12, Pac-12, SEC, Big
+  Ten and ACC lead the tabs) and see its record straight up and against the
+  spread against every other FBS conference, plus one row for all FCS
+  opponents. Pairings that haven't happened yet are still listed, greyed out,
+  so a missing row never looks like missing data.
+- **Conference power rankings** — each conference's record against the rest of
+  FBS. Both of these use non-conference games only: a conference's record
+  against itself is .500 by construction and says nothing. FCS wins are shown
+  but kept out of the rankings, since beating an FCS team says little.
 - **Teams against the spread**, minimum four games played.
 
 The last three are league-wide: every FBS game gets stored each week, not just
