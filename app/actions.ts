@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { db, ready, schema } from "@/lib/db";
 import { autoSelectWeek, setSlatePinned, syncWeek } from "@/lib/sync";
 import { GAMES_PER_WEEK } from "@/lib/config";
+import { effectiveSpread } from "@/lib/scoring";
 
 const { games, picks, players } = schema;
 
@@ -49,7 +50,7 @@ export async function setPick(
     } else {
       await db
         .update(picks)
-        .set({ side, spreadAtPick: game.spread, updatedAt: now })
+        .set({ side, spreadAtPick: effectiveSpread(game), updatedAt: now })
         .where(eq(picks.id, mine.id));
     }
   } else {
@@ -57,7 +58,7 @@ export async function setPick(
       playerId,
       gameId,
       side,
-      spreadAtPick: game.spread,
+      spreadAtPick: effectiveSpread(game),
       createdAt: now,
       updatedAt: now,
     });
@@ -156,6 +157,53 @@ export async function resetSlate(season: number, week: number): Promise<ActionRe
   await autoSelectWeek(season, week);
   revalidatePath("/");
   revalidatePath("/admin");
+  return { ok: true };
+}
+
+/**
+ * Set a game's line by hand, or pass null to go back to ESPN's.
+ *
+ * `spread` is home-relative like every other line in the app. Before kickoff it
+ * only sets the override, and the sync freezes it as the closing line at
+ * kickoff. After kickoff it rewrites the closing line directly — that's the
+ * repair for a game that kicked off with no line and froze at a pick'em — and
+ * every pick on the game regrades, since grading is computed, never stored.
+ */
+export async function setLine(gameId: number, spread: number | null): Promise<ActionResult> {
+  await ready();
+
+  if (spread !== null) {
+    if (!Number.isFinite(spread) || Math.abs(spread) > 70) {
+      return { ok: false, error: "That isn't a believable line" };
+    }
+    if (!Number.isInteger(spread * 2)) {
+      return { ok: false, error: "Lines move in half points" };
+    }
+  }
+
+  const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
+  if (!game) return { ok: false, error: "Game not found" };
+
+  const started = Date.now() >= game.kickoff || game.status !== "pre";
+
+  if (started) {
+    // Clearing now would leave the closing line as whatever froze at kickoff,
+    // which is exactly the thing being corrected. Make it explicit instead.
+    if (spread === null) {
+      return { ok: false, error: "Already kicked off — set a number instead of clearing it" };
+    }
+    await db
+      .update(games)
+      .set({ manualSpread: spread, lockedSpread: spread })
+      .where(eq(games.id, gameId));
+  } else {
+    await db.update(games).set({ manualSpread: spread }).where(eq(games.id, gameId));
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/standings");
+  revalidatePath("/insights");
   return { ok: true };
 }
 

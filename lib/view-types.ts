@@ -88,6 +88,26 @@ export interface CandidateView {
   locked: boolean;
 }
 
+/** A slate game as the admin's line editor sees it. All lines home-relative. */
+export interface LineView {
+  id: number;
+  kickoff: number;
+  awayAbbr: string;
+  homeAbbr: string;
+  awayShort: string;
+  homeShort: string;
+  awayLogo: string | null;
+  homeLogo: string | null;
+  neutralSite: boolean;
+  /** What ESPN's feed says, whatever the override. */
+  espnSpread: number | null;
+  oddsProvider: string | null;
+  manualSpread: number | null;
+  /** The number on the board right now — what picks grade against. */
+  line: number | null;
+  started: boolean;
+}
+
 export interface PlayerView {
   id: number;
   slug: string;

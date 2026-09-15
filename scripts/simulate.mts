@@ -53,6 +53,14 @@ check("ESPN really did drop the odds on these finals", finals.every((g) => g.spr
 const OFFSETS = [3, -3, 0, 7, -7, 1.5, -1.5, 10, -10, 0.5];
 const now = Date.now();
 
+/**
+ * One game gets its line set by hand in /admin, with the feed holding a
+ * different, wrong number underneath. The hand-set line must be the one that
+ * freezes and grades — if the feed leaked through, this game would grade 20
+ * points off and the results table below would catch it.
+ */
+const MANUAL_SLOT = 1;
+
 const expected: Array<{ espnId: string; offset: number; homeResult: "win" | "loss" | "push" }> = [];
 
 for (const [i, g] of finals.entries()) {
@@ -89,7 +97,8 @@ for (const [i, g] of finals.entries()) {
     neutralSite: g.neutralSite,
     venue: g.venue,
     broadcast: g.broadcast,
-    spread,
+    spread: i === MANUAL_SLOT ? spread + 20 : spread,
+    manualSpread: i === MANUAL_SLOT ? spread : null,
     lockedSpread: null,
     overUnder: g.overUnder,
     oddsProvider: "test",
@@ -162,9 +171,20 @@ check(
   "the locked line is exactly the one we stored pregame, not a null from ESPN",
   board.every((g) => {
     const pregame = stored.find((s) => s.id === g.id)!;
-    return g.lockedSpread === pregame.spread;
+    return g.lockedSpread === (pregame.manualSpread ?? pregame.spread);
   }),
 );
+{
+  const manual = stored[MANUAL_SLOT];
+  const froze = board.find((g) => g.id === manual.id)!;
+  check(
+    "a line set by hand outranks the feed and is what froze",
+    manual.manualSpread !== null && froze.lockedSpread === manual.manualSpread && manual.spread !== manual.manualSpread,
+    `manual=${manual.manualSpread} feed=${manual.spread} locked=${froze.lockedSpread}`,
+  );
+  const [after] = await db.select().from(games).where(eq(games.id, manual.id));
+  check("the sync left the hand-set line alone", after.manualSpread === manual.manualSpread);
+}
 
 // ------------------------------------------------------------- 4. the grades
 console.log("Results:");

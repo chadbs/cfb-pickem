@@ -89,6 +89,14 @@ just the UI. Swapping out a game that has picks on it keeps them: they stop
 counting, and count again if you put the game back, and anyone affected is told
 on the picks page.
 
+**Lines** sits above the list. ESPN never posts a number for some games —
+FCS opponents mostly — and a slate game with no line would freeze as a pick'em
+at kickoff, so those are flagged. Hit **Set**, choose the favorite and the
+points, save. A line you set beats ESPN's until you switch back ("Use ESPN's"),
+and it freezes at kickoff like any other. Changing a line after kickoff rewrites
+the closing line and regrades the game — that's the fix for one that kicked off
+with nothing posted.
+
 Set `ADMIN_KEY` in the environment to lock the page behind `?key=…`. Leave it
 unset and the page is simply open, which is fine for four people.
 

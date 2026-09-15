@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { and, eq, inArray } from "drizzle-orm";
+import { LineEditor } from "@/components/LineEditor";
 import { SlateEditor } from "@/components/SlateEditor";
 import { ADMIN_KEY, CANDIDATE_CONFERENCE_IDS, GAMES_PER_WEEK, LEAGUE_NAME } from "@/lib/config";
 import { db, ready, schema } from "@/lib/db";
 import type { EspnGame } from "@/lib/espn";
 import { isFavorite, rankGames } from "@/lib/selection";
 import { espnGameFromRow, getConferences, getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
-import type { CandidateView } from "@/lib/view-types";
+import { effectiveSpread } from "@/lib/scoring";
+import type { CandidateView, LineView } from "@/lib/view-types";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +77,28 @@ function buildCandidates(
       locked: Boolean(row) && started,
     };
   });
+}
+
+function buildLines(selectedRows: GameRow[]): LineView[] {
+  const now = Date.now();
+  return [...selectedRows]
+    .sort((a, b) => a.kickoff - b.kickoff || a.id - b.id)
+    .map((g) => ({
+      id: g.id,
+      kickoff: g.kickoff,
+      awayAbbr: g.awayAbbr,
+      homeAbbr: g.homeAbbr,
+      awayShort: g.awayShort,
+      homeShort: g.homeShort,
+      awayLogo: g.awayLogo,
+      homeLogo: g.homeLogo,
+      neutralSite: g.neutralSite,
+      espnSpread: g.spread,
+      oddsProvider: g.oddsProvider,
+      manualSpread: g.manualSpread,
+      line: effectiveSpread(g),
+      started: now >= g.kickoff || g.status !== "pre",
+    }));
 }
 
 export default async function Admin({ searchParams }: PageProps<"/admin">) {
@@ -165,6 +189,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
           ))}
         </div>
 
+        <LineEditor games={buildLines(selectedRows)} />
         <SlateEditor season={season} week={week} candidates={candidates} />
       </main>
     </>

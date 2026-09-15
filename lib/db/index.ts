@@ -132,6 +132,7 @@ const EXPECTED_COLUMNS: Array<[table: string, column: string, type: string]> = [
   ["games", "home_conf_id", "TEXT"],
   ["games", "away_conf_id", "TEXT"],
   ["picks", "auto", "BOOLEAN NOT NULL DEFAULT FALSE"],
+  ["games", "manual_spread", "DOUBLE PRECISION"],
 ];
 
 async function bootstrap() {

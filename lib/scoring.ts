@@ -5,9 +5,18 @@ import type { Game, Player } from "./db/schema";
 export type Side = "home" | "away";
 export type PickResult = "win" | "loss" | "push";
 
-/** The line a pick is graded against: frozen at kickoff, live before that. */
-export function effectiveSpread(game: Pick<Game, "lockedSpread" | "spread">): number | null {
-  return game.lockedSpread ?? game.spread ?? null;
+/**
+ * The line a pick is graded against: frozen at kickoff; before that a line set
+ * by hand, else the live one.
+ *
+ * `manualSpread` is optional because only pre-kickoff code needs it — at
+ * kickoff it's copied into `lockedSpread`, so anything grading a finished game
+ * can keep selecting just the two columns.
+ */
+export function effectiveSpread(
+  game: Pick<Game, "lockedSpread" | "spread"> & { manualSpread?: number | null },
+): number | null {
+  return game.lockedSpread ?? game.manualSpread ?? game.spread ?? null;
 }
 
 /**

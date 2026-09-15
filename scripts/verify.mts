@@ -7,7 +7,7 @@ import { selectWeek, isFavorite, scoreGame } from "../lib/selection";
 import { CANDIDATE_CONFERENCE_IDS, AUTO_PICK_BIG_FAVORITE } from "../lib/config";
 import { autoPickSide } from "../lib/autopick";
 import { buildConferenceBreakdowns, FCS } from "../lib/conferences";
-import { gradePick, coverMargin, buildLeaderboard } from "../lib/scoring";
+import { gradePick, coverMargin, buildLeaderboard, effectiveSpread } from "../lib/scoring";
 import type { Game, Player } from "../lib/db/schema";
 
 let failures = 0;
@@ -86,6 +86,22 @@ check(
     { completed: true, homeScore: 30, awayScore: 20, lockedSpread: null, spread: -7.5 } as Game,
     "home",
   ) === "win",
+);
+check(
+  "a line set by hand outranks the feed before kickoff",
+  effectiveSpread({ lockedSpread: null, manualSpread: -24.5, spread: -3 }) === -24.5,
+);
+check(
+  "and fills in when the feed has nothing at all",
+  effectiveSpread({ lockedSpread: null, manualSpread: -24.5, spread: null }) === -24.5,
+);
+check(
+  "once frozen, the closing line wins over both",
+  effectiveSpread({ lockedSpread: -21, manualSpread: -24.5, spread: -3 }) === -21,
+);
+check(
+  "a hand-set pick'em is a real line, not a missing one",
+  effectiveSpread({ lockedSpread: null, manualSpread: 0, spread: -3 }) === 0,
 );
 // ------------------------------------------------------------ 3. leaderboard
 console.log("\n=== 3. Leaderboard ===");

@@ -77,6 +77,13 @@ export const games = pgTable(
      * simply vanish.
      */
     lockedSpread: doublePrecision("locked_spread"),
+    /**
+     * A line set by hand in /admin, for games ESPN never posts one for (FCS
+     * opponents, mostly). Outranks `spread` until kickoff, when it becomes the
+     * closing line like any other. Syncs never touch it; `spread` keeps tracking
+     * ESPN underneath so the admin can see what the feed says.
+     */
+    manualSpread: doublePrecision("manual_spread"),
     overUnder: doublePrecision("over_under"),
     oddsProvider: text("odds_provider"),
 

@@ -9,6 +9,7 @@ import {
 } from "./espn";
 import { rankGames, type ScoredGame } from "./selection";
 import { autoPickSide } from "./autopick";
+import { effectiveSpread } from "./scoring";
 import { GAMES_PER_WEEK, SYNC_TTL_IDLE_MS, SYNC_TTL_LIVE_MS } from "./config";
 
 const { games, picks, meta, players } = schema;
@@ -196,7 +197,8 @@ export function espnGameFromRow(g: typeof games.$inferSelect): EspnGame {
     neutralSite: g.neutralSite,
     venue: g.venue,
     broadcast: g.broadcast,
-    spread: g.spread,
+    // Ranked and listed at the line people will actually be picking against.
+    spread: g.manualSpread ?? g.spread,
     overUnder: g.overUnder,
     oddsProvider: g.oddsProvider,
     status: g.status as EspnGame["status"],
@@ -239,7 +241,7 @@ async function fillMissingPicks(season: number, week: number): Promise<number> {
   const rows = [];
   for (const g of locked) {
     // The number that was on the board at kickoff, same as a late human pick.
-    const line = g.lockedSpread ?? g.spread ?? null;
+    const line = effectiveSpread(g);
     for (const p of roster) {
       if (have.has(p.id + ":" + g.id)) continue;
       rows.push({
@@ -355,7 +357,8 @@ export async function syncWeek(
      */
     let lockedSpread = row?.lockedSpread ?? null;
     if (lockedSpread === null && (now >= g.kickoff || g.status !== "pre")) {
-      lockedSpread = spread ?? (row?.isSelected ? 0 : null);
+      // A line set by hand outranks the feed, same as it did on the board.
+      lockedSpread = row?.manualSpread ?? spread ?? (row?.isSelected ? 0 : null);
       if (lockedSpread !== null) locked++;
     }
 
