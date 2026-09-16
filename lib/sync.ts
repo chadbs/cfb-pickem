@@ -11,6 +11,7 @@ import { rankGames, type ScoredGame } from "./selection";
 import { autoPickSide } from "./autopick";
 import { effectiveSpread } from "./scoring";
 import { fillMissingBrackets } from "./playoff";
+import { defaultLockGame } from "./locks";
 import {
   GAMES_PER_WEEK,
   POSTSEASON_WEEK,
@@ -269,6 +270,59 @@ async function fillMissingPicks(season: number, week: number): Promise<number> {
   return rows.length;
 }
 
+/**
+ * Nobody goes a week without a lock either.
+ *
+ * When the game someone's lock would default to kicks off and they still
+ * haven't called one, it becomes their lock — their own team's game where
+ * possible. Runs after `fillMissingPicks`, which guarantees there's a pick on
+ * the game to promote.
+ *
+ * Deciding it at that game's kickoff rather than at the first kickoff of the
+ * week is what makes it fair: you keep the whole week to pick something else,
+ * right up to the moment the default itself is off the board.
+ */
+export async function fillMissingLocks(season: number, week: number): Promise<number> {
+  const slate = await db
+    .select()
+    .from(games)
+    .where(and(eq(games.season, season), eq(games.week, week), eq(games.isSelected, true)));
+  if (slate.length === 0) return 0;
+
+  const roster = await db.select().from(players);
+  if (roster.length === 0) return 0;
+
+  const onSlate = await db
+    .select()
+    .from(picks)
+    .where(inArray(picks.gameId, slate.map((g) => g.id)));
+
+  const now = Date.now();
+  let locked = 0;
+
+  for (const player of roster) {
+    const mine = onSlate.filter((p) => p.playerId === player.id);
+    if (mine.some((p) => p.isLock)) continue;
+
+    const target = defaultLockGame(player.slug, slate);
+    if (!target) continue;
+
+    const game = slate.find((g) => g.id === target.id)!;
+    if (now < game.kickoff && game.status === "pre") continue;
+
+    const pick = mine.find((p) => p.gameId === target.id);
+    if (!pick) continue;
+
+    await db
+      .update(picks)
+      .set({ isLock: true, lockAuto: true, updatedAt: now })
+      .where(eq(picks.id, pick.id));
+    locked++;
+  }
+
+  return locked;
+}
+
 export interface SyncResult {
   season: number;
   week: number;
@@ -276,6 +330,8 @@ export interface SyncResult {
   stored: number;
   selected: number;
   locked: number;
+  /** Locks defaulted to someone's team because they never called one. */
+  autoLocked: number;
   reselected: boolean;
   /** Picks filled in for players who missed a kickoff. */
   autoPicked: number;
@@ -337,7 +393,16 @@ export async function syncWeek(
 
   const espnGames = await fetchWeek(season, week);
   if (espnGames.length === 0) {
-    return { season, week, stored: 0, selected: 0, locked: 0, reselected: false, autoPicked: 0 };
+    return {
+      season,
+      week,
+      stored: 0,
+      selected: 0,
+      locked: 0,
+      autoLocked: 0,
+      reselected: false,
+      autoPicked: 0,
+    };
   }
 
   const existing = await db
@@ -420,6 +485,7 @@ export async function syncWeek(
   // After the slate is settled, so a game added moments before kickoff still
   // gets everyone a pick.
   const autoPicked = await fillMissingPicks(season, week);
+  const autoLocked = await fillMissingLocks(season, week);
 
   // The bracket closes at the first playoff kickoff; this is what makes an
   // unfinished one get its chalk without anyone having to open the page.
@@ -445,6 +511,7 @@ export async function syncWeek(
     locked,
     reselected,
     autoPicked,
+    autoLocked,
   };
 }
 

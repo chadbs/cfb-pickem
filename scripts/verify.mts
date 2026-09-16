@@ -19,6 +19,7 @@ import {
 } from "../lib/bracket";
 import { readResults } from "../lib/playoff";
 import { autoPickSide } from "../lib/autopick";
+import { defaultLockGame, defaultLockTeamOrder } from "../lib/locks";
 import { buildConferenceBreakdowns, FCS } from "../lib/conferences";
 import {
   gradePick,
@@ -178,6 +179,59 @@ const sunk = buildLeaderboard([mkPlayer(1, "Darren")], [
 ])[0];
 check("a lone blown lock leaves you below zero", sunk.points === -1, `-> ${sunk.points}`);
 check("and 0-1 is still 0-1", sunk.wins === 0 && sunk.losses === 1);
+
+// --------------------------------------------- 3ab. the default lock rule
+console.log("");
+console.log("=== 3ab. Default lock ===");
+{
+  const g = (id: number, teams: [string, string], kickoff: number) => ({
+    id, kickoff, homeTeamId: teams[0], awayTeamId: teams[1],
+  });
+  // A normal week: all four home teams playing, plus filler.
+  const full = [
+    g(1, ["38", "x"], 100), // Colorado
+    g(2, ["y", "36"], 200), // Colorado State, on the road
+    g(3, ["158", "z"], 300), // Nebraska
+    g(4, ["130", "w"], 400), // Michigan
+    g(5, ["a", "b"], 50),
+  ];
+  check("Jake defaults to Nebraska", defaultLockGame("jake", full)?.id === 3);
+  check("Chad defaults to Colorado State", defaultLockGame("chad", full)?.id === 2);
+  check(
+    "Darren and Eric both default to Colorado",
+    defaultLockGame("darren", full)?.id === 1 && defaultLockGame("eric", full)?.id === 1,
+  );
+
+  // Nebraska idle: Jake falls through the other home teams, in order.
+  const noNeb = full.filter((x) => x.id !== 3);
+  check(
+    "a week without their team falls back to the next home team in order",
+    defaultLockGame("jake", noNeb)?.id === 1,
+    `-> ${defaultLockGame("jake", noNeb)?.id}`,
+  );
+  check(
+    "the fallback order is the one written down, not numeric team-id order",
+    defaultLockTeamOrder("jake").join(",") === "158,38,36,130",
+    `-> ${defaultLockTeamOrder("jake").join(",")}`,
+  );
+  check(
+    "and never to the filler while a home team is on the slate",
+    defaultLockGame("jake", noNeb)?.id !== 5,
+  );
+
+  // Nobody's team playing at all: the week's first kickoff, by kickoff time.
+  const none = [g(8, ["a", "b"], 900), g(9, ["c", "d"], 800)];
+  check("with no home team at all it takes the first kickoff", defaultLockGame("chad", none)?.id === 9);
+  check("an empty slate has no default", defaultLockGame("chad", [])=== null);
+  check(
+    "someone with no assigned team still gets one",
+    defaultLockGame("stranger", full)?.id === 1,
+  );
+  check(
+    "the rule is deterministic",
+    [..."abc"].every(() => defaultLockGame("jake", full)?.id === defaultLockGame("jake", full)?.id),
+  );
+}
 
 // --------------------------------------------------- 3a. the auto-pick rule
 console.log("\n=== 3a. Auto-pick rule ===");

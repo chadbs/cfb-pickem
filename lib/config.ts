@@ -75,6 +75,30 @@ export const AUTO_PICK_BIG_FAVORITE = 14;
 export const LOCK_BONUS = 1;
 
 /**
+ * Whose game becomes your lock when you don't call one, by player slug and ESPN
+ * team id. Nobody goes a week without a lock, and a default you'd have argued
+ * for anyway beats an arbitrary one: Jake gets Nebraska, Chad Colorado State,
+ * Darren and Eric Colorado.
+ *
+ * If that team isn't on the slate, the fallback walks the other home teams in
+ * `LOCK_FALLBACK_ORDER` and then, failing all of that, takes the week's first
+ * kickoff. The rule is in [`lib/locks.ts`](locks.ts).
+ *
+ * The order is spelled out rather than read off `FAVORITE_TEAM_IDS`: those keys
+ * are integer-like strings, so JavaScript hands them back in numeric order —
+ * 36, 38, 130, 158 — which is not the order anyone wrote them in and not
+ * something the fallback should depend on by accident.
+ */
+export const LOCK_FALLBACK_ORDER = ["38", "36", "158", "130"]; // CU, CSU, Nebraska, Michigan
+
+export const DEFAULT_LOCK_TEAM_IDS: Record<string, string> = {
+  jake: "158", // Nebraska
+  chad: "36", // Colorado State
+  darren: "38", // Colorado
+  eric: "38", // Colorado
+};
+
+/**
  * Order of the conference tabs on /insights: the four asked about by name, then
  * the ACC. Everything else follows by CONFERENCE_WEIGHT.
  */

@@ -10,7 +10,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db, ready, schema } from "../lib/db";
 import { fetchWeek } from "../lib/espn";
-import { syncWeek } from "../lib/sync";
+import { fillMissingLocks, syncWeek } from "../lib/sync";
 import { getBoard, getSeasonStandings } from "../lib/queries";
 import { autoPickSide } from "../lib/autopick";
 import { POSTSEASON_WEEK } from "../lib/config";
@@ -169,6 +169,23 @@ check(
   result.stored > stored.length,
   `stored=${result.stored} slate=${stored.length}`,
 );
+check(
+  "sync defaulted a lock for all four, since nobody called one",
+  result.autoLocked === 4,
+  `autoLocked=${result.autoLocked}`,
+);
+
+/**
+ * Locks are worth double, so they move every points total below. The sections
+ * that follow are about plain scoring and are run from a clean slate; locks get
+ * their own sections further down.
+ */
+const clearAllLocks = () =>
+  db
+    .update(picks)
+    .set({ isLock: false, lockAuto: false })
+    .where(inArray(picks.gameId, stored.map((s) => s.id)));
+await clearAllLocks();
 
 const board = await getBoard(SEASON, WEEK);
 
@@ -343,6 +360,10 @@ console.log("\n=== Auto-pick coverage ===");
 // which pick you called in advance.
 console.log("\n=== Lock of the week ===");
 {
+  // The syncs above will have defaulted locks again; this section is about one
+  // lock, chosen deliberately.
+  await clearAllLocks();
+
   const { standings: before } = await getSeasonStandings(SEASON);
   const beforeD = before.find((s) => s.player.slug === "darren")!;
   const beforeC = before.find((s) => s.player.slug === "chad")!;
@@ -399,6 +420,109 @@ console.log("\n=== Lock of the week ===");
   check(
     "and no other game on the slate claims a lock",
     lockBoard.filter((g) => g.id !== target.id).every((g) => g.picks.every((p) => !p.isLock)),
+  );
+}
+
+// ------------------------------------------------ 8b. locks nobody called
+// Everyone ends the week with a lock. If you never called one it goes to your
+// team's game — Jake Nebraska, Chad Colorado State, Darren and Eric Colorado —
+// and only at the moment that game kicks off, so you keep the whole week to
+// choose something else.
+console.log("\n=== Default locks ===");
+{
+  const slateIds = stored.map((s) => s.id);
+  const clearLocks = () =>
+    db.update(picks).set({ isLock: false, lockAuto: false }).where(inArray(picks.gameId, slateIds));
+
+  // None of these real games involve our four teams, so this is the last-resort
+  // branch: the week's first kickoff.
+  await clearLocks();
+  const res = await syncWeek(SEASON, WEEK);
+  check("the sync reports the locks it defaulted", res.autoLocked === 4, `autoLocked=${res.autoLocked}`);
+
+  const first = [...stored].sort((a, b) => a.kickoff - b.kickoff || a.id - b.id)[0];
+  const afterFallback = await db.select().from(picks).where(inArray(picks.gameId, slateIds));
+  const locks = afterFallback.filter((p) => p.isLock);
+  check("everyone has exactly one", locks.length === 4, `${locks.length}`);
+  check("all flagged as defaulted, not chosen", locks.every((p) => p.lockAuto));
+  check(
+    "with no home team on the slate it lands on the first kickoff",
+    locks.every((p) => p.gameId === first.id),
+  );
+
+  const nothingNew = await fillMissingLocks(SEASON, WEEK);
+  check("and a second pass changes nothing", nothingNew === 0, `${nothingNew}`);
+
+  // Now give two of the games to Nebraska and Colorado. Written straight to the
+  // rows rather than through a sync, which would pull the real teams back.
+  const nebGame = stored[3];
+  const cuGame = stored[4];
+  await db
+    .update(games)
+    .set({ homeTeamId: "158", homeAbbr: "NEB", homeShort: "Nebraska" })
+    .where(eq(games.id, nebGame.id));
+  await db
+    .update(games)
+    .set({ homeTeamId: "38", homeAbbr: "COLO", homeShort: "Colorado" })
+    .where(eq(games.id, cuGame.id));
+
+  // Colorado hasn't kicked off yet: Darren and Eric must still be unlocked.
+  await db
+    .update(games)
+    .set({ status: "pre", completed: false, kickoff: Date.now() + 60 * 60_000 })
+    .where(eq(games.id, cuGame.id));
+  await clearLocks();
+
+  const partial = await fillMissingLocks(SEASON, WEEK);
+  const afterPartial = await db.select().from(picks).where(inArray(picks.gameId, slateIds));
+  const lockOf = (playerId: number, rows: typeof afterPartial) =>
+    rows.find((p) => p.playerId === playerId && p.isLock) ?? null;
+
+  check("only the player whose game has started gets one", partial === 1, `${partial}`);
+  check("Jake is locked onto Nebraska", lockOf(3, afterPartial)?.gameId === nebGame.id);
+  check(
+    "Darren and Eric are left alone while Colorado is still to come",
+    lockOf(1, afterPartial) === null && lockOf(4, afterPartial) === null,
+  );
+  check(
+    "and Chad waits on Colorado too, having no Colorado State game",
+    lockOf(2, afterPartial) === null,
+  );
+
+  // Colorado kicks off: the rest resolve.
+  await db
+    .update(games)
+    .set({ status: "post", completed: true, kickoff: cuGame.kickoff })
+    .where(eq(games.id, cuGame.id));
+
+  // One deliberate lock, which must survive untouched.
+  await db
+    .update(picks)
+    .set({ isLock: true, lockAuto: false })
+    .where(and(eq(picks.playerId, 2), eq(picks.gameId, stored[7].id)));
+
+  const rest = await fillMissingLocks(SEASON, WEEK);
+  const afterAll = await db.select().from(picks).where(inArray(picks.gameId, slateIds));
+  check("the remaining defaults land once their game starts", rest === 2, `${rest}`);
+  check(
+    "Darren and Eric both end up on Colorado",
+    lockOf(1, afterAll)?.gameId === cuGame.id && lockOf(4, afterAll)?.gameId === cuGame.id,
+  );
+  check(
+    "a lock someone actually called is never overwritten",
+    lockOf(2, afterAll)?.gameId === stored[7].id && lockOf(2, afterAll)?.lockAuto === false,
+  );
+  check("still exactly one lock each", afterAll.filter((p) => p.isLock).length === 4);
+  check(
+    "and the defaulted ones are still flagged",
+    afterAll.filter((p) => p.isLock && p.playerId !== 2).every((p) => p.lockAuto),
+  );
+
+  const board = await getBoard(SEASON, WEEK);
+  check(
+    "the board can tell a default from a call",
+    board.some((g) => g.picks.some((p) => p.isLock && p.lockAuto)) &&
+      board.some((g) => g.picks.some((p) => p.isLock && !p.lockAuto)),
   );
 }
 

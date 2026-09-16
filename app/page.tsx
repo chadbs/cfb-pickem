@@ -65,6 +65,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     ? {
         label: `${lockGame.away.abbr} @ ${lockGame.home.abbr}`,
         result: lockGame.picks.find((p) => p.playerId === meId)?.result ?? null,
+        auto: lockGame.picks.find((p) => p.playerId === meId)?.lockAuto ?? false,
       }
     : null;
   const openGames = board.filter((g) => !g.locked).length;

@@ -102,6 +102,7 @@ export async function getBoard(season: number, week: number): Promise<GameView[]
       liveCovering: game.status === "in" && (coverMargin(game, side) ?? 0) > 0,
       auto: p.auto,
       isLock: p.isLock,
+      lockAuto: p.lockAuto,
     });
     byGame.set(p.gameId, list);
   }

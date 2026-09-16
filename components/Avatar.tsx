@@ -53,7 +53,7 @@ export function Avatar({
   return (
     <span
       className="relative inline-grid shrink-0"
-      title={title ? `${title} · lock of the week` : `${player.name} · lock of the week`}
+      title={title ?? `${player.name} · lock of the week`}
     >
       {face}
       <span

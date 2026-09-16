@@ -26,6 +26,8 @@ export interface GamePick {
   auto: boolean;
   /** Their lock of the week — this pick counts double. */
   isLock: boolean;
+  /** The lock was defaulted to their team, not called. */
+  lockAuto: boolean;
 }
 
 export interface GameView {

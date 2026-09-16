@@ -51,6 +51,7 @@ export function GameCard({
           // Moving your pick keeps the lock on this game; dropping it entirely
           // drops the lock, which is what the empty branch above does.
           isLock: mine?.isLock ?? false,
+          lockAuto: mine?.lockAuto ?? false,
         },
       ];
     },
@@ -106,6 +107,7 @@ export function GameCard({
         game={game}
         saved={savedAt !== 0}
         lock={myPick?.isLock ?? false}
+        lockAuto={myPick?.lockAuto ?? false}
         canLock={editable && myPick !== null}
         onToggleLock={toggleLock}
       />
@@ -147,6 +149,7 @@ function GameHeader({
   game,
   saved,
   lock,
+  lockAuto,
   canLock,
   onToggleLock,
 }: {
@@ -154,6 +157,8 @@ function GameHeader({
   saved: boolean;
   /** This game is my lock of the week. */
   lock: boolean;
+  /** …and it was defaulted to my team rather than chosen. */
+  lockAuto: boolean;
   canLock: boolean;
   onToggleLock: () => void;
 }) {
@@ -214,11 +219,21 @@ function GameHeader({
       ) : (
         lock && (
           <span
+            title={
+              lockAuto
+                ? "Default lock — nobody called one, so it went to your team"
+                : "Lock of the week — counts double"
+            }
             className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.05em]"
-            style={{ color: "var(--push)", background: "color-mix(in srgb, var(--push) 15%, transparent)" }}
+            style={{
+              color: "var(--push)",
+              background: "color-mix(in srgb, var(--push) 15%, transparent)",
+              // A defaulted lock is drawn dashed, like an auto-picked side.
+              border: lockAuto ? "1px dashed var(--push)" : undefined,
+            }}
           >
             <LockGlyph />
-            Lock
+            {lockAuto ? "Lock · default" : "Lock"}
           </span>
         )
       )}
@@ -410,7 +425,9 @@ function SideButton({
                   isMe={p.playerId === meId}
                   auto={p.auto}
                   lock={p.isLock}
-                  title={`${player.name} · ${team.abbr}${p.auto ? " · auto-picked" : ""}`}
+                  title={`${player.name} · ${team.abbr}${p.auto ? " · auto-picked" : ""}${
+                    p.isLock ? (p.lockAuto ? " · default lock" : " · lock") : ""
+                  }`}
                 />
               </motion.span>
             );

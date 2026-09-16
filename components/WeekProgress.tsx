@@ -20,7 +20,7 @@ export function WeekProgress({
   /** Games not yet kicked off — i.e. still changeable. */
   open: number;
   /** Their lock of the week: the game, or null if they haven't called one. */
-  lock: { label: string; result: PickResult | null } | null;
+  lock: { label: string; result: PickResult | null; auto: boolean } | null;
 }) {
   if (!me || total === 0) return null;
 
@@ -71,10 +71,13 @@ export function WeekProgress({
           >
             {lock.label}
             {lock.result === "win" ? " · hit" : lock.result === "loss" ? " · missed" : ""}
+            {lock.auto && !lock.result && (
+              <span className="font-normal text-[var(--ink-faint)]"> · default</span>
+            )}
           </span>
         ) : (
           <span className="text-[var(--ink-faint)]">
-            {open > 0 ? "not set — one pick can count double" : "none this week"}
+            {open > 0 ? "not set — defaults to your team" : "none this week"}
           </span>
         )}
       </p>

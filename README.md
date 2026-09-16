@@ -59,7 +59,8 @@ near 50%. It is deterministic instead, so everyone who misses the same game gets
 the same side and an auto-pick can never quietly advantage one player: take the
 underdog off a number of 14 or more, otherwise take the home side. The threshold
 is `AUTO_PICK_BIG_FAVORITE` in [`lib/config.ts`](lib/config.ts) and the rule
-itself is [`lib/autopick.ts`](lib/autopick.ts).
+itself is [`lib/autopick.ts`](lib/autopick.ts). The lock of the week has its own
+default, below.
 
 **Scoring.** A win is 1 point, a push is ½. The season table also tracks
 outright weekly wins and current streak.
@@ -71,8 +72,20 @@ anywhere else. A push is left alone — there's nothing to double.
 Locking is deliberate and a bit unforgiving on purpose. You can only lock a game
 you've already picked, you can move the lock until that game kicks off, and once
 it has kicked off the lock is committed — the whole point is that it was called
-in advance. Miss the week entirely and nothing happens; an auto-picked game is
-never auto-locked. The bonus is `LOCK_BONUS` in [`lib/config.ts`](lib/config.ts).
+in advance. The bonus is `LOCK_BONUS` in [`lib/config.ts`](lib/config.ts).
+
+**Nobody goes a week without one.** Forget to call a lock and it defaults to your
+team's game: Jake gets Nebraska, Chad Colorado State, Darren and Eric Colorado.
+A week where your team isn't on the slate walks the other three in turn, and a
+week with none of them falls back to the first kickoff, so there is always an
+answer. The roster of defaults is `DEFAULT_LOCK_TEAM_IDS` and the rule is
+[`lib/locks.ts`](lib/locks.ts).
+
+It resolves at *that game's* kickoff rather than the first kickoff of the week,
+which is what makes it fair: you keep the whole week to choose something else,
+right up to the moment the default itself leaves the board. Defaulted locks are
+drawn dashed and labelled, on the card and in the sidebar, so a default is never
+mistaken for a call — and a lock you did make is never overwritten.
 
 Points can therefore run ahead of or behind the record, and a bad enough week
 can go negative. Win% is deliberately left as the record alone, so the two

@@ -133,6 +133,8 @@ export const picks = pgTable(
      * week lives on the game rather than here and can't be a unique index.
      */
     isLock: boolean("is_lock").notNull().default(false),
+    /** The lock was defaulted to their team at kickoff, not chosen. */
+    lockAuto: boolean("lock_auto").notNull().default(false),
     createdAt: epochMs("created_at").notNull(),
     updatedAt: epochMs("updated_at").notNull(),
   },
