@@ -54,6 +54,17 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const autoPicked = meId === null ? 0 : await countAutoPicks(season, week, meId);
 
   const made = meId === null ? 0 : board.filter((g) => g.picks.some((p) => p.playerId === meId)).length;
+
+  const lockGame =
+    meId === null
+      ? null
+      : (board.find((g) => g.picks.some((p) => p.playerId === meId && p.isLock)) ?? null);
+  const myLock = lockGame
+    ? {
+        label: `${lockGame.away.abbr} @ ${lockGame.home.abbr}`,
+        result: lockGame.picks.find((p) => p.playerId === meId)?.result ?? null,
+      }
+    : null;
   const openGames = board.filter((g) => !g.locked).length;
   const anyLive = board.some((g) => g.status === "in" || (!g.completed && g.locked));
 
@@ -237,7 +248,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
             <p className="mt-6 text-[11.5px] leading-relaxed text-[var(--ink-faint)]">
               Lines from DraftKings via ESPN. Picks lock at each game&apos;s kickoff and are
-              graded against the spread as it stood at that moment.
+              graded against the spread as it stood at that moment. One pick a week can be
+              your lock: it counts double, so a hit is worth two points and a miss costs
+              one.
             </p>
           </div>
 
@@ -248,7 +261,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               </div>
             )}
             <StandingsPanel standings={standings.standings} meId={meId} />
-            <WeekProgress me={me} made={made} total={board.length} open={openGames} />
+            <WeekProgress
+              me={me}
+              made={made}
+              total={board.length}
+              open={openGames}
+              lock={myLock}
+            />
           </aside>
         </div>
       </main>

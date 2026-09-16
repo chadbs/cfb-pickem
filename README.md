@@ -64,6 +64,20 @@ itself is [`lib/autopick.ts`](lib/autopick.ts).
 **Scoring.** A win is 1 point, a push is ½. The season table also tracks
 outright weekly wins and current streak.
 
+**Lock of the week.** One pick a week can be locked, and it counts double: a hit
+pays 2 and a miss costs 1, so calling your lock wrong is worse than being wrong
+anywhere else. A push is left alone — there's nothing to double.
+
+Locking is deliberate and a bit unforgiving on purpose. You can only lock a game
+you've already picked, you can move the lock until that game kicks off, and once
+it has kicked off the lock is committed — the whole point is that it was called
+in advance. Miss the week entirely and nothing happens; an auto-picked game is
+never auto-locked. The bonus is `LOCK_BONUS` in [`lib/config.ts`](lib/config.ts).
+
+Points can therefore run ahead of or behind the record, and a bad enough week
+can go negative. Win% is deliberately left as the record alone, so the two
+numbers say different things: how often you were right, and what it was worth.
+
 **Picks lock per game, not per week.** You can change any pick right up until
 that specific game kicks off. Everyone can see everyone's picks at all times —
 that's the point.

@@ -24,6 +24,8 @@ export interface GamePick {
   liveCovering: boolean;
   /** Filled in automatically at kickoff because they never picked. */
   auto: boolean;
+  /** Their lock of the week — this pick counts double. */
+  isLock: boolean;
 }
 
 export interface GameView {
@@ -124,6 +126,10 @@ export interface StandingView {
   pending: number;
   points: number;
   pct: number;
+  lockWins: number;
+  lockLosses: number;
+  lockPushes: number;
+  lockPoints: number;
   weekWins: number;
   streak: number;
 }

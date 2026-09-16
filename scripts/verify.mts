@@ -7,7 +7,13 @@ import { selectWeek, isFavorite, scoreGame } from "../lib/selection";
 import { CANDIDATE_CONFERENCE_IDS, AUTO_PICK_BIG_FAVORITE } from "../lib/config";
 import { autoPickSide } from "../lib/autopick";
 import { buildConferenceBreakdowns, FCS } from "../lib/conferences";
-import { gradePick, coverMargin, buildLeaderboard, effectiveSpread } from "../lib/scoring";
+import {
+  gradePick,
+  coverMargin,
+  buildLeaderboard,
+  effectiveSpread,
+  pointsForPick,
+} from "../lib/scoring";
 import type { Game, Player } from "../lib/db/schema";
 
 let failures = 0;
@@ -122,6 +128,43 @@ check("pending picks counted", lb[1].pending === 1, `-> ${lb[1].pending}`);
 check("outright week win credited", lb[0].weekWins === 1, `-> ${lb[0].weekWins}`);
 check("no week win for runner-up", lb[1].weekWins === 0);
 check("win streak tracked", lb[0].streak === 2, `-> ${lb[0].streak}`);
+
+// --------------------------------------------------- 3aa. lock of the week
+console.log("");
+console.log("=== 3aa. Lock of the week ===");
+check("a hit lock pays double", pointsForPick("win", true) === 2);
+check("a missed lock costs a point", pointsForPick("loss", true) === -1);
+check("a pushed lock is just a push", pointsForPick("push", true) === 0.5);
+check("an unlocked pick is unaffected", pointsForPick("win") === 1 && pointsForPick("loss") === 0);
+
+// Same record, opposite locks: the lock alone decides the week.
+const lockLb = buildLeaderboard(roster, [
+  { playerId: 1, week: 1, kickoff: 1, result: "win", isLock: true },
+  { playerId: 1, week: 1, kickoff: 2, result: "loss" },
+  { playerId: 2, week: 1, kickoff: 1, result: "win" },
+  { playerId: 2, week: 1, kickoff: 2, result: "loss", isLock: true },
+]);
+const withHit = lockLb.find((r) => r.player.id === 1)!;
+const withMiss = lockLb.find((r) => r.player.id === 2)!;
+check("hit lock: 1-1 is worth 2 points", withHit.points === 2, `-> ${withHit.points}`);
+check("blown lock: the same 1-1 is worth 0", withMiss.points === 0, `-> ${withMiss.points}`);
+check(
+  "both still show the same record",
+  withHit.wins === withMiss.wins && withHit.losses === withMiss.losses,
+);
+check("and the same win%, which is a record not a points rate", withHit.pct === withMiss.pct);
+check("lock records tracked", withHit.lockWins === 1 && withMiss.lockLosses === 1);
+check("net lock swing reported", withHit.lockPoints === 1 && withMiss.lockPoints === -1);
+check(
+  "the lock decides the weekly win",
+  withHit.weekWins === 1 && withMiss.weekWins === 0,
+);
+// A week can go negative on points without the record lying about it.
+const sunk = buildLeaderboard([mkPlayer(1, "Darren")], [
+  { playerId: 1, week: 1, kickoff: 1, result: "loss", isLock: true },
+])[0];
+check("a lone blown lock leaves you below zero", sunk.points === -1, `-> ${sunk.points}`);
+check("and 0-1 is still 0-1", sunk.wins === 0 && sunk.losses === 1);
 
 // --------------------------------------------------- 3a. the auto-pick rule
 console.log("\n=== 3a. Auto-pick rule ===");

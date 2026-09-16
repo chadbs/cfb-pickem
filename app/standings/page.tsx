@@ -82,6 +82,7 @@ export default async function Standings() {
                     <th className="px-3 py-1.5 font-medium">Player</th>
                     <th className="nums px-1 py-1.5 text-right font-medium">Rec</th>
                     <th className="nums px-1 py-1.5 text-right font-medium">Pts</th>
+                    <th className="nums px-1 py-1.5 text-right font-medium">Locks</th>
                     <th className="nums px-1 py-1.5 text-right font-medium">Win%</th>
                     <th className="nums px-3 py-1.5 text-right font-medium">Wks</th>
                   </tr>
@@ -113,6 +114,26 @@ export default async function Standings() {
                       </td>
                       <td className="nums px-1 py-2.5 text-right text-[13px] text-[var(--ink-dim)]">
                         {s.points}
+                      </td>
+                      <td
+                        className="nums px-1 py-2.5 text-right text-[13px]"
+                        title={
+                          s.lockPoints === 0
+                            ? undefined
+                            : `${s.lockPoints > 0 ? "+" : ""}${s.lockPoints} points from locks`
+                        }
+                        style={{
+                          color:
+                            s.lockPoints > 0
+                              ? "var(--win)"
+                              : s.lockPoints < 0
+                                ? "var(--loss)"
+                                : "var(--ink-faint)",
+                        }}
+                      >
+                        {s.lockWins + s.lockLosses + s.lockPushes === 0
+                          ? "—"
+                          : recordLine(s.lockWins, s.lockLosses, s.lockPushes)}
                       </td>
                       <td className="nums px-1 py-2.5 text-right text-[13px] text-[var(--ink-dim)]">
                         {formatRecord(s.pct)}
@@ -164,6 +185,18 @@ export default async function Standings() {
                                 }}
                               >
                                 {line ? recordLine(line.wins, line.losses, line.pushes) : "—"}
+                                {/* A hit or blown lock is the story of the week;
+                                    the record alone hides it. */}
+                                {line?.lock === "win" && (
+                                  <span className="ml-0.5 text-[var(--win)]" title="Lock hit">
+                                    ✓
+                                  </span>
+                                )}
+                                {line?.lock === "loss" && (
+                                  <span className="ml-0.5 text-[var(--loss)]" title="Lock missed">
+                                    ✗
+                                  </span>
+                                )}
                               </td>
                             );
                           })}
@@ -178,7 +211,10 @@ export default async function Standings() {
         )}
 
         <p className="mt-6 text-[11.5px] leading-relaxed text-[var(--ink-faint)]">
-          A win is 1 point, a push is ½. &ldquo;Wks&rdquo; counts outright weekly wins.
+          A win is 1 point, a push is ½. One pick a week can be your lock, which counts
+          double: a hit is worth 2 and a miss costs 1, so points can run ahead of or behind
+          the record. Win% is the record alone. &ldquo;Wks&rdquo; counts outright weekly
+          wins, decided on points.
         </p>
       </main>
     </>

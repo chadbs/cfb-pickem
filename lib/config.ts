@@ -67,6 +67,14 @@ export const CONFERENCE_WEIGHT: Record<string, number> = {
 export const AUTO_PICK_BIG_FAVORITE = 14;
 
 /**
+ * Lock of the week. One pick a week can be locked, and it counts double: a hit
+ * adds this on top of the win, a miss takes it off. A push is unaffected —
+ * there's no result to double. Locking is optional; miss it and the week simply
+ * scores normally.
+ */
+export const LOCK_BONUS = 1;
+
+/**
  * Order of the conference tabs on /insights: the four asked about by name, then
  * the ACC. Everything else follows by CONFERENCE_WEIGHT.
  */

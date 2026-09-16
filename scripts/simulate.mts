@@ -331,6 +331,70 @@ console.log("\n=== Auto-pick coverage ===");
   check("and they grade like any other pick", rg.picks.every((p) => p.result !== null));
 }
 
+// ------------------------------------------------ 8. the lock of the week
+// A lock doubles its game: the same record is worth more or less depending on
+// which pick you called in advance.
+console.log("\n=== Lock of the week ===");
+{
+  const { standings: before } = await getSeasonStandings(SEASON);
+  const beforeD = before.find((s) => s.player.slug === "darren")!;
+  const beforeC = before.find((s) => s.player.slug === "chad")!;
+
+  // A game in the middle of the slate the home side covered: Darren (all home)
+  // hit it, Chad (all away) missed. Avoids the two games earlier sections
+  // rewrote.
+  const target = board.find((g, i) => {
+    if (i === 0 || i === board.length - 1) return false;
+    const row = stored.find((s) => s.id === g.id)!;
+    return expected.find((e) => e.espnId === row.espnId)!.homeResult === "win";
+  })!;
+  check("found a decided game to lock", Boolean(target));
+
+  await db
+    .update(picks)
+    .set({ isLock: true })
+    .where(and(eq(picks.gameId, target.id), inArray(picks.playerId, [1, 2])));
+
+  const { standings: after, weekly } = await getSeasonStandings(SEASON);
+  const afterD = after.find((s) => s.player.slug === "darren")!;
+  const afterC = after.find((s) => s.player.slug === "chad")!;
+
+  console.log(
+    `  locked ${target.away.abbr} @ ${target.home.abbr}: ` +
+      `Darren ${beforeD.points} → ${afterD.points}, Chad ${beforeC.points} → ${afterC.points}`,
+  );
+  check("a hit lock adds a point", afterD.points === beforeD.points + 1);
+  check("a blown lock costs one", afterC.points === beforeC.points - 1);
+  check(
+    "neither record moved",
+    afterD.wins === beforeD.wins &&
+      afterD.losses === beforeD.losses &&
+      afterC.wins === beforeC.wins &&
+      afterC.losses === beforeC.losses,
+  );
+  check("nor did win%", afterD.pct === beforeD.pct && afterC.pct === beforeC.pct);
+  check("lock records show up", afterD.lockWins === 1 && afterC.lockLosses === 1);
+  check("net swing reported", afterD.lockPoints === 1 && afterC.lockPoints === -1);
+
+  const line = weekly.find((w) => w.week === WEEK)!;
+  check(
+    "the week-by-week line says how each lock went",
+    line.byPlayer[1].lock === "win" && line.byPlayer[2].lock === "loss",
+  );
+  check("and nobody else has one", line.byPlayer[3].lock === null && line.byPlayer[4].lock === null);
+
+  const lockBoard = await getBoard(SEASON, WEEK);
+  const shown = lockBoard.find((g) => g.id === target.id)!;
+  check(
+    "the board marks exactly the two locked picks",
+    shown.picks.filter((p) => p.isLock).length === 2,
+  );
+  check(
+    "and no other game on the slate claims a lock",
+    lockBoard.filter((g) => g.id !== target.id).every((g) => g.picks.every((p) => !p.isLock)),
+  );
+}
+
 await cleanup();
 console.log(`\n${failures === 0 ? "SIMULATION PASSED" : failures + " CHECK(S) FAILED"}\n`);
 process.exit(failures === 0 ? 0 : 1);

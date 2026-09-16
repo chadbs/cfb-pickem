@@ -6,6 +6,8 @@ import {
   coveringSide,
   effectiveSpread,
   gradePick,
+  pointsForPick,
+  type PickResult,
   type Side,
 } from "./scoring";
 import type { GamePick, GameView, PlayerView, StandingView } from "./view-types";
@@ -98,6 +100,7 @@ export async function getBoard(season: number, week: number): Promise<GameView[]
       result: gradePick(game, side),
       liveCovering: game.status === "in" && (coverMargin(game, side) ?? 0) > 0,
       auto: p.auto,
+      isLock: p.isLock,
     });
     byGame.set(p.gameId, list);
   }
@@ -108,7 +111,17 @@ export async function getBoard(season: number, week: number): Promise<GameView[]
 
 export interface WeeklyLine {
   week: number;
-  byPlayer: Record<number, { wins: number; losses: number; pushes: number; points: number }>;
+  byPlayer: Record<
+    number,
+    {
+      wins: number;
+      losses: number;
+      pushes: number;
+      points: number;
+      /** How their lock went that week, null if they never set one. */
+      lock: PickResult | null;
+    }
+  >;
 }
 
 export interface SeasonStandings {
@@ -132,6 +145,8 @@ export async function getSeasonStandings(season: number): Promise<SeasonStanding
       awayScore: games.awayScore,
       lockedSpread: games.lockedSpread,
       spread: games.spread,
+      manualSpread: games.manualSpread,
+      isLock: picks.isLock,
     })
     .from(picks)
     .innerJoin(games, eq(picks.gameId, games.id))
@@ -145,6 +160,7 @@ export async function getSeasonStandings(season: number): Promise<SeasonStanding
     kickoff: r.kickoff,
     // Settled at the game's closing line — same rule as the board.
     result: gradePick(r, r.side as Side),
+    isLock: r.isLock,
   }));
 
   const standings: StandingView[] = buildLeaderboard(roster, graded).map((s) => ({
@@ -161,15 +177,19 @@ export async function getSeasonStandings(season: number): Promise<SeasonStanding
     const byPlayer: WeeklyLine["byPlayer"] = {};
     for (const g of graded) {
       if (g.week !== week) continue;
-      const cur = (byPlayer[g.playerId] ??= { wins: 0, losses: 0, pushes: 0, points: 0 });
-      if (g.result === "win") {
-        cur.wins++;
-        cur.points += 1;
-      } else if (g.result === "loss") cur.losses++;
-      else if (g.result === "push") {
-        cur.pushes++;
-        cur.points += 0.5;
-      }
+      const cur = (byPlayer[g.playerId] ??= {
+        wins: 0,
+        losses: 0,
+        pushes: 0,
+        points: 0,
+        lock: null,
+      });
+      if (g.result === "win") cur.wins++;
+      else if (g.result === "loss") cur.losses++;
+      else if (g.result === "push") cur.pushes++;
+      if (!g.result) continue;
+      cur.points += pointsForPick(g.result, g.isLock);
+      if (g.isLock) cur.lock = g.result;
     }
     return { week, byPlayer };
   });

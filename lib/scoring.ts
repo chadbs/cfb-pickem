@@ -1,5 +1,6 @@
 // NB: deliberately not importing the `Pick` row type here — it would shadow
 // TypeScript's built-in Pick<T, K>, which this file leans on heavily.
+import { LOCK_BONUS } from "./config";
 import type { Game, Player } from "./db/schema";
 
 export type Side = "home" | "away";
@@ -73,6 +74,11 @@ export interface PlayerRecord {
   points: number;
   pending: number;
   pct: number;
+  /** Their record on locked picks, and the net points those swung. */
+  lockWins: number;
+  lockLosses: number;
+  lockPushes: number;
+  lockPoints: number;
   /** Number of weeks this player finished with the outright best record. */
   weekWins: number;
   streak: number; // positive = win streak, negative = losing streak
@@ -83,11 +89,25 @@ export function pointsFor(r: PickResult): number {
   return r === "win" ? 1 : r === "push" ? 0.5 : 0;
 }
 
-interface GradedRow {
+/**
+ * What one pick is worth, lock included. A locked pick counts double: the win
+ * pays twice and the loss costs a point instead of nothing, so calling your
+ * lock wrong is worse than being wrong on anything else. A push is left alone —
+ * there's no result there to double.
+ */
+export function pointsForPick(r: PickResult, isLock = false): number {
+  const base = pointsFor(r);
+  if (!isLock || r === "push") return base;
+  return r === "win" ? base + LOCK_BONUS : base - LOCK_BONUS;
+}
+
+export interface GradedRow {
   playerId: number;
   week: number;
   kickoff: number;
   result: PickResult | null;
+  /** Their lock of the week, if this is it. */
+  isLock?: boolean;
 }
 
 export function buildLeaderboard(players: Player[], rows: GradedRow[]): PlayerRecord[] {
@@ -108,7 +128,7 @@ export function buildLeaderboard(players: Player[], rows: GradedRow[]): PlayerRe
     const totals = new Map<number, number>();
     for (const r of inWeek) {
       if (!r.result) continue;
-      totals.set(r.playerId, (totals.get(r.playerId) ?? 0) + pointsFor(r.result));
+      totals.set(r.playerId, (totals.get(r.playerId) ?? 0) + pointsForPick(r.result, r.isLock));
     }
     if (totals.size === 0) continue;
     const best = Math.max(...totals.values());
@@ -124,11 +144,21 @@ export function buildLeaderboard(players: Player[], rows: GradedRow[]): PlayerRe
     let losses = 0;
     let pushes = 0;
     let pending = 0;
+    let points = 0;
+    let lockWins = 0;
+    let lockLosses = 0;
+    let lockPushes = 0;
     for (const r of mine) {
       if (r.result === "win") wins++;
       else if (r.result === "loss") losses++;
       else if (r.result === "push") pushes++;
       else pending++;
+      if (!r.result) continue;
+      points += pointsForPick(r.result, r.isLock);
+      if (!r.isLock) continue;
+      if (r.result === "win") lockWins++;
+      else if (r.result === "loss") lockLosses++;
+      else lockPushes++;
     }
 
     // Streak over decided picks only, most recent first.
@@ -149,8 +179,14 @@ export function buildLeaderboard(players: Player[], rows: GradedRow[]): PlayerRe
       losses,
       pushes,
       pending,
-      points: wins + pushes * 0.5,
+      points,
+      // Win percentage stays a record, not a points rate: a lock swings what a
+      // week is worth without changing how many picks were right.
       pct: decided ? (wins + pushes * 0.5) / decided : 0,
+      lockWins,
+      lockLosses,
+      lockPushes,
+      lockPoints: (lockWins - lockLosses) * LOCK_BONUS,
       weekWins: weekWins.get(player.id) ?? 0,
       streak,
     };

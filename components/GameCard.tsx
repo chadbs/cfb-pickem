@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { motion } from "motion/react";
-import { setPick } from "@/app/actions";
+import { setLock, setPick } from "@/app/actions";
 import { Avatar } from "./Avatar";
 import { readableTeamColor } from "@/lib/color";
 import { formatSpread, formatTime, formatWeekday, spreadForSide } from "@/lib/format";
@@ -42,6 +42,9 @@ export function GameCard({
           result: null,
           liveCovering: false,
           auto: false,
+          // Moving your pick keeps the lock on this game; dropping it entirely
+          // drops the lock, which is what the empty branch above does.
+          isLock: mine?.isLock ?? false,
         },
       ];
     },
@@ -69,6 +72,17 @@ export function GameCard({
 
   const playerById = new Map(players.map((p) => [p.id, p]));
 
+  const myPick = meId === null ? null : (picks.find((p) => p.playerId === meId) ?? null);
+
+  function toggleLock() {
+    if (!editable || !myPick) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await setLock(meId!, game.id);
+      if (!res.ok) setError(res.error ?? "Could not set the lock");
+    });
+  }
+
   return (
     <motion.article
       layout
@@ -82,7 +96,13 @@ export function GameCard({
       }}
       className="card flex flex-col overflow-hidden transition-colors hover:border-[var(--line-strong)]"
     >
-      <GameHeader game={game} saved={savedAt !== 0} />
+      <GameHeader
+        game={game}
+        saved={savedAt !== 0}
+        lock={myPick?.isLock ?? false}
+        canLock={editable && myPick !== null}
+        onToggleLock={toggleLock}
+      />
 
       {/* away @ home, with the separator spelled out so a card reads as one
           matchup rather than two loose tiles sitting next to each other. */}
@@ -117,7 +137,20 @@ export function GameCard({
 
 /* ------------------------------------------------------------------ header */
 
-function GameHeader({ game, saved }: { game: GameView; saved: boolean }) {
+function GameHeader({
+  game,
+  saved,
+  lock,
+  canLock,
+  onToggleLock,
+}: {
+  game: GameView;
+  saved: boolean;
+  /** This game is my lock of the week. */
+  lock: boolean;
+  canLock: boolean;
+  onToggleLock: () => void;
+}) {
   // The day is carried by the group heading, so the card only needs a time.
   const isClient = useIsClient();
   const zone = isClient ? undefined : "America/New_York";
@@ -145,6 +178,36 @@ function GameHeader({ game, saved }: { game: GameView; saved: boolean }) {
           <span className="hidden lg:inline">{day} · </span>
           {when}
         </span>
+      )}
+
+      {/* Only offered once there's a pick here to double. After kickoff the
+          badge on the avatar carries it, so the control goes away. */}
+      {canLock ? (
+        <button
+          type="button"
+          onClick={onToggleLock}
+          aria-pressed={lock}
+          title={lock ? "Your lock of the week — tap to unlock" : "Make this your lock of the week"}
+          className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.05em] transition-colors"
+          style={
+            lock
+              ? { color: "var(--push)", background: "color-mix(in srgb, var(--push) 15%, transparent)" }
+              : { color: "var(--ink-faint)", background: "transparent" }
+          }
+        >
+          <LockGlyph />
+          {lock ? "Lock" : "Lock it"}
+        </button>
+      ) : (
+        lock && (
+          <span
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.05em]"
+            style={{ color: "var(--push)", background: "color-mix(in srgb, var(--push) 15%, transparent)" }}
+          >
+            <LockGlyph />
+            Lock
+          </span>
+        )
       )}
 
       <span className="ml-auto flex min-w-0 items-center gap-2 text-[var(--ink-faint)]">
@@ -175,6 +238,15 @@ function GameHeader({ game, saved }: { game: GameView; saved: boolean }) {
         )}
       </span>
     </div>
+  );
+}
+
+function LockGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="h-[9px] w-[9px]">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -323,6 +395,8 @@ function SideButton({
                   size={21}
                   result={p.result}
                   isMe={p.playerId === meId}
+                  auto={p.auto}
+                  lock={p.isLock}
                   title={`${player.name} · ${team.abbr}${p.auto ? " · auto-picked" : ""}`}
                 />
               </motion.span>

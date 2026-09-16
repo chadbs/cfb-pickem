@@ -1,16 +1,26 @@
+import type { PickResult } from "@/lib/scoring";
 import type { PlayerView } from "@/lib/view-types";
+
+const LOCK_TONE: Record<PickResult, string> = {
+  win: "var(--win)",
+  loss: "var(--loss)",
+  push: "var(--push)",
+};
 
 export function WeekProgress({
   me,
   made,
   total,
   open,
+  lock,
 }: {
   me: PlayerView | null;
   made: number;
   total: number;
   /** Games not yet kicked off — i.e. still changeable. */
   open: number;
+  /** Their lock of the week: the game, or null if they haven't called one. */
+  lock: { label: string; result: PickResult | null } | null;
 }) {
   if (!me || total === 0) return null;
 
@@ -47,6 +57,25 @@ export function WeekProgress({
             : "Picks are closed for this week."}
         {missed > 0 && !complete && (
           <span className="text-[var(--loss)]"> · {missed} missed</span>
+        )}
+      </p>
+
+      {/* The lock is easy to forget and worth two points, so it gets a line of
+          its own rather than living only on whichever card holds it. */}
+      <p className="mt-1.5 flex items-baseline gap-1.5 border-t border-[var(--line)] pt-2 text-[11.5px]">
+        <span className="text-[var(--ink-faint)]">Lock</span>
+        {lock ? (
+          <span
+            className="min-w-0 truncate font-medium"
+            style={{ color: lock.result ? LOCK_TONE[lock.result] : "var(--ink)" }}
+          >
+            {lock.label}
+            {lock.result === "win" ? " · hit" : lock.result === "loss" ? " · missed" : ""}
+          </span>
+        ) : (
+          <span className="text-[var(--ink-faint)]">
+            {open > 0 ? "not set — one pick can count double" : "none this week"}
+          </span>
         )}
       </p>
     </section>

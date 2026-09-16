@@ -68,6 +68,70 @@ export async function setPick(
   return { ok: true };
 }
 
+/**
+ * Set, move or clear this player's lock of the week.
+ *
+ * One lock a week, on a game they've already picked, and only while that game
+ * hasn't kicked off. Calling it on the current lock clears it. A lock whose game
+ * has started is committed — it can't be moved off, which is the whole point of
+ * calling it in advance.
+ */
+export async function setLock(playerId: number, gameId: number): Promise<ActionResult> {
+  await ready();
+
+  const [game] = await db.select().from(games).where(eq(games.id, gameId)).limit(1);
+  if (!game) return { ok: false, error: "Game not found" };
+  if (Date.now() >= game.kickoff || game.status !== "pre") {
+    return { ok: false, error: "This game has already kicked off" };
+  }
+
+  // The lock is a week-level claim, so the whole week has to be in hand.
+  const weekGames = await db
+    .select()
+    .from(games)
+    .where(and(eq(games.season, game.season), eq(games.week, game.week)));
+  const byId = new Map(weekGames.map((g) => [g.id, g]));
+
+  const mine = await db
+    .select()
+    .from(picks)
+    .where(and(eq(picks.playerId, playerId), inArray(picks.gameId, weekGames.map((g) => g.id))));
+
+  if (!mine.some((p) => p.gameId === gameId)) {
+    return { ok: false, error: "Pick a side first, then lock it" };
+  }
+
+  const current = mine.find((p) => p.isLock);
+  if (current && current.gameId !== gameId) {
+    const locked = byId.get(current.gameId);
+    const now = Date.now();
+    if (locked && (now >= locked.kickoff || locked.status !== "pre")) {
+      return {
+        ok: false,
+        error: `Your lock on ${locked.awayAbbr} @ ${locked.homeAbbr} has already kicked off`,
+      };
+    }
+  }
+
+  // Tapping the current lock clears it; anything else moves it here.
+  const clearing = current?.gameId === gameId;
+
+  await db.transaction(async (tx) => {
+    const ids = mine.filter((p) => p.isLock).map((p) => p.id);
+    if (ids.length) await tx.update(picks).set({ isLock: false }).where(inArray(picks.id, ids));
+    if (!clearing) {
+      await tx
+        .update(picks)
+        .set({ isLock: true })
+        .where(and(eq(picks.gameId, gameId), eq(picks.playerId, playerId)));
+    }
+  });
+
+  revalidatePath("/");
+  revalidatePath("/standings");
+  return { ok: true };
+}
+
 /** Remember who's using this browser so the app opens on the right player. */
 export async function selectPlayer(slug: string): Promise<void> {
   const jar = await cookies();

@@ -125,6 +125,12 @@ export const picks = pgTable(
     spreadAtPick: doublePrecision("spread_at_pick"),
     /** Filled in at kickoff because nobody picked. Graded the same as any other. */
     auto: boolean("auto").notNull().default(false),
+    /**
+     * The player's lock of the week. At most one per player per week — enforced
+     * by `setLock`, which clears the others in the same transaction, since the
+     * week lives on the game rather than here and can't be a unique index.
+     */
+    isLock: boolean("is_lock").notNull().default(false),
     createdAt: epochMs("created_at").notNull(),
     updatedAt: epochMs("updated_at").notNull(),
   },
