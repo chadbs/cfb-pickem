@@ -116,6 +116,31 @@ const DDL = [
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS picks_player_game_idx ON picks (player_id, game_id)`,
   `CREATE INDEX IF NOT EXISTS picks_game_idx ON picks (game_id)`,
+  `CREATE TABLE IF NOT EXISTS bracket_teams (
+    id SERIAL PRIMARY KEY,
+    season INTEGER NOT NULL,
+    seed INTEGER NOT NULL,
+    team_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    short TEXT NOT NULL,
+    abbr TEXT NOT NULL,
+    logo TEXT,
+    color TEXT,
+    updated_at BIGINT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS bracket_teams_seed_idx ON bracket_teams (season, seed)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS bracket_teams_team_idx ON bracket_teams (season, team_id)`,
+  `CREATE TABLE IF NOT EXISTS bracket_picks (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER NOT NULL REFERENCES players(id),
+    season INTEGER NOT NULL,
+    slot TEXT NOT NULL,
+    team_id TEXT NOT NULL,
+    auto BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS bracket_picks_slot_idx ON bracket_picks (player_id, season, slot)`,
   `CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -134,6 +159,7 @@ const EXPECTED_COLUMNS: Array<[table: string, column: string, type: string]> = [
   ["picks", "auto", "BOOLEAN NOT NULL DEFAULT FALSE"],
   ["games", "manual_spread", "DOUBLE PRECISION"],
   ["picks", "is_lock", "BOOLEAN NOT NULL DEFAULT FALSE"],
+  ["games", "notes", "TEXT"],
 ];
 
 async function bootstrap() {

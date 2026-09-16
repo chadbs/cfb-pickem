@@ -9,9 +9,9 @@ import { SiteTabs } from "@/components/SiteNav";
 import { StandingsPanel } from "@/components/StandingsPanel";
 import { WeekNav } from "@/components/WeekNav";
 import { WeekProgress } from "@/components/WeekProgress";
-import { LEAGUE_NAME } from "@/lib/config";
+import { LEAGUE_NAME, POSTSEASON_WEEK } from "@/lib/config";
 import { Countdown } from "@/components/Countdown";
-import { dayKey, dayLabel } from "@/lib/format";
+import { dayKey, dayLabel, weekLabel } from "@/lib/format";
 import type { GameView } from "@/lib/view-types";
 import {
   countAutoPicks,
@@ -21,6 +21,7 @@ import {
   getSeasonStandings,
   getSlateChange,
 } from "@/lib/queries";
+import { hasBracket } from "@/lib/playoff";
 import { getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
 
 // Live scores and kickoff locks make every render time-sensitive.
@@ -44,6 +45,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     getSeasonStandings(season),
   ]);
 
+  const playoffField = await hasBracket();
   const slug = (await cookies()).get("pickem_player")?.value;
   const me = slug ? await getPlayerBySlug(slug) : null;
   const meId = me?.id ?? null;
@@ -93,7 +95,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 {LEAGUE_NAME}
               </h1>
               <span className="nums hidden rounded-md border border-[var(--line)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--ink-dim)] sm:inline lg:hidden xl:inline">
-                Week {week}
+                {weekLabel(week)}
               </span>
               {week !== current.week && (
                 <Link
@@ -104,7 +106,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 </Link>
               )}
               <span className="ml-1 hidden lg:block">
-                <SiteTabs />
+                <SiteTabs bracket={playoffField} />
               </span>
             </div>
 
@@ -147,7 +149,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-6">
           <div className="min-w-0">
             {board.length === 0 ? (
-              <EmptyWeek week={week} />
+              <EmptyWeek week={week} label={weekLabel(week)} />
             ) : (
               <>
                 {meId === null && (
@@ -289,14 +291,16 @@ function groupByDay(games: GameView[]) {
   return groups;
 }
 
-function EmptyWeek({ week }: { week: number }) {
+function EmptyWeek({ week, label }: { week: number; label: string }) {
+  const postseason = week === POSTSEASON_WEEK;
   return (
     <div className="card flex flex-col items-center gap-2 px-6 py-16 text-center">
       <span className="text-2xl">🏈</span>
-      <p className="text-[14px] font-semibold">No slate for week {week} yet</p>
+      <p className="text-[14px] font-semibold">No slate for {label.toLowerCase()} yet</p>
       <p className="max-w-[20rem] text-[12.5px] leading-relaxed text-[var(--ink-faint)]">
-        Games are chosen automatically once ESPN posts the schedule and the books
-        put up lines. Check back closer to the weekend.
+        {postseason
+          ? "Ten bowls get picked like any other week. The slate fills in once ESPN posts the postseason schedule."
+          : "Games are chosen automatically once ESPN posts the schedule and the books put up lines. Check back closer to the weekend."}
       </p>
     </div>
   );

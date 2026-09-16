@@ -56,6 +56,7 @@ function toGameView(g: Game, gamePicks: GamePick[], now: number): GameView {
       score: started ? g.awayScore : null,
     },
     neutralSite: g.neutralSite,
+    notes: g.notes,
     venue: g.venue,
     broadcast: g.broadcast,
     spread: g.spread,

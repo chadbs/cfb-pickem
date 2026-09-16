@@ -36,6 +36,8 @@ export interface GameView {
   home: TeamView;
   away: TeamView;
   neutralSite: boolean;
+  /** Bowl name or playoff round, when there is one. */
+  notes: string | null;
   venue: string | null;
   broadcast: string | null;
   /** Home-relative live line. */
@@ -74,6 +76,8 @@ export interface CandidateView {
   neutralSite: boolean;
   spread: number | null;
   broadcast: string | null;
+  /** Bowl name or playoff round, when there is one. */
+  notes: string | null;
   /** Auto-picker score, for showing why a game ranks where it does. */
   score: number;
   reason: string;

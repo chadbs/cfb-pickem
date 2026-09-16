@@ -4,7 +4,20 @@
  */
 import { fetchCurrentWeek, fetchWeek, deriveHomeSpread, type EspnGame } from "../lib/espn";
 import { selectWeek, isFavorite, scoreGame } from "../lib/selection";
-import { CANDIDATE_CONFERENCE_IDS, AUTO_PICK_BIG_FAVORITE } from "../lib/config";
+import { CANDIDATE_CONFERENCE_IDS, AUTO_PICK_BIG_FAVORITE, POSTSEASON_WEEK } from "../lib/config";
+import {
+  SLOTS,
+  bracketFilled,
+  chalkBracket,
+  choicesFor,
+  completeWithChalk,
+  pruneBracket,
+  resolveBracket,
+  scoreBracket,
+  type BracketTeam,
+  type Winners,
+} from "../lib/bracket";
+import { readResults } from "../lib/playoff";
 import { autoPickSide } from "../lib/autopick";
 import { buildConferenceBreakdowns, FCS } from "../lib/conferences";
 import {
@@ -202,7 +215,7 @@ const mk = (o: GameOpts = {}): EspnGame => ({
           rank: o.homeRank ?? null, record: null, score: null, conferenceId: o.homeConf ?? "1" },
   away: { teamId: o.awayId ?? "a", name: "A", short: "A", abbr: "A", logo: null, color: null,
           rank: o.awayRank ?? null, record: null, score: null, conferenceId: o.awayConf ?? "1" },
-  neutralSite: false, venue: null, broadcast: null,
+  neutralSite: false, notes: null, venue: null, broadcast: null,
   spread: o.spread === undefined ? -3 : o.spread,
   overUnder: null, oddsProvider: null,
   status: "pre", statusDetail: null, period: null, clock: null, completed: false,
@@ -318,6 +331,152 @@ check(
   favsSelected.length === Math.min(favsInWeek.length, 10),
 );
 check("slate is in kickoff order", slate.every((s, i) => i === 0 || slate[i - 1].game.kickoff <= s.game.kickoff));
+
+// --------------------------------------------- 6. the playoff bracket
+// Checked against a playoff that has already happened: the 2025 field, where
+// 10-seed Miami reached the final and 1-seed Indiana won it.
+console.log("");
+console.log("=== 6. Playoff bracket ===");
+
+check("eleven games in a twelve-team bracket", SLOTS.length === 11);
+check(
+  "the top seed meets the 8/9 winner",
+  SLOTS.find((s) => s.id === "qf1")!.sources[0].kind === "seed" &&
+    JSON.stringify(SLOTS.find((s) => s.id === "qf1")!.sources) ===
+      JSON.stringify([{ kind: "seed", seed: 1 }, { kind: "slot", slot: "r1d" }]),
+);
+check(
+  "the 1/4 side of the draw is kept from the 2/3 side until the final",
+  JSON.stringify(SLOTS.find((s) => s.id === "sf1")!.sources) ===
+    JSON.stringify([{ kind: "slot", slot: "qf1" }, { kind: "slot", slot: "qf4" }]) &&
+    JSON.stringify(SLOTS.find((s) => s.id === "sf2")!.sources) ===
+      JSON.stringify([{ kind: "slot", slot: "qf2" }, { kind: "slot", slot: "qf3" }]),
+);
+
+const post = await fetchWeek(2025, POSTSEASON_WEEK);
+console.log(`  fetched ${post.length} postseason games from 2025`);
+check("the postseason comes back as one week of games", post.length > 30, `${post.length}`);
+check(
+  "stamped with our week number, not ESPN's",
+  post.every((g) => g.week === POSTSEASON_WEEK && g.seasonType === 3),
+);
+check(
+  "bowl names came through",
+  post.filter((g) => g.notes).length > 30,
+  `${post.filter((g) => g.notes).length} with notes`,
+);
+
+// Shape them like stored rows, which is what the bracket reads.
+const postRows = post.map(
+  (g) =>
+    ({
+      espnId: g.espnId, season: 2025, week: POSTSEASON_WEEK, seasonType: 3, kickoff: g.kickoff,
+      homeTeamId: g.home.teamId, homeName: g.home.name, homeShort: g.home.short,
+      homeAbbr: g.home.abbr, homeLogo: g.home.logo, homeColor: g.home.color, homeRank: g.home.rank,
+      homeScore: g.home.score,
+      awayTeamId: g.away.teamId, awayName: g.away.name, awayShort: g.away.short,
+      awayAbbr: g.away.abbr, awayLogo: g.away.logo, awayColor: g.away.color, awayRank: g.away.rank,
+      awayScore: g.away.score,
+      notes: g.notes, completed: g.completed, status: g.status,
+    }) as unknown as Game,
+);
+
+// Seeds come off the playoff games themselves, the same rule detectField uses.
+const seeded = new Map<number, BracketTeam>();
+for (const g of postRows) {
+  if (!/playoff/i.test(g.notes ?? "")) continue;
+  for (const side of ["home", "away"] as const) {
+    const s = side === "home" ? g.homeRank : g.awayRank;
+    if (!s || s < 1 || s > 12 || seeded.has(s)) continue;
+    seeded.set(s, {
+      seed: s,
+      teamId: side === "home" ? g.homeTeamId : g.awayTeamId,
+      name: side === "home" ? g.homeName : g.awayName,
+      short: side === "home" ? g.homeShort : g.awayShort,
+      abbr: side === "home" ? g.homeAbbr : g.awayAbbr,
+      logo: null,
+      color: null,
+    });
+  }
+}
+const field = [...seeded.values()].sort((a, b) => a.seed - b.seed);
+console.log(`  field: ${field.map((t) => `${t.seed} ${t.abbr}`).join(", ")}`);
+check("all twelve seeds detected", field.length === 12, `${field.length}`);
+check(
+  "seeds are 1 through 12 with no gaps",
+  field.every((t, i) => t.seed === i + 1),
+);
+
+const { results, slotGames } = readResults(field, postRows);
+const actual = resolveBracket(field, results);
+const winnerOf = (slot: string) => actual.find((r) => r.def.id === slot)!.winner;
+
+console.log(
+  "  results: " +
+    actual
+      .map((r) => `${r.def.id}=${r.winner ? `${r.winner.seed} ${r.winner.abbr}` : "—"}`)
+      .join(" "),
+);
+check("every bracket game resolved to a winner", actual.every((r) => r.winner), `${Object.keys(results).length}/11`);
+check("a game was found for all eleven slots", Object.keys(slotGames).length === 11);
+check("the 9 seed won the 8/9 game", winnerOf("r1d")?.seed === 9);
+check("the 10 seed reached the final", actual.find((r) => r.def.id === "sf2")!.winner?.seed === 10);
+check("the top seed won it all", winnerOf("final")?.seed === 1);
+
+// Chalk: every higher seed advancing. Deterministic against a played season.
+const chalk = chalkBracket(field);
+const chalkScore = scoreBracket(field, chalk, results);
+console.log(`  chalk scored ${chalkScore.points} with ${chalkScore.correct} right`);
+check("a full chalk bracket is complete", bracketFilled(field, chalk) === 11);
+check("chalk called five of eleven in 2025", chalkScore.correct === 5, `${chalkScore.correct}`);
+check("and scored 16", chalkScore.points === 16, `${chalkScore.points}`);
+check("chalk earns no upset bonus", chalkScore.slots.every((s) => s.upsetBonus === 0));
+
+// A perfect bracket: 28 from the rounds plus every upset bonus on offer.
+const perfect = scoreBracket(field, results, results);
+console.log(`  a perfect 2025 bracket scores ${perfect.points}`);
+check("perfect means eleven right", perfect.correct === 11);
+check("28 base points across the rounds", perfect.points - perfect.slots.reduce((n, s) => n + s.upsetBonus, 0) === 28);
+check("2025's upsets were worth 20 more", perfect.points === 48, `${perfect.points}`);
+check(
+  "the 10 over the 2 in a quarterfinal paid 8",
+  perfect.slots.find((s) => s.slot === "qf2")!.upsetBonus === 8,
+);
+check(
+  "a higher seed winning pays no bonus",
+  perfect.slots.find((s) => s.slot === "final")!.upsetBonus === 0,
+);
+check("nothing is left to play for", perfect.remaining === 0 && perfect.decided === 11);
+
+// Picking an underdog that loses pays nothing — the bonus is for being right.
+const wrongUpset: Winners = { ...chalk, r1c: field.find((t) => t.seed === 7)!.teamId };
+check(
+  "backing the favourite that lost scores zero there",
+  scoreBracket(field, wrongUpset, results).slots.find((s) => s.slot === "r1c")!.points === 0,
+);
+
+// Bracket integrity: a team knocked out can't still be alive downstream.
+const s5 = field.find((t) => t.seed === 5)!;
+const s12 = field.find((t) => t.seed === 12)!;
+const withUpset = pruneBracket(field, { r1a: s12.teamId, qf4: s12.teamId });
+check("an upset pick carries that team into the next round", withUpset.qf4 === s12.teamId);
+const reversed = pruneBracket(field, { r1a: s5.teamId, qf4: s12.teamId });
+check(
+  "changing the first round drops the pick it contradicts",
+  reversed.r1a === s5.teamId && reversed.qf4 === undefined,
+);
+check(
+  "the two teams offered in a game are the ones who can get there",
+  choicesFor(field, { r1a: s12.teamId }, "qf4")
+    .map((t) => t.seed)
+    .sort((a, b) => a - b)
+    .join(",") === "4,12",
+);
+check(
+  "chalk fills the gaps without overruling a pick already made",
+  completeWithChalk(field, { r1a: s12.teamId }).qf4 === field.find((t) => t.seed === 4)!.teamId &&
+    completeWithChalk(field, { r1a: s12.teamId }).r1a === s12.teamId,
+);
 
 console.log(`\n${failures === 0 ? "ALL CHECKS PASSED" : failures + " CHECK(S) FAILED"}\n`);
 process.exit(failures === 0 ? 0 : 1);

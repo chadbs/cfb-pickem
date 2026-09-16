@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { weekChip } from "@/lib/format";
 
 export function WeekNav({
   weeks,
@@ -39,7 +40,7 @@ export function WeekNav({
                 : "text-[var(--ink-faint)] hover:bg-white/[0.045] hover:text-[var(--ink-dim)]"
             }`}
           >
-            {w}
+            {weekChip(w)}
             {w === currentWeek && !isActive && (
               <span className="absolute right-1 top-1 h-1 w-1 rounded-full bg-[var(--live)]" />
             )}

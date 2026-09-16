@@ -10,6 +10,17 @@ const TABS = [
   { href: "/insights" as const, label: "Insights", icon: ChartIcon },
 ];
 
+/**
+ * The bracket tab only exists once there's a playoff field to fill in, which is
+ * December. A fifth of the navigation pointing at an empty page for three
+ * months is worse than not having it.
+ */
+const BRACKET_TAB = { href: "/bracket" as const, label: "Bracket", icon: BracketIcon };
+
+function tabsFor(bracket: boolean) {
+  return bracket ? [...TABS, BRACKET_TAB] : TABS;
+}
+
 const SPRING = { type: "spring" as const, stiffness: 480, damping: 38 };
 
 function useActive() {
@@ -18,11 +29,11 @@ function useActive() {
 }
 
 /** Inline pills beside the brand. Desktop only — the phone gets a bottom bar. */
-export function SiteTabs() {
+export function SiteTabs({ bracket = false }: { bracket?: boolean }) {
   const isActive = useActive();
   return (
     <nav className="hidden items-center gap-0.5 lg:flex">
-      {TABS.map((t) => {
+      {tabsFor(bracket).map((t) => {
         const active = isActive(t.href);
         return (
           <Link
@@ -54,12 +65,12 @@ export function SiteTabs() {
  * Fixed bottom bar on phones. Standings and Insights were previously reachable
  * only through a small link inside a card, which is not somewhere anyone looks.
  */
-export function BottomNav() {
+export function BottomNav({ bracket = false }: { bracket?: boolean }) {
   const isActive = useActive();
   return (
     <nav className="glass fixed inset-x-0 bottom-0 z-40 border-t border-[var(--line)] pb-[env(safe-area-inset-bottom)] lg:hidden">
       <div className="mx-auto flex max-w-md">
-        {TABS.map((t) => {
+        {tabsFor(bracket).map((t) => {
           const active = isActive(t.href);
           const Icon = t.icon;
           return (
@@ -117,6 +128,15 @@ function TrophyIcon({ active }: { active: boolean }) {
       <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
       <path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" />
       <path d="M12 14v4M9 20h6" />
+    </svg>
+  );
+}
+
+function BracketIcon({ active }: { active: boolean }) {
+  return (
+    <svg {...svgProps} strokeWidth={active ? 2.3 : 1.9}>
+      <path d="M4 5h4v6h4M4 19h4v-6" />
+      <path d="M20 5h-4v6h-4M20 19h-4v-6" />
     </svg>
   );
 }

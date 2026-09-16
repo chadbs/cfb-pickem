@@ -63,6 +63,8 @@ export const games = pgTable(
     awayConfId: text("away_conf_id"),
 
     neutralSite: boolean("neutral_site").notNull().default(false),
+    /** Bowl name or playoff round, e.g. "Allstate Sugar Bowl". */
+    notes: text("notes"),
     venue: text("venue"),
     broadcast: text("broadcast"),
 
@@ -140,12 +142,59 @@ export const picks = pgTable(
   ],
 );
 
+/**
+ * The twelve-team playoff field, seeded. Written once in December — detected
+ * from ESPN or entered by hand in /admin — and then fixed, because the bracket
+ * everyone filled out has to stay the bracket everyone filled out.
+ */
+export const bracketTeams = pgTable(
+  "bracket_teams",
+  {
+    id: serial("id").primaryKey(),
+    season: integer("season").notNull(),
+    seed: integer("seed").notNull(),
+    teamId: text("team_id").notNull(),
+    name: text("name").notNull(),
+    short: text("short").notNull(),
+    abbr: text("abbr").notNull(),
+    logo: text("logo"),
+    color: text("color"),
+    updatedAt: epochMs("updated_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("bracket_teams_seed_idx").on(t.season, t.seed),
+    uniqueIndex("bracket_teams_team_idx").on(t.season, t.teamId),
+  ],
+);
+
+/** One row per player per bracket slot: who they have winning that game. */
+export const bracketPicks = pgTable(
+  "bracket_picks",
+  {
+    id: serial("id").primaryKey(),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id),
+    season: integer("season").notNull(),
+    /** A `SlotId` from lib/bracket.ts — "r1a", "qf3", "final". */
+    slot: text("slot").notNull(),
+    teamId: text("team_id").notNull(),
+    /** Chalk, filled in at the first kickoff because they never submitted. */
+    auto: boolean("auto").notNull().default(false),
+    createdAt: epochMs("created_at").notNull(),
+    updatedAt: epochMs("updated_at").notNull(),
+  },
+  (t) => [uniqueIndex("bracket_picks_slot_idx").on(t.playerId, t.season, t.slot)],
+);
+
 export const meta = pgTable("meta", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
   updatedAt: epochMs("updated_at").notNull(),
 });
 
+export type BracketTeamRow = typeof bracketTeams.$inferSelect;
+export type BracketPickRow = typeof bracketPicks.$inferSelect;
 export type Player = typeof players.$inferSelect;
 export type Game = typeof games.$inferSelect;
 export type Pick = typeof picks.$inferSelect;

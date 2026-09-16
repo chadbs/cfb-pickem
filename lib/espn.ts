@@ -4,7 +4,13 @@
  * and go), so it's read defensively with optional chaining and normalised into
  * the typed structures below. Modelling the raw payload would imply guarantees
  * ESPN doesn't give us. Everything past this file is fully typed. */
-import { FBS_GROUP, UNRANKED } from "./config";
+import {
+  FBS_GROUP,
+  POSTSEASON_LABEL,
+  POSTSEASON_SEASON_TYPE,
+  POSTSEASON_WEEK,
+  UNRANKED,
+} from "./config";
 
 /**
  * ESPN's public scoreboard feed. No API key, no rate limit we've ever hit, and
@@ -78,6 +84,8 @@ export interface EspnGame {
   home: EspnTeamSide;
   away: EspnTeamSide;
   neutralSite: boolean;
+  /** Bowl name or playoff round, when the game has one. */
+  notes: string | null;
   venue: string | null;
   broadcast: string | null;
   /** Home-relative: negative means the home team is favored. Null when no line is posted yet. */
@@ -236,6 +244,9 @@ function normalizeEvent(event: any): EspnGame | null {
     home: h,
     away: a,
     neutralSite: Boolean(comp.neutralSite),
+    // The bowl or playoff round ("Allstate Sugar Bowl", "CFP First Round").
+    // A handful of regular-season showcase games carry one too.
+    notes: comp.notes?.[0]?.headline ?? null,
     venue: comp.venue?.fullName ?? null,
     broadcast: comp.broadcasts?.[0]?.names?.[0] ?? null,
     spread: deriveHomeSpread(odds, h.abbr, a.abbr),
@@ -249,20 +260,31 @@ function normalizeEvent(event: any): EspnGame | null {
   };
 }
 
-/** Every FBS game in a given week. */
+/**
+ * Every FBS game in a given week.
+ *
+ * `POSTSEASON_WEEK` is this app's own number for the postseason, which ESPN
+ * serves as seasontype 3, week 1 — every bowl and playoff game at once. The
+ * games come back stamped with our week number so the rest of the app never has
+ * to know the difference.
+ */
 export async function fetchWeek(
   season: number,
   week: number,
-  seasonType = 2,
+  seasonType?: number,
 ): Promise<EspnGame[]> {
+  const postseason = week === POSTSEASON_WEEK;
+  const type = seasonType ?? (postseason ? POSTSEASON_SEASON_TYPE : 2);
+  const espnWeek = postseason ? 1 : week;
+
   const data = await getJson(
-    `/scoreboard?groups=${FBS_GROUP}&limit=400&dates=${season}&seasontype=${seasonType}&week=${week}`,
+    `/scoreboard?groups=${FBS_GROUP}&limit=400&dates=${season}&seasontype=${type}&week=${espnWeek}`,
   );
   return (data.events ?? [])
     .map(normalizeEvent)
     .filter((g: EspnGame | null): g is EspnGame => g !== null)
     // ESPN occasionally returns a stray game from an adjacent week.
-    .map((g: EspnGame) => ({ ...g, season, week, seasonType }));
+    .map((g: EspnGame) => ({ ...g, season, week, seasonType: type }));
 }
 
 /**
@@ -316,10 +338,30 @@ export async function fetchCurrentWeek(): Promise<CurrentWeek> {
     endDate: e.endDate,
   }));
 
+  /**
+   * Once ESPN flips to the postseason — after championship weekend, about ten
+   * days before the first bowl — the pool gets its extra week. It's only added
+   * then, so a nav that can't lead anywhere useful in September doesn't carry a
+   * "Bowls" tab for three months.
+   */
+  const postseason = seasonType === POSTSEASON_SEASON_TYPE;
+  const post = data.leagues?.[0]?.calendar?.find(
+    (c: any) => String(c.value) === String(POSTSEASON_SEASON_TYPE),
+  );
+  if (postseason) {
+    weeks.push({
+      week: POSTSEASON_WEEK,
+      label: POSTSEASON_LABEL,
+      detail: post?.label ?? "Postseason",
+      startDate: post?.startDate ?? "",
+      endDate: post?.endDate ?? "",
+    });
+  }
+
   return {
     season,
-    week,
-    seasonType: seasonType === 3 ? 2 : seasonType, // keep the pool in the regular season
+    week: postseason ? POSTSEASON_WEEK : week,
+    seasonType,
     weeks: weeks.length ? weeks : [{ week: 1, label: "Week 1", detail: "", startDate: "", endDate: "" }],
   };
 }

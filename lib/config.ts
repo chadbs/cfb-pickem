@@ -80,6 +80,36 @@ export const LOCK_BONUS = 1;
  */
 export const CONFERENCE_SPOTLIGHT = ["4", "9", "8", "5", "1"]; // Big 12, Pac-12, SEC, Big Ten, ACC
 
+/**
+ * The postseason is one extra week in this app, numbered above the regular
+ * season's fifteen.
+ *
+ * ESPN packs the entire postseason into a single week — seasontype 3, week 1 —
+ * bowls and every playoff round together, 46 games in 2025. Mapping that onto
+ * one synthetic week number means every `(season, week)` query, the week nav and
+ * the standings keep working with no special cases, and the bowl slate is picked
+ * and graded exactly like any other week.
+ *
+ * The playoff games in there are also the bracket's source of truth; see
+ * [`lib/bracket.ts`](bracket.ts).
+ */
+export const POSTSEASON_WEEK = 16;
+export const POSTSEASON_SEASON_TYPE = 3;
+export const POSTSEASON_LABEL = "Bowls";
+
+/**
+ * Playoff bracket scoring. Rounds double — a first-round game is worth 1 and
+ * the title game 8, so 28 points are on the table before bonuses.
+ *
+ * On top of that, calling a game correctly when the lower seed wins pays the
+ * seed difference: a 12 over a 5 adds 7. It's deliberately generous, because
+ * one person calling the chaos right should be able to win the bracket from
+ * behind — and it pays nothing for merely liking an underdog that loses.
+ */
+export const BRACKET_SIZE = 12;
+export const BRACKET_ROUND_POINTS = { r1: 1, qf: 2, sf: 4, final: 8 } as const;
+export const BRACKET_UPSET_BONUS_PER_SEED = 1;
+
 /** ESPN group 80 = FBS (I-A). */
 export const FBS_GROUP = "80";
 

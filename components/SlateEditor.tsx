@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { resetSlate, setSlate } from "@/app/actions";
 import { GAMES_PER_WEEK } from "@/lib/config";
-import { formatSpread, formatTime } from "@/lib/format";
+import { formatSpread, formatTime, shortEventName } from "@/lib/format";
 import { useIsClient } from "@/lib/use-is-client";
 import type { CandidateView } from "@/lib/view-types";
 
@@ -43,7 +43,8 @@ export function SlateEditor({
         c.homeAbbr.toLowerCase().includes(q) ||
         c.awayName.toLowerCase().includes(q) ||
         c.homeName.toLowerCase().includes(q) ||
-        c.confLabel.toLowerCase().includes(q)
+        c.confLabel.toLowerCase().includes(q) ||
+        (c.notes ?? "").toLowerCase().includes(q)
       );
     });
   }, [candidates, query, showAll]);
@@ -303,7 +304,12 @@ function Row({
               {c.favorite}
             </span>
           )}
-          {c.confLabel && <span className="truncate">{c.confLabel}</span>}
+          {/* In the postseason the bowl name says more than the conferences. */}
+          {shortEventName(c.notes) ? (
+            <span className="truncate text-[var(--push)]">{shortEventName(c.notes)}</span>
+          ) : (
+            c.confLabel && <span className="truncate">{c.confLabel}</span>
+          )}
           {c.broadcast && <span>{c.broadcast}</span>}
         </span>
 

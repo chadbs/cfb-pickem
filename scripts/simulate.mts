@@ -13,6 +13,9 @@ import { fetchWeek } from "../lib/espn";
 import { syncWeek } from "../lib/sync";
 import { getBoard, getSeasonStandings } from "../lib/queries";
 import { autoPickSide } from "../lib/autopick";
+import { POSTSEASON_WEEK } from "../lib/config";
+import { completeWithChalk, type Winners } from "../lib/bracket";
+import { detectField, fillMissingBrackets, getField, getPlayoff, readResults } from "../lib/playoff";
 
 const SEASON = 2025;
 const WEEK = 5;
@@ -25,15 +28,19 @@ const check = (label: string, cond: boolean, extra = "") => {
 };
 
 async function cleanup() {
-  const rows = await db
-    .select({ id: games.id })
-    .from(games)
-    .where(and(eq(games.season, SEASON), eq(games.week, WEEK)));
-  const ids = rows.map((r) => r.id);
-  if (ids.length) {
-    await db.delete(picks).where(inArray(picks.gameId, ids));
-    await db.delete(games).where(inArray(games.id, ids));
+  for (const wk of [WEEK, POSTSEASON_WEEK]) {
+    const rows = await db
+      .select({ id: games.id })
+      .from(games)
+      .where(and(eq(games.season, SEASON), eq(games.week, wk)));
+    const ids = rows.map((r) => r.id);
+    if (ids.length) {
+      await db.delete(picks).where(inArray(picks.gameId, ids));
+      await db.delete(games).where(inArray(games.id, ids));
+    }
   }
+  await db.delete(schema.bracketPicks).where(eq(schema.bracketPicks.season, SEASON));
+  await db.delete(schema.bracketTeams).where(eq(schema.bracketTeams.season, SEASON));
 }
 
 await ready();
@@ -393,6 +400,119 @@ console.log("\n=== Lock of the week ===");
     "and no other game on the slate claims a lock",
     lockBoard.filter((g) => g.id !== target.id).every((g) => g.picks.every((p) => !p.isLock)),
   );
+}
+
+// ------------------------------------------- 9. bowls and the playoff bracket
+// The postseason, end to end, against one that already happened: store it as a
+// week, seed the field off the games, fill four brackets and score them.
+console.log("\n=== Postseason & bracket ===");
+{
+  const post = await fetchWeek(SEASON, POSTSEASON_WEEK);
+  check("the postseason stores as a single week", post.length > 30, `${post.length} games`);
+
+  const now2 = Date.now();
+  await db.insert(games).values(
+    post.map((g, i) => ({
+      espnId: g.espnId,
+      season: SEASON,
+      week: POSTSEASON_WEEK,
+      seasonType: g.seasonType,
+      kickoff: g.kickoff,
+      homeTeamId: g.home.teamId, homeName: g.home.name, homeShort: g.home.short,
+      homeAbbr: g.home.abbr, homeLogo: g.home.logo, homeColor: g.home.color,
+      homeRank: g.home.rank, homeRecord: g.home.record, homeScore: g.home.score,
+      homeConfId: g.home.conferenceId,
+      awayTeamId: g.away.teamId, awayName: g.away.name, awayShort: g.away.short,
+      awayAbbr: g.away.abbr, awayLogo: g.away.logo, awayColor: g.away.color,
+      awayRank: g.away.rank, awayRecord: g.away.record, awayScore: g.away.score,
+      awayConfId: g.away.conferenceId,
+      neutralSite: g.neutralSite, notes: g.notes, venue: g.venue, broadcast: g.broadcast,
+      spread: g.spread, lockedSpread: null, manualSpread: null,
+      overUnder: g.overUnder, oddsProvider: g.oddsProvider,
+      status: g.status, statusDetail: g.statusDetail, period: g.period, clock: g.clock,
+      completed: g.completed,
+      // A ten-game bowl slate, like any other week.
+      isSelected: i < 10, selectionRank: i < 10 ? i + 1 : null,
+      selectionScore: 0, selectionReason: "simulation", manualPin: false,
+      updatedAt: now2,
+    })),
+  );
+
+  const detected = await detectField(SEASON);
+  console.log(`  detected field: ${detected.map((t) => `${t.seed} ${t.abbr}`).join(", ")}`);
+  check("the field is detected from the games", detected.length === 12, `${detected.length}`);
+  check("seeded 1 to 12", detected.every((t, i) => t.seed === i + 1));
+
+  await db.insert(schema.bracketTeams).values(
+    detected.map((t) => ({
+      season: SEASON, seed: t.seed, teamId: t.teamId, name: t.name,
+      short: t.short, abbr: t.abbr, logo: t.logo, color: t.color, updatedAt: now2,
+    })),
+  );
+
+  const field = await getField(SEASON);
+  const { results } = readResults(field, await db.select().from(games).where(and(eq(games.season, SEASON), eq(games.week, POSTSEASON_WEEK))));
+  check("all eleven playoff games resolved from stored rows", Object.keys(results).length === 11);
+
+  // Darren goes chalk, Chad calls it perfectly, Jake does the first round only,
+  // Eric doesn't show up at all.
+  const chalk = completeWithChalk(field);
+  const store = async (playerId: number, w: Winners) => {
+    const rows = Object.entries(w)
+      .filter(([, t]) => Boolean(t))
+      .map(([slot, teamId]) => ({
+        playerId, season: SEASON, slot, teamId: teamId!, auto: false,
+        createdAt: now2, updatedAt: now2,
+      }));
+    if (rows.length) await db.insert(schema.bracketPicks).values(rows);
+  };
+  await store(1, chalk);
+  await store(2, results);
+  await store(3, { r1a: results.r1a!, r1b: results.r1b!, r1c: results.r1c!, r1d: results.r1d! });
+
+  const filled = await fillMissingBrackets(SEASON);
+  check("the deadline filled the unfinished brackets", filled > 0, `${filled} slots`);
+  const again = await fillMissingBrackets(SEASON);
+  check("and a second pass adds nothing", again === 0, `${again}`);
+
+  const playoff = await getPlayoff(SEASON);
+  const of = (slug: string) => playoff.entries.find((e) => e.player.slug === slug)!;
+
+  console.log("  brackets:");
+  for (const e of playoff.entries) {
+    console.log(
+      `    ${e.player.name.padEnd(7)} ${String(e.filled).padStart(2)}/11 picked  ` +
+        `${String(e.score.points).padStart(3)} pts  ${e.score.correct} right${e.auto ? "  (auto)" : ""}`,
+    );
+  }
+
+  check("the bracket is locked once games have been played", playoff.locked);
+  check("everyone ended up with a full bracket", playoff.entries.every((e) => e.filled === 11));
+  check("a perfect bracket scores 48", of("chad").score.points === 48, `${of("chad").score.points}`);
+  check("chalk scores 16", of("darren").score.points === 16, `${of("darren").score.points}`);
+  check(
+    "a no-show gets chalk and is flagged auto",
+    of("eric").score.points === 16 && of("eric").auto,
+    `${of("eric").score.points} auto=${of("eric").auto}`,
+  );
+  check(
+    "calling the first round right beats chalk",
+    of("jake").score.points > of("darren").score.points,
+    `${of("jake").score.points} vs ${of("darren").score.points}`,
+  );
+  check(
+    "a partly-filled bracket isn't branded auto",
+    of("jake").auto === false && of("chad").auto === false,
+  );
+  check(
+    "the upset bonus is what separates a perfect bracket from 28",
+    of("chad").score.slots.reduce((n, s) => n + s.upsetBonus, 0) === 20,
+  );
+
+  // The bowl slate itself grades like any other week.
+  const bowls = await getBoard(SEASON, POSTSEASON_WEEK);
+  check("the bowl slate is ten games", bowls.length === 10, `${bowls.length}`);
+  check("bowl names came through to the board", bowls.every((g) => g.notes));
 }
 
 await cleanup();

@@ -10,7 +10,13 @@ import {
 import { rankGames, type ScoredGame } from "./selection";
 import { autoPickSide } from "./autopick";
 import { effectiveSpread } from "./scoring";
-import { GAMES_PER_WEEK, SYNC_TTL_IDLE_MS, SYNC_TTL_LIVE_MS } from "./config";
+import { fillMissingBrackets } from "./playoff";
+import {
+  GAMES_PER_WEEK,
+  POSTSEASON_WEEK,
+  SYNC_TTL_IDLE_MS,
+  SYNC_TTL_LIVE_MS,
+} from "./config";
 
 const { games, picks, meta, players } = schema;
 
@@ -121,6 +127,7 @@ export function rowFromEspn(g: EspnGame) {
     awayScore: g.away.score,
     awayConfId: g.away.conferenceId,
     neutralSite: g.neutralSite,
+    notes: g.notes,
     venue: g.venue,
     broadcast: g.broadcast,
     spread: g.spread,
@@ -146,7 +153,7 @@ const LIVE_KEYS = [
   "homeRank", "homeRecord", "homeScore", "homeConfId",
   "awayTeamId", "awayName", "awayShort", "awayAbbr", "awayLogo", "awayColor",
   "awayRank", "awayRecord", "awayScore", "awayConfId",
-  "neutralSite", "venue", "broadcast",
+  "neutralSite", "notes", "venue", "broadcast",
   "spread", "lockedSpread", "overUnder", "oddsProvider",
   "status", "statusDetail", "period", "clock", "completed", "updatedAt",
 ] as const;
@@ -195,6 +202,7 @@ export function espnGameFromRow(g: typeof games.$inferSelect): EspnGame {
       conferenceId: g.awayConfId,
     },
     neutralSite: g.neutralSite,
+    notes: g.notes,
     venue: g.venue,
     broadcast: g.broadcast,
     // Ranked and listed at the line people will actually be picking against.
@@ -412,6 +420,16 @@ export async function syncWeek(
   // After the slate is settled, so a game added moments before kickoff still
   // gets everyone a pick.
   const autoPicked = await fillMissingPicks(season, week);
+
+  // The bracket closes at the first playoff kickoff; this is what makes an
+  // unfinished one get its chalk without anyone having to open the page.
+  if (week === POSTSEASON_WEEK) {
+    try {
+      await fillMissingBrackets(season);
+    } catch {
+      /* a bracket that can't be filled must not fail the score sync */
+    }
+  }
 
   await setMeta(`sync:${season}:${week}`, String(now));
 

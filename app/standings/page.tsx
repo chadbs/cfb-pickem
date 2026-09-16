@@ -3,8 +3,9 @@ import { Avatar } from "@/components/Avatar";
 import { SiteTabs } from "@/components/SiteNav";
 import { SeasonPredictions } from "@/components/SeasonPredictions";
 import { FAVORITE_TEAM_IDS, LEAGUE_NAME } from "@/lib/config";
-import { formatRecord, recordLine } from "@/lib/format";
+import { formatRecord, recordLine, weekChip } from "@/lib/format";
 import { getSeasonStandings, getTeamRecords } from "@/lib/queries";
+import { hasBracket } from "@/lib/playoff";
 import { getCurrentWeek } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export default async function Standings() {
   const current = await getCurrentWeek();
   const { standings, weekly, roster } = await getSeasonStandings(current.season);
   const teamRecords = await getTeamRecords(current.season, Object.keys(FAVORITE_TEAM_IDS));
+  const playoffField = await hasBracket();
 
   const played = standings.some((s) => s.wins + s.losses + s.pushes > 0);
 
@@ -31,7 +33,7 @@ export default async function Standings() {
             <h1 className="text-[14px] font-semibold tracking-[-0.011em]">{LEAGUE_NAME}</h1>
           </Link>
           <span className="ml-1">
-            <SiteTabs />
+            <SiteTabs bracket={playoffField} />
           </span>
           <span className="nums ml-auto text-[12px] text-[var(--ink-faint)]">
             {current.season} season
@@ -171,7 +173,9 @@ export default async function Standings() {
                       );
                       return (
                         <tr key={w.week} className="border-t border-[var(--line)]">
-                          <td className="nums px-3 py-2 text-[12px] text-[var(--ink-dim)]">{w.week}</td>
+                          <td className="nums px-3 py-2 text-[12px] text-[var(--ink-dim)]">
+                            {weekChip(w.week)}
+                          </td>
                           {standings.map((s) => {
                             const line = w.byPlayer[s.player.id];
                             const isBest = line && best > 0 && line.points === best;

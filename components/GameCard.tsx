@@ -6,7 +6,13 @@ import { motion } from "motion/react";
 import { setLock, setPick } from "@/app/actions";
 import { Avatar } from "./Avatar";
 import { readableTeamColor } from "@/lib/color";
-import { formatSpread, formatTime, formatWeekday, spreadForSide } from "@/lib/format";
+import {
+  formatSpread,
+  formatTime,
+  formatWeekday,
+  shortEventName,
+  spreadForSide,
+} from "@/lib/format";
 import { useIsClient } from "@/lib/use-is-client";
 import type { PickResult, Side } from "@/lib/scoring";
 import type { GamePick, GameView, PlayerView, TeamView } from "@/lib/view-types";
@@ -158,6 +164,7 @@ function GameHeader({
     ? formatTime(game.kickoff)
     : `${formatTime(game.kickoff, zone)} ET`;
   const day = formatWeekday(game.kickoff, zone);
+  const event = shortEventName(game.notes);
 
   return (
     <div className="flex items-center gap-2 px-3 pb-2 pt-2.5 text-[11px]">
@@ -178,6 +185,12 @@ function GameHeader({
           <span className="hidden lg:inline">{day} · </span>
           {when}
         </span>
+      )}
+
+      {/* Bowl name or playoff round. Rare in the regular season, essential in
+          the postseason, where "Ole Miss @ Miami" alone tells you nothing. */}
+      {event && (
+        <span className="min-w-0 max-w-[45%] truncate font-medium text-[var(--push)]">{event}</span>
       )}
 
       {/* Only offered once there's a pick here to double. After kickoff the

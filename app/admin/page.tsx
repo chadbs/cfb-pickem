@@ -1,10 +1,19 @@
 import Link from "next/link";
 import { and, eq, inArray } from "drizzle-orm";
+import { BracketFieldEditor } from "@/components/BracketFieldEditor";
 import { LineEditor } from "@/components/LineEditor";
 import { SlateEditor } from "@/components/SlateEditor";
-import { ADMIN_KEY, CANDIDATE_CONFERENCE_IDS, GAMES_PER_WEEK, LEAGUE_NAME } from "@/lib/config";
+import {
+  ADMIN_KEY,
+  CANDIDATE_CONFERENCE_IDS,
+  GAMES_PER_WEEK,
+  LEAGUE_NAME,
+  POSTSEASON_WEEK,
+} from "@/lib/config";
+import { getPlayoff, getSeasonTeams } from "@/lib/playoff";
 import { db, ready, schema } from "@/lib/db";
 import type { EspnGame } from "@/lib/espn";
+import { weekChip, weekLabel } from "@/lib/format";
 import { isFavorite, rankGames } from "@/lib/selection";
 import { espnGameFromRow, getConferences, getCurrentWeek, maybeSyncWeek } from "@/lib/sync";
 import { effectiveSpread } from "@/lib/scoring";
@@ -62,6 +71,7 @@ function buildCandidates(
       neutralSite: s.game.neutralSite,
       spread: s.game.spread,
       broadcast: s.game.broadcast,
+      notes: s.game.notes,
       score: Math.round(s.score),
       reason: s.reason,
       favorite: isFavorite(s.game),
@@ -150,6 +160,10 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
     for (const r of rows) pickCounts.set(r.gameId, (pickCounts.get(r.gameId) ?? 0) + 1);
   }
 
+  // Bracket tools only matter in the postseason, so they only load there.
+  const playoff = week === POSTSEASON_WEEK ? await getPlayoff(season) : null;
+  const seasonTeams = week === POSTSEASON_WEEK ? await getSeasonTeams(season) : [];
+
   const confNames = await getConferences(season);
   const candidates = buildCandidates(
     weekRows.map(espnGameFromRow),
@@ -168,7 +182,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
           <h1 className="text-[14px] font-semibold tracking-[-0.011em]">
             {LEAGUE_NAME} <span className="text-[var(--ink-faint)]">· slate</span>
           </h1>
-          <span className="nums ml-auto text-[12px] text-[var(--ink-faint)]">Week {week}</span>
+          <span className="nums ml-auto text-[12px] text-[var(--ink-faint)]">{weekLabel(week)}</span>
         </div>
       </header>
 
@@ -184,10 +198,21 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
                   : "text-[var(--ink-faint)] hover:bg-white/[0.045] hover:text-[var(--ink-dim)]"
               }`}
             >
-              {w.week}
+              {weekChip(w.week)}
             </Link>
           ))}
         </div>
+
+        {/* Only in the postseason — there is nothing to seed in September. */}
+        {playoff && (
+          <BracketFieldEditor
+            season={season}
+            teams={seasonTeams}
+            current={Object.fromEntries(playoff.field.map((t) => [t.seed, t.teamId]))}
+            locked={playoff.locked}
+            picksIn={playoff.entries.reduce((n, e) => n + e.filled, 0)}
+          />
+        )}
 
         <LineEditor games={buildLines(selectedRows)} />
         <SlateEditor season={season} week={week} candidates={candidates} />

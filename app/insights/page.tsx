@@ -6,6 +6,7 @@ import { ConferenceBreakdown } from "@/components/ConferenceBreakdown";
 import { LEAGUE_NAME } from "@/lib/config";
 import { recordLine } from "@/lib/format";
 import { getInsights, MIN_TEAM_GAMES, pct, total, type Rec } from "@/lib/insights";
+import { hasBracket } from "@/lib/playoff";
 import { getCurrentWeek } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function InsightsPage() {
   const current = await getCurrentWeek();
   const data = await getInsights(current.season);
+  const playoffField = await hasBracket();
 
   // Team and conference tables stand on their own now, so the page is worth
   // showing before anyone's picks have been graded.
@@ -34,7 +36,7 @@ export default async function InsightsPage() {
             <h1 className="text-[14px] font-semibold tracking-[-0.011em]">{LEAGUE_NAME}</h1>
           </Link>
           <span className="ml-1">
-            <SiteTabs />
+            <SiteTabs bracket={playoffField} />
           </span>
         </div>
       </header>

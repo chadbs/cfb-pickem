@@ -1,4 +1,5 @@
 /** Display helpers shared by server and client components. */
+import { POSTSEASON_LABEL, POSTSEASON_WEEK } from "./config";
 
 /** "-7.5", "+3.5", "PK". */
 export function formatSpread(spread: number | null): string {
@@ -71,6 +72,32 @@ export function formatRecord(pct: number): string {
 /** "3-1", or "3-1-1" when there are pushes. */
 export function recordLine(wins: number, losses: number, pushes: number): string {
   return pushes > 0 ? `${wins}-${losses}-${pushes}` : `${wins}-${losses}`;
+}
+
+/**
+ * Tidy up ESPN's event headline for a card: "College Football Playoff
+ * Quarterfinal at the Goodyear Cotton Bowl Classic" is accurate and far too
+ * long to sit above a game.
+ */
+export function shortEventName(notes: string | null): string | null {
+  if (!notes) return null;
+  const out = notes
+    .replace(/College Football Playoff/i, "CFP")
+    .replace(/\s+Presented by.*$/i, "")
+    .replace(/\s+at the\s+/i, " · ")
+    .replace(/\s+Game$/i, "")
+    .trim();
+  return out || null;
+}
+
+/** "Week 4", or "Bowls" for the postseason. */
+export function weekLabel(week: number): string {
+  return week === POSTSEASON_WEEK ? POSTSEASON_LABEL : `Week ${week}`;
+}
+
+/** Just as short as it can be, for the week nav's chips. */
+export function weekChip(week: number): string {
+  return week === POSTSEASON_WEEK ? POSTSEASON_LABEL : String(week);
 }
 
 /** "Thu" — used on desktop where cards carry their own day. */

@@ -82,6 +82,37 @@ numbers say different things: how often you were right, and what it was worth.
 that specific game kicks off. Everyone can see everyone's picks at all times —
 that's the point.
 
+**Bowls are a week.** ESPN serves the whole postseason as one lump — every bowl
+and every playoff game together, 46 of them in 2025 — so the app files it as
+week 16, labelled **Bowls**. Ten of them get picked against the spread and
+scored exactly like a Saturday in October, locks included. The tab appears once
+ESPN switches to the postseason, which is a few days after championship
+weekend. Cards show the bowl name, because "Ole Miss @ Miami" tells you nothing
+in December.
+
+**The playoff is a bracket instead.** Twelve teams, filled out in advance like
+March Madness, straight winners, no spreads — a separate contest from the
+weekly pool with its own table at `/bracket`.
+
+Seed the field in `/admin` during bowls week: **Detect** reads all twelve off
+ESPN's playoff games, which carry each team's bracket seed as its rank, and the
+dropdowns are there for the year that goes wrong. The bracket itself follows
+from the seeding — 5 v 12, 6 v 11, 7 v 10, 8 v 9, the top seed against whoever
+survives 8/9, and the 1/4 half kept away from the 2/3 half until the final.
+
+Rounds double: 1 point, 2, 4, then 8 for the title game, so 28 are on the table.
+A correct pick also pays the seed difference whenever the lower seed wins — 12
+over 5 is worth 7 more — which is what lets someone win the bracket from behind
+by calling the chaos. Backing an underdog that loses pays nothing. Run against
+the actual 2025 playoff, chalk scores 16 and a perfect bracket 48.
+
+Picks cascade the way a paper bracket does: advance a team and the next round
+opens up; change your mind and the picks that contradicted it disappear.
+Everything freezes at the first playoff kickoff, and an unfinished bracket is
+completed with chalk then, flagged auto — the same bargain the weekly slate
+makes. **Fill with chalk** does it early for anyone who only has opinions about
+three games.
+
 **Syncing.** Scores refresh whenever anyone loads the page, throttled to ~25
 seconds while games are live and 10 minutes otherwise. The page auto-refreshes
 itself while games are in progress. `/api/cron/sync` does the same on a schedule
@@ -133,7 +164,7 @@ unset and the page is simply open, which is fine for four people.
   but kept out of the rankings, since beating an FCS team says little.
 - **Teams against the spread**, minimum four games played.
 
-The last three are league-wide: every FBS game gets stored each week, not just
+The conference and team tables are league-wide: every FBS game gets stored each week, not just
 our ten, so these are full-season samples. Games that never had a line posted
 are left out of anything against the spread rather than counted as pick'ems.
 

@@ -5,10 +5,19 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { db, ready, schema } from "@/lib/db";
 import { autoSelectWeek, setSlatePinned, syncWeek } from "@/lib/sync";
-import { GAMES_PER_WEEK } from "@/lib/config";
+import { BRACKET_SIZE, GAMES_PER_WEEK } from "@/lib/config";
 import { effectiveSpread } from "@/lib/scoring";
+import {
+  choicesFor,
+  completeWithChalk,
+  isSlotId,
+  pruneBracket,
+  type SlotId,
+  type Winners,
+} from "@/lib/bracket";
+import { detectField, getField, getPlayoff } from "@/lib/playoff";
 
-const { games, picks, players } = schema;
+const { bracketPicks, bracketTeams, games, picks, players } = schema;
 
 export interface ActionResult {
   ok: boolean;
@@ -268,6 +277,220 @@ export async function setLine(gameId: number, spread: number | null): Promise<Ac
   revalidatePath("/admin");
   revalidatePath("/standings");
   revalidatePath("/insights");
+  return { ok: true };
+}
+
+/* ------------------------------------------------------ playoff bracket */
+
+/**
+ * Set or correct the twelve-team playoff field.
+ *
+ * Allowed only until the first playoff game kicks off, after which the bracket
+ * everyone filled out is the bracket that stands. A correction before then
+ * prunes any pick it invalidates — swap two seeds and most of a bracket
+ * survives, since picks are stored as teams rather than positions.
+ */
+export async function setBracketField(
+  season: number,
+  entries: Array<{ seed: number; teamId: string }>,
+): Promise<ActionResult> {
+  await ready();
+
+  const seeds = entries.map((e) => e.seed);
+  if (entries.length !== BRACKET_SIZE) {
+    return { ok: false, error: `The field is ${BRACKET_SIZE} teams` };
+  }
+  if (new Set(seeds).size !== BRACKET_SIZE || seeds.some((s) => s < 1 || s > BRACKET_SIZE)) {
+    return { ok: false, error: `Seeds must be 1 to ${BRACKET_SIZE}, one each` };
+  }
+  if (new Set(entries.map((e) => e.teamId)).size !== BRACKET_SIZE) {
+    return { ok: false, error: "The same team can't hold two seeds" };
+  }
+
+  const view = await getPlayoff(season);
+  if (view.locked) {
+    return { ok: false, error: "The playoff has started — the field is fixed" };
+  }
+
+  // Team details come from the games table, which holds every FBS team.
+  const wanted = new Set(entries.map((e) => e.teamId));
+  const rows = await db.select().from(games).where(eq(games.season, season));
+  const found = new Map<string, { name: string; short: string; abbr: string; logo: string | null; color: string | null }>();
+  for (const g of rows) {
+    for (const side of ["home", "away"] as const) {
+      const id = side === "home" ? g.homeTeamId : g.awayTeamId;
+      if (!wanted.has(id) || found.has(id)) continue;
+      found.set(id, {
+        name: side === "home" ? g.homeName : g.awayName,
+        short: side === "home" ? g.homeShort : g.awayShort,
+        abbr: side === "home" ? g.homeAbbr : g.awayAbbr,
+        logo: side === "home" ? g.homeLogo : g.awayLogo,
+        color: side === "home" ? g.homeColor : g.awayColor,
+      });
+    }
+  }
+
+  const missing = entries.filter((e) => !found.has(e.teamId));
+  if (missing.length) {
+    return { ok: false, error: "Some of those teams aren't in this season's games yet" };
+  }
+
+  const now = Date.now();
+  await db.transaction(async (tx) => {
+    await tx.delete(bracketTeams).where(eq(bracketTeams.season, season));
+    await tx.insert(bracketTeams).values(
+      entries.map((e) => ({
+        season,
+        seed: e.seed,
+        teamId: e.teamId,
+        ...found.get(e.teamId)!,
+        updatedAt: now,
+      })),
+    );
+  });
+
+  // Anything the new seeding makes impossible goes; the rest stands.
+  await pruneStoredBrackets(season);
+
+  revalidatePath("/bracket");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Drop stored picks that the current field no longer allows. */
+async function pruneStoredBrackets(season: number): Promise<void> {
+  const field = await getField(season);
+  const rows = await db.select().from(bracketPicks).where(eq(bracketPicks.season, season));
+
+  const byPlayer = new Map<number, typeof rows>();
+  for (const r of rows) byPlayer.set(r.playerId, [...(byPlayer.get(r.playerId) ?? []), r]);
+
+  for (const [, mine] of byPlayer) {
+    const kept = pruneBracket(
+      field,
+      Object.fromEntries(mine.map((r) => [r.slot, r.teamId])) as Winners,
+    );
+    const drop = mine.filter((r) => kept[r.slot as SlotId] !== r.teamId).map((r) => r.id);
+    if (drop.length) await db.delete(bracketPicks).where(inArray(bracketPicks.id, drop));
+  }
+}
+
+/**
+ * Advance a team in one bracket slot, or clear it by picking the team that's
+ * already there.
+ *
+ * A pick has to be one of the two teams that reach that game in this player's
+ * own bracket, and changing an earlier round drops the later picks it
+ * contradicts — the same rule a paper bracket enforces by having nowhere to
+ * write the name.
+ */
+export async function setBracketPick(
+  playerId: number,
+  season: number,
+  slot: string,
+  teamId: string,
+): Promise<ActionResult> {
+  await ready();
+
+  if (!isSlotId(slot)) return { ok: false, error: "Unknown bracket game" };
+
+  const view = await getPlayoff(season);
+  if (view.field.length === 0) return { ok: false, error: "The field hasn't been set yet" };
+  if (view.locked) return { ok: false, error: "The playoff has started — brackets are final" };
+
+  const entry = view.entries.find((e) => e.player.id === playerId);
+  if (!entry) return { ok: false, error: "Player not found" };
+
+  const legal = choicesFor(view.field, entry.picks, slot).some((t) => t.teamId === teamId);
+  if (!legal) return { ok: false, error: "That team isn't in this game" };
+
+  const next: Winners = { ...entry.picks };
+  // Tapping the team you already have winning takes them back out.
+  if (next[slot] === teamId) delete next[slot];
+  else next[slot] = teamId;
+
+  const pruned = pruneBracket(view.field, next);
+  const now = Date.now();
+
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(bracketPicks)
+      .where(and(eq(bracketPicks.playerId, playerId), eq(bracketPicks.season, season)));
+
+    const rows = Object.entries(pruned)
+      .filter(([, team]) => Boolean(team))
+      .map(([s, team]) => ({
+        playerId,
+        season,
+        slot: s,
+        teamId: team!,
+        auto: false,
+        createdAt: now,
+        updatedAt: now,
+      }));
+    if (rows.length) await tx.insert(bracketPicks).values(rows);
+  });
+
+  revalidatePath("/bracket");
+  return { ok: true };
+}
+
+/**
+ * Read the field off ESPN's playoff games: it carries each team's bracket seed
+ * as its rank. Returns a suggestion for the admin to confirm, not a saved
+ * field.
+ */
+export async function detectBracketField(
+  season: number,
+): Promise<ActionResult & { field?: Array<{ seed: number; teamId: string; abbr: string }> }> {
+  await ready();
+
+  const found = await detectField(season);
+  if (found.length === 0) {
+    return {
+      ok: false,
+      error: "No playoff games found yet — sync the bowls first, or seed it by hand",
+    };
+  }
+  if (found.length < BRACKET_SIZE) {
+    return {
+      ok: false,
+      error: `Only found ${found.length} of ${BRACKET_SIZE} seeds — the later rounds may not be posted yet`,
+      field: found.map((t) => ({ seed: t.seed, teamId: t.teamId, abbr: t.abbr })),
+    };
+  }
+  return { ok: true, field: found.map((t) => ({ seed: t.seed, teamId: t.teamId, abbr: t.abbr })) };
+}
+
+/**
+ * Fill in the rest of your own bracket with chalk, keeping what you've already
+ * chosen. A starting point for someone who only has opinions about three games.
+ */
+export async function chalkMyBracket(playerId: number, season: number): Promise<ActionResult> {
+  await ready();
+
+  const view = await getPlayoff(season);
+  if (view.field.length === 0) return { ok: false, error: "The field hasn't been set yet" };
+  if (view.locked) return { ok: false, error: "The playoff has started — brackets are final" };
+
+  const entry = view.entries.find((e) => e.player.id === playerId);
+  if (!entry) return { ok: false, error: "Player not found" };
+
+  const full = completeWithChalk(view.field, entry.picks);
+  const now = Date.now();
+
+  for (const [slot, teamId] of Object.entries(full)) {
+    if (!teamId || entry.picks[slot as SlotId] === teamId) continue;
+    await db
+      .insert(bracketPicks)
+      .values({ playerId, season, slot, teamId, auto: false, createdAt: now, updatedAt: now })
+      .onConflictDoUpdate({
+        target: [bracketPicks.playerId, bracketPicks.season, bracketPicks.slot],
+        set: { teamId, auto: false, updatedAt: now },
+      });
+  }
+
+  revalidatePath("/bracket");
   return { ok: true };
 }
 
