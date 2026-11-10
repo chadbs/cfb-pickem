@@ -8,6 +8,7 @@ const TABS = [
   { href: "/" as const, label: "Picks", icon: BallIcon },
   { href: "/standings" as const, label: "Standings", icon: TrophyIcon },
   { href: "/insights" as const, label: "Insights", icon: ChartIcon },
+  { href: "/formats" as const, label: "Formats", icon: FormatsIcon },
 ];
 
 /**
@@ -146,6 +147,14 @@ function ChartIcon({ active }: { active: boolean }) {
     <svg {...svgProps} strokeWidth={active ? 2.3 : 1.9}>
       <path d="M3 3v16a2 2 0 0 0 2 2h16" />
       <path d="m7 14 3.5-3.5 3 3L21 6" />
+    </svg>
+  );
+}
+
+function FormatsIcon({ active }: { active: boolean }) {
+  return (
+    <svg {...svgProps} strokeWidth={active ? 2.3 : 1.9}>
+      <path d="M3 5h5v4h4M3 13h5V9M3 19h9v-6M12 9v4h4M16 11h5" />
     </svg>
   );
 }
